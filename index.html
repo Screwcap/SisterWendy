@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sister Wendy's Dominoes</title>
+<style>
+:root {
+  --felt: #1a4a2e;
+  --felt-dark: #112e1c;
+  --wood: #5c3317;
+  --wood-light: #7a4520;
+  --ivory: #f5f0e0;
+  --pip: #1a1010;
+  --gold: #c9a84c;
+  --red: #8b1a1a;
+  --white: #f8f4ec;
+  --tile-shadow: 3px 3px 8px rgba(0,0,0,0.6);
+  --panel-bg: rgba(60,25,10,0.92);
+  --text-light: #f0e6cc;
+  --highlight: #ffe066;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Georgia', serif;
+  background: var(--felt-dark);
+  color: var(--text-light);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── LAYOUT ── */
+#game-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+#header {
+  background: var(--panel-bg);
+  border-bottom: 3px solid var(--gold);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+#header h1 {
+  font-size: 1.4rem;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(201,168,76,0.5);
+  letter-spacing: 1px;
+}
+#header h1 span { color: var(--white); font-size: 1rem; }
+#scores-display {
+  display: flex;
+  gap: 24px;
+  font-size: 0.9rem;
+}
+.score-block { text-align: center; }
+.score-label { color: var(--gold); font-size: 0.7rem; letter-spacing: 1px; text-transform: uppercase; }
+.score-val { font-size: 1.5rem; font-weight: bold; color: var(--white); }
+.score-bar-wrap { width: 80px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; margin-top: 2px; }
+.score-bar { height: 100%; border-radius: 3px; background: var(--gold); transition: width 0.5s; }
+
+/* ── WENDY PANEL ── */
+#wendy-panel {
+  background: var(--panel-bg);
+  border-bottom: 2px solid var(--wood);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#wendy-avatar {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  flex-shrink: 0;
+  position: relative;
+  cursor: default;
+}
+#wendy-avatar .halo {
+  position: absolute;
+  top: -4px; left: 50%;
+  transform: translateX(-50%);
+  width: 36px; height: 8px;
+  border: 3px solid var(--gold);
+  border-radius: 50%;
+  opacity: 0.7;
+}
+#speech-bubble {
+  flex: 1;
+  background: var(--white);
+  color: #2a1500;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-style: italic;
+  position: relative;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+}
+#speech-bubble::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 50%;
+  transform: translateY(-50%);
+  border: 8px solid transparent;
+  border-right-color: var(--white);
+  border-left: 0;
+}
+#wendy-hand-display {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.face-down-tile {
+  width: 28px; height: 52px;
+  background: repeating-linear-gradient(
+    45deg, #1a3a8a, #1a3a8a 4px, #0f2060 4px, #0f2060 8px
+  );
+  border: 2px solid #4a6abf;
+  border-radius: 5px;
+  box-shadow: var(--tile-shadow);
+}
+
+/* ── BOARD ── */
+#board-area {
+  flex: 1;
+  background: var(--felt);
+  background-image: radial-gradient(ellipse at center, #1e5535 0%, #112e1c 100%);
+  overflow: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#board-chain {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 20px;
+  min-height: 120px;
+  flex-wrap: nowrap;
+  transition: all 0.3s;
+}
+#board-empty-msg {
+  color: rgba(255,255,255,0.25);
+  font-size: 1rem;
+  font-style: italic;
+  text-align: center;
+  pointer-events: none;
+}
+#end-indicators {
+  position: absolute;
+  bottom: 8px;
+  display: flex;
+  gap: 20px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+}
+.end-badge {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.end-badge span { color: var(--highlight); font-weight: bold; }
+
+/* ── DOMINO TILES ── */
+.domino {
+  display: flex;
+  align-items: stretch;
+  background: var(--ivory);
+  border: 2px solid #888;
+  border-radius: 7px;
+  box-shadow: var(--tile-shadow);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.domino.vert {
+  flex-direction: column;
+  width: 44px;
+  min-height: 88px;
+}
+.domino.horiz {
+  flex-direction: row;
+  height: 44px;
+  min-width: 88px;
+}
+.domino:hover { transform: translateY(-4px); box-shadow: 3px 7px 12px rgba(0,0,0,0.7); }
+.domino.selected {
+  outline: 3px solid var(--highlight);
+  transform: translateY(-8px);
+  box-shadow: 0 10px 20px rgba(255,224,102,0.5);
+  z-index: 10;
+}
+.domino.playable { outline: 2px solid rgba(100,255,150,0.5); }
+.domino.unplayable { opacity: 0.45; cursor: not-allowed; }
+.domino.board-tile { cursor: default; }
+.domino.board-tile:hover { transform: none; }
+
+.pip-half {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 5px;
+  gap: 1px;
+}
+.domino.horiz .pip-half { padding: 4px; }
+.pip-half + .pip-half {
+  border-top: 2px solid #999;
+}
+.domino.horiz .pip-half + .pip-half {
+  border-top: none;
+  border-left: 2px solid #999;
+}
+.pip-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pip-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--pip);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+}
+.domino.horiz .pip-dot { width: 6px; height: 6px; }
+.pip-dot.empty { background: transparent; box-shadow: none; }
+
+/* end-select glow */
+.end-left { box-shadow: -4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
+.end-right { box-shadow: 4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
+
+/* ── PLAYER PANEL ── */
+#player-panel {
+  background: var(--panel-bg);
+  border-top: 3px solid var(--gold);
+  padding: 10px 16px;
+  flex-shrink: 0;
+}
+#player-hand {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 96px;
+  padding-bottom: 4px;
+}
+#player-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#player-label {
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+#draw-btn {
+  background: var(--wood);
+  color: var(--text-light);
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Georgia', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+#draw-btn:hover { background: var(--wood-light); }
+#draw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#action-msg {
+  font-size: 0.8rem;
+  color: var(--highlight);
+  font-style: italic;
+  text-align: center;
+  min-height: 18px;
+}
+
+/* ── OVERLAYS ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.overlay.hidden { display: none; }
+.overlay-box {
+  background: var(--panel-bg);
+  border: 3px solid var(--gold);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 460px;
+  width: 90%;
+  box-shadow: 0 0 60px rgba(201,168,76,0.3);
+}
+.overlay-box h2 {
+  font-size: 2rem;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.overlay-box p {
+  font-size: 1rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.overlay-box .big-emoji { font-size: 5rem; margin-bottom: 12px; display: block; }
+.btn-primary {
+  background: var(--gold);
+  color: #1a0a00;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1.1rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 4px;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(201,168,76,0.6); }
+.btn-secondary {
+  background: transparent;
+  color: var(--text-light);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  margin: 4px;
+}
+.round-scores { display: flex; justify-content: center; gap: 32px; margin: 16px 0; }
+.round-score-item { text-align: center; }
+.round-score-item .pts { font-size: 2rem; font-weight: bold; color: var(--gold); }
+.round-score-item .lbl { font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+
+/* Score flash animation */
+@keyframes scoreFlash {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.4); color: var(--highlight); }
+  100% { transform: scale(1); }
+}
+.score-flash { animation: scoreFlash 0.5s ease-out; }
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.tile-new { animation: slideIn 0.25s ease-out; }
+
+@keyframes wendy-angry {
+  0%,100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+.wendy-shake { animation: wendy-angry 0.4s ease; }
+
+/* Turn indicator */
+#turn-indicator {
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: rgba(255,255,255,0.5);
+}
+#turn-indicator.your-turn { color: var(--highlight); border: 1px solid var(--highlight); }
+
+/* Boneyard count */
+#boneyard-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  font-size: 0.7rem;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: rgba(255,255,255,0.5);
+}
+</style>
+</head>
+<body>
+
+<div id="game-wrap">
+  <!-- HEADER -->
+  <div id="header">
+    <h1>Sister Wendy's Dominoes <span>— Horse Race Rules</span></h1>
+    <div id="scores-display">
+      <div class="score-block">
+        <div class="score-label">You</div>
+        <div class="score-val" id="player-score-val">0</div>
+        <div class="score-bar-wrap"><div class="score-bar" id="player-bar" style="width:0%"></div></div>
+      </div>
+      <div style="color:var(--gold);font-size:1.2rem;align-self:center;">vs</div>
+      <div class="score-block">
+        <div class="score-label">Sr. Wendy</div>
+        <div class="score-val" id="wendy-score-val">0</div>
+        <div class="score-bar-wrap"><div class="score-bar" id="wendy-bar" style="width:0%;background:#c04040"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WENDY PANEL -->
+  <div id="wendy-panel">
+    <div id="wendy-avatar">
+      <div class="halo"></div>
+      <div style="font-size:2.8rem">&#x1F476;</div>
+      <div style="font-size:0.55rem;text-align:center;color:var(--gold);letter-spacing:1px;margin-top:-2px">SR. WENDY</div>
+    </div>
+    <div id="speech-bubble">Shuffle up and pray, child.</div>
+    <div id="wendy-hand-display"></div>
+  </div>
+
+  <!-- BOARD -->
+  <div id="board-area">
+    <div id="boneyard-badge">Boneyard: <span id="boneyard-count">14</span></div>
+    <div id="turn-indicator">Your Turn</div>
+    <div id="board-chain">
+      <div id="board-empty-msg">First tile sets the table — lead with faith.</div>
+    </div>
+    <div id="end-indicators" class="hidden">
+      <div class="end-badge">Left: <span id="left-end-val">—</span></div>
+      <div class="end-badge">Right: <span id="right-end-val">—</span></div>
+    </div>
+  </div>
+
+  <!-- PLAYER PANEL -->
+  <div id="player-panel">
+    <div id="action-msg">Select a tile to play.</div>
+    <div id="player-hand"></div>
+    <div id="player-controls">
+      <div id="player-label">Your Hand</div>
+      <button id="draw-btn" onclick="game.playerDraw()">Draw from Boneyard (<span id="draw-count">14</span> left)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MENU OVERLAY -->
+<div class="overlay" id="menu-overlay">
+  <div class="overlay-box">
+    <span class="big-emoji">&#x1F476;</span>
+    <h2>Sister Wendy's Dominoes</h2>
+    <p style="font-style:italic;color:var(--gold);font-size:1.1rem;">"Bless your heart, child.<br>You're going to need it."</p>
+    <p>Horse Race rules &bull; First to 61 points wins &bull; Score multiples of 5</p>
+    <br>
+    <button class="btn-primary" onclick="game.startRound()">Begin Penance</button>
+    <br><br>
+    <p style="font-size:0.75rem;opacity:0.5">Made with equal parts love and guilt</p>
+  </div>
+</div>
+
+<!-- ROUND END OVERLAY -->
+<div class="overlay hidden" id="round-overlay">
+  <div class="overlay-box">
+    <span class="big-emoji" id="round-emoji">&#x2694;</span>
+    <h2 id="round-title">Round Over</h2>
+    <p id="round-msg">...</p>
+    <div class="round-scores">
+      <div class="round-score-item">
+        <div class="pts" id="round-player-pts">+0</div>
+        <div class="lbl">You scored</div>
+      </div>
+      <div class="round-score-item">
+        <div class="pts" id="round-wendy-pts">+0</div>
+        <div class="lbl">Sister Wendy</div>
+      </div>
+    </div>
+    <p id="round-totals" style="color:var(--gold)"></p>
+    <br>
+    <button class="btn-primary" id="next-round-btn" onclick="game.startRound()">Next Round</button>
+  </div>
+</div>
+
+<!-- GAME END OVERLAY -->
+<div class="overlay hidden" id="gameover-overlay">
+  <div class="overlay-box">
+    <span class="big-emoji" id="end-emoji">&#x1F3C6;</span>
+    <h2 id="end-title">Game Over</h2>
+    <p id="end-msg">...</p>
+    <br>
+    <button class="btn-primary" onclick="game.newGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  SISTER WENDY'S DOMINOES — Horse Race Rules
+//  v1.0 — Base for nanobot team iteration
+// ============================================================
+
+// ── PIP GRID PATTERNS (3x3 grid, 0=top-left, 4=center, 8=bottom-right) ──
+const PIP = {
+  0: [],
+  1: [4],
+  2: [2, 6],
+  3: [2, 4, 6],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 3, 6, 2, 5, 8],
+};
+
+// ── SISTER WENDY QUOTES ──
+const WENDY_QUOTES = {
+  gameStart:  ["Shuffle up and pray, child.", "Bless your heart. You'll need it.", "I've seen better hands at bingo night.", "Let us begin. May God have mercy on your tiles."],
+  herTurn:    ["Calculating divine strategy...", "The Lord is guiding my hand.", "I see your tiles from here, you know.", "Patience is a virtue. Mine is running out."],
+  herScores:  ["God rewards the devout — and my arithmetic!", "That's FIFTEEN. Count it, child.", "The Lord provides. In multiples of five.", "Ha! Did you see that? Did you SEE that?!"],
+  herBigScore:["Sweet Mary! That's a miracle!", "TWENTY-FIVE! I'm basically a prophet.", "The rosary pays off at last!"],
+  playerScores:["Hmph. Beginner's grace.", "Don't get used to that.", "Fine. Enjoy it. It won't last.", "Even a broken clock..."],
+  herCantPlay:["Drawing like rosary beads... give me strength.", "Lord, why hast thou forsaken my boneyard.", "I must draw. Do not laugh.", "This is humiliating."],
+  playerCantPlay:["Even your dominoes are hiding from you.", "The boneyard awaits, sinner.", "Draw. Draw. Draw. Like your strategy.", "God is testing you. You are failing."],
+  herDomino:  ["DOMINO! The Lord's work is done.", "Blessed are the swift, for they shall domino.", "And THAT is how a nun plays dominoes.", "In nomine Patris et Filii — DOMINO!"],
+  playerDomino:["Fine. You got lucky.", "I let you win. For your moral development.", "Enjoy this. It won't happen again.", "Well. I'll be saying extra prayers tonight."],
+  blocked:    ["This is what happens when nobody listened at Mass.", "We are ALL blocked. Like my sinuses. And your strategy.", "A draw. How very... Protestant of us."],
+  herDouble:  ["A divine double! Providence smiles.", "Double blessing!", "The Lord gives in pairs."],
+  playerDouble:["Even a broken clock...", "Don't celebrate. It's one double.", "Fine. Double. Very impressive."],
+  angry:      ["You think this is FUNNY?!", "Lord give me strength.", "I see how it is.", "This is NOT over."],
+  smug:       ["As I was saying...", "Mm-hmm. As expected.", "Naturally.", "Of course."],
+};
+
+function randQuote(key) {
+  const arr = WENDY_QUOTES[key] || WENDY_QUOTES.herTurn;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ── TILE ──
+class Tile {
+  constructor(a, b) {
+    this.a = a;
+    this.b = b;
+    this.id = `${a}-${b}`;
+    this.flipped = false; // if true, b is the "left" end when placed
+  }
+  isDouble() { return this.a === this.b; }
+  left()  { return this.flipped ? this.b : this.a; }
+  right() { return this.flipped ? this.a : this.b; }
+  pips()  { return this.a + this.b; }
+}
+
+// ── BOARD ──
+class Board {
+  constructor() {
+    this.chain = [];   // Tile[], left to right
+    this.leftEnd  = null;
+    this.rightEnd = null;
+  }
+  isEmpty() { return this.chain.length === 0; }
+
+  validEnds(tile) {
+    if (this.isEmpty()) return ['first'];
+    const ends = [];
+    if (tile.a === this.leftEnd || tile.b === this.leftEnd)  ends.push('left');
+    if (tile.a === this.rightEnd || tile.b === this.rightEnd) ends.push('right');
+    // dedupe if both ends are same value
+    return [...new Set(ends)];
+  }
+
+  canPlay(tile) { return this.validEnds(tile).length > 0; }
+
+  play(tile, end) {
+    if (this.isEmpty() || end === 'first') {
+      this.chain.push(tile);
+      this.leftEnd  = tile.a;
+      this.rightEnd = tile.b;
+      return;
+    }
+    if (end === 'left') {
+      if (tile.b === this.leftEnd) {
+        tile.flipped = false;
+        this.leftEnd = tile.a;
+      } else {
+        tile.flipped = true;
+        this.leftEnd = tile.b;
+      }
+      this.chain.unshift(tile);
+    } else {
+      if (tile.a === this.rightEnd) {
+        tile.flipped = false;
+        this.rightEnd = tile.b;
+      } else {
+        tile.flipped = true;
+        this.rightEnd = tile.a;
+      }
+      this.chain.push(tile);
+    }
+  }
+
+  // Horse Race scoring: left + right ends; award if multiple of 5
+  scoreValue() {
+    if (this.chain.length === 0) return 0;
+    const sum = this.leftEnd + this.rightEnd;
+    return sum % 5 === 0 ? sum : 0;
+  }
+}
+
+// ── AI (Sister Wendy) ──
+function aiPickPlay(hand, board) {
+  const candidates = [];
+  for (const tile of hand) {
+    const ends = board.validEnds(tile);
+    for (const end of ends) {
+      // simulate the play to get score
+      const sim = new Board();
+      Object.assign(sim, { chain: [...board.chain], leftEnd: board.leftEnd, rightEnd: board.rightEnd });
+      const simTile = new Tile(tile.a, tile.b);
+      sim.play(simTile, end);
+      const scoreGained = sim.scoreValue();
+      candidates.push({ tile, end, scoreGained });
+    }
+  }
+  if (candidates.length === 0) return null;
+
+  // Strategy: prefer highest scoring play, then doubles, then highest pip tile
+  candidates.sort((a, b) => {
+    if (b.scoreGained !== a.scoreGained) return b.scoreGained - a.scoreGained;
+    if (a.tile.isDouble() !== b.tile.isDouble()) return a.tile.isDouble() ? -1 : 1;
+    return b.tile.pips() - a.tile.pips();
+  });
+  return candidates[0];
+}
+
+// ── MAIN GAME ──
+class Game {
+  constructor() {
+    this.TARGET = 61;
+    this.playerTotal = 0;
+    this.wendyTotal  = 0;
+    this.newGame(true);
+  }
+
+  newGame(silent) {
+    this.playerTotal = 0;
+    this.wendyTotal  = 0;
+    this.updateScoreDisplay();
+    if (!silent) this.startRound();
+  }
+
+  startRound() {
+    this.hideAllOverlays();
+    this.board     = new Board();
+    this.boneyard  = this._shuffle(this._fullSet());
+    this.playerHand = this.boneyard.splice(0, 7);
+    this.wendyHand  = this.boneyard.splice(0, 7);
+    this.selected   = null;
+    this.phase      = 'select'; // select | end
+    this.turn       = this._firstPlayer();
+    this.renderAll();
+    if (this.turn === 'wendy') {
+      this.setAction("Sister Wendy goes first. God's will.");
+      this.setSpeech(randQuote('gameStart'));
+      setTimeout(() => this.doWendyTurn(), 1400);
+    } else {
+      this.setSpeech(randQuote('gameStart'));
+      this.setAction("Your turn — pick a tile.");
+    }
+  }
+
+  // ── PLAYER ACTIONS ──
+  playerSelectTile(tile) {
+    if (this.turn !== 'player' || this.phase === 'wendy-thinking') return;
+    if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
+      this.setAction("That tile doesn't fit. Try another.");
+      return;
+    }
+    this.selected = tile;
+    const ends = this.board.validEnds(tile);
+    if (ends.length === 1 || this.board.isEmpty()) {
+      this.playerPlayTile(tile, ends[0] || 'first');
+    } else {
+      // Both ends work — ask player to pick
+      this.phase = 'end';
+      this.setAction("Choose which end to attach — left or right.");
+      this.renderBoard();
+    }
+  }
+
+  playerSelectEnd(end) {
+    if (this.phase !== 'end' || !this.selected) return;
+    this.playerPlayTile(this.selected, end);
+  }
+
+  playerPlayTile(tile, end) {
+    const idx = this.playerHand.indexOf(tile);
+    if (idx < 0) return;
+    this.playerHand.splice(idx, 1);
+    this.board.play(tile, end);
+    const scored = this.board.scoreValue();
+    this.phase = 'select';
+    this.selected = null;
+
+    if (tile.isDouble()) this.setSpeech(randQuote('playerDouble'));
+
+    if (scored > 0) {
+      this.playerTotal += scored;
+      this.setSpeech(randQuote('playerScores'));
+      this.setAction(`+${scored} points! You score — play again!`);
+      this.flashScore('player');
+      this.updateScoreDisplay();
+      this.renderAll();
+      if (this.checkGameWin()) return;
+      if (this.playerHand.length === 0) { this.endRound('player'); return; }
+      // extra turn on score
+      return;
+    }
+
+    if (tile.isDouble() && scored === 0) {
+      // extra turn for playing a double (house rule variant — skip for simplicity, just continue)
+    }
+
+    this.renderAll();
+    if (this.playerHand.length === 0) { this.endRound('player'); return; }
+    this.setAction("Select a tile to play.");
+    this.turn = 'wendy';
+    this.setSpeech(randQuote('herTurn'));
+    setTimeout(() => this.doWendyTurn(), 900 + Math.random() * 600);
+  }
+
+  playerDraw() {
+    if (this.turn !== 'player') return;
+    if (this.boneyard.length === 0) {
+      this.setAction("Boneyard empty — you must pass.");
+      this.setSpeech(randQuote('playerCantPlay'));
+      this.turn = 'wendy';
+      setTimeout(() => this.doWendyTurn(), 900);
+      return;
+    }
+    const drawn = this.boneyard.splice(0, 1)[0];
+    this.playerHand.push(drawn);
+    this.renderAll();
+
+    if (this.board.canPlay(drawn)) {
+      this.setAction(`Drew [${drawn.a}|${drawn.b}] — you can play it!`);
+      this.turn = 'wendy'; // drew & got one — must pass turn per rules
+      setTimeout(() => this.doWendyTurn(), 900);
+    } else if (this.boneyard.length > 0) {
+      this.setAction(`Drew [${drawn.a}|${drawn.b}] — still no match. Draw again or pass.`);
+    } else {
+      this.setAction("Boneyard empty. You must pass.");
+      this.setSpeech(randQuote('playerCantPlay'));
+      this.turn = 'wendy';
+      setTimeout(() => this.doWendyTurn(), 900);
+    }
+  }
+
+  // ── WENDY AI TURN ──
+  doWendyTurn() {
+    if (this.turn !== 'wendy') return;
+    document.getElementById('turn-indicator').textContent = "Sister Wendy's Turn";
+    document.getElementById('turn-indicator').className = '';
+
+    const play = aiPickPlay(this.wendyHand, this.board);
+
+    if (!play) {
+      // can't play — draw
+      if (this.boneyard.length > 0) {
+        this.setSpeech(randQuote('herCantPlay'));
+        const drawn = this.boneyard.splice(0, 1)[0];
+        this.wendyHand.push(drawn);
+        this.renderAll();
+        // try again after brief pause
+        setTimeout(() => this.doWendyTurn(), 700);
+        return;
+      } else {
+        // must pass
+        this.setSpeech(randQuote('herCantPlay'));
+        this.turn = 'player';
+        this.setAction("Sister Wendy passes. Your turn!");
+        this.setTurnIndicator();
+        this.renderHand();
+        return;
+      }
+    }
+
+    // Play the tile
+    const idx = this.wendyHand.indexOf(play.tile);
+    this.wendyHand.splice(idx, 1);
+    this.board.play(play.tile, play.end);
+
+    if (play.tile.isDouble()) this.setSpeech(randQuote('herDouble'));
+
+    if (play.scoreGained > 0) {
+      this.wendyTotal += play.scoreGained;
+      const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
+      this.setSpeech(quote);
+      this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
+      this.flashScore('wendy');
+      this.updateScoreDisplay();
+      this.renderAll();
+      if (this.checkGameWin()) return;
+      if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+      setTimeout(() => this.doWendyTurn(), 1100);
+      return;
+    }
+
+    this.renderAll();
+    if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+
+    // Check if player is blocked too → blocked game
+    const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+    const wendyCanPlay  = this.wendyHand.some(t => this.board.canPlay(t));
+    if (!playerCanPlay && !wendyCanPlay && this.boneyard.length === 0) {
+      this.endRound('blocked'); return;
+    }
+
+    this.turn = 'player';
+    this.setTurnIndicator();
+    this.setAction("Your turn — pick a tile.");
+    this.renderHand();
+
+    if (!this.playerHand.some(t => this.board.canPlay(t)) && this.boneyard.length === 0) {
+      this.setSpeech(randQuote('playerCantPlay'));
+      this.setAction("No valid moves and boneyard empty. You must pass.");
+      this.turn = 'wendy';
+      setTimeout(() => this.doWendyTurn(), 900);
+    }
+  }
+
+  // ── ROUND END ──
+  endRound(winner) {
+    // Count remaining pips
+    let playerLeftover = this.playerHand.reduce((s, t) => s + t.pips(), 0);
+    let wendyLeftover  = this.wendyHand.reduce((s, t) => s + t.pips(), 0);
+
+    let playerRoundPts = 0, wendyRoundPts = 0;
+    let title, msg, emoji;
+
+    if (winner === 'player') {
+      playerRoundPts = Math.round(wendyLeftover / 5) * 5;
+      title = "Domino!";
+      emoji = "&#x1F3C6;";
+      msg = randQuote('playerDomino');
+      this.setSpeech(randQuote('playerDomino'));
+    } else if (winner === 'wendy') {
+      wendyRoundPts = Math.round(playerLeftover / 5) * 5;
+      title = "Sister Wendy Dominoes!";
+      emoji = "&#x1F476;";
+      msg = randQuote('herDomino');
+      this.setSpeech(randQuote('herDomino'));
+    } else {
+      // blocked: lowest pip count wins
+      if (playerLeftover <= wendyLeftover) {
+        playerRoundPts = Math.round((wendyLeftover - playerLeftover) / 5) * 5;
+        title = "Blocked — You Win!";
+        emoji = "&#x1F4AA;";
+        msg = randQuote('blocked');
+      } else {
+        wendyRoundPts = Math.round((playerLeftover - wendyLeftover) / 5) * 5;
+        title = "Blocked — Wendy Wins!";
+        emoji = "&#x2698;";
+        msg = randQuote('blocked');
+      }
+      this.setSpeech(randQuote('blocked'));
+    }
+
+    this.playerTotal += playerRoundPts;
+    this.wendyTotal  += wendyRoundPts;
+    this.updateScoreDisplay();
+
+    document.getElementById('round-emoji').innerHTML = emoji;
+    document.getElementById('round-title').textContent = title;
+    document.getElementById('round-msg').textContent = msg;
+    document.getElementById('round-player-pts').textContent = `+${playerRoundPts}`;
+    document.getElementById('round-wendy-pts').textContent = `+${wendyRoundPts}`;
+    document.getElementById('round-totals').textContent =
+      `Game totals — You: ${this.playerTotal} | Sister Wendy: ${this.wendyTotal} / ${this.TARGET}`;
+
+    if (this.playerTotal >= this.TARGET || this.wendyTotal >= this.TARGET) {
+      setTimeout(() => this.showGameEnd(), 400);
+    } else {
+      document.getElementById('round-overlay').classList.remove('hidden');
+    }
+  }
+
+  showGameEnd() {
+    this.hideAllOverlays();
+    const playerWon = this.playerTotal >= this.TARGET;
+    document.getElementById('end-emoji').innerHTML   = playerWon ? '&#x1F3C6;' : '&#x1F476;';
+    document.getElementById('end-title').textContent = playerWon ? 'You Win!' : 'Sister Wendy Wins!';
+    document.getElementById('end-msg').textContent   = playerWon
+      ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
+      : `Final: Wendy ${this.wendyTotal} — You ${this.playerTotal}. ${randQuote('herDomino')}`;
+    document.getElementById('gameover-overlay').classList.remove('hidden');
+  }
+
+  checkGameWin() {
+    if (this.playerTotal >= this.TARGET) { this.showGameEnd(); return true; }
+    if (this.wendyTotal  >= this.TARGET) { this.showGameEnd(); return true; }
+    return false;
+  }
+
+  // ── RENDER ──
+  renderAll() {
+    this.renderBoard();
+    this.renderHand();
+    this.renderWendyHand();
+    this.updateEndIndicators();
+    this.updateBoneyardCount();
+    this.setTurnIndicator();
+  }
+
+  renderBoard() {
+    const chain = document.getElementById('board-chain');
+    const emptyMsg = document.getElementById('board-empty-msg');
+
+    if (this.board.isEmpty()) {
+      chain.innerHTML = '';
+      chain.appendChild(emptyMsg);
+      emptyMsg.style.display = '';
+      document.getElementById('end-indicators').classList.add('hidden');
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    document.getElementById('end-indicators').classList.remove('hidden');
+
+    chain.innerHTML = '';
+
+    // end-select mode — add left/right click zones
+    if (this.phase === 'end' && this.selected) {
+      const leftBtn = document.createElement('div');
+      leftBtn.className = 'domino horiz end-left tile-new';
+      leftBtn.title = 'Play left';
+      leftBtn.style.cursor = 'pointer';
+      leftBtn.style.background = 'rgba(255,224,102,0.2)';
+      leftBtn.style.border = '2px dashed var(--highlight)';
+      leftBtn.style.minWidth = '50px';
+      leftBtn.style.opacity = '0.7';
+      leftBtn.innerHTML = '<div style="width:100%;text-align:center;font-size:1.2rem;line-height:44px">&#x2190;</div>';
+      leftBtn.onclick = () => this.playerSelectEnd('left');
+      chain.appendChild(leftBtn);
+    }
+
+    for (const tile of this.board.chain) {
+      chain.appendChild(this.buildTileEl(tile, false, tile === this.selected));
+    }
+
+    if (this.phase === 'end' && this.selected) {
+      const rightBtn = document.createElement('div');
+      rightBtn.className = 'domino horiz end-right tile-new';
+      rightBtn.title = 'Play right';
+      rightBtn.style.cursor = 'pointer';
+      rightBtn.style.background = 'rgba(255,224,102,0.2)';
+      rightBtn.style.border = '2px dashed var(--highlight)';
+      rightBtn.style.minWidth = '50px';
+      rightBtn.style.opacity = '0.7';
+      rightBtn.innerHTML = '<div style="width:100%;text-align:center;font-size:1.2rem;line-height:44px">&#x2192;</div>';
+      rightBtn.onclick = () => this.playerSelectEnd('right');
+      chain.appendChild(rightBtn);
+    }
+
+    // Auto-scroll to end
+    chain.scrollLeft = chain.scrollWidth;
+  }
+
+  renderHand() {
+    const el = document.getElementById('player-hand');
+    el.innerHTML = '';
+    for (const tile of this.playerHand) {
+      const canPlay = this.board.canPlay(tile) || this.board.isEmpty();
+      const isSelected = tile === this.selected;
+      const div = this.buildTileEl(tile, true, isSelected, canPlay);
+      if (this.turn === 'player' && canPlay) {
+        div.addEventListener('click', () => this.playerSelectTile(tile));
+      }
+      el.appendChild(div);
+    }
+    // Draw button state
+    const drawBtn = document.getElementById('draw-btn');
+    const canDraw = this.turn === 'player' && this.boneyard.length > 0;
+    drawBtn.disabled = !canDraw;
+  }
+
+  renderWendyHand() {
+    const el = document.getElementById('wendy-hand-display');
+    el.innerHTML = '';
+    for (let i = 0; i < this.wendyHand.length; i++) {
+      const div = document.createElement('div');
+      div.className = 'face-down-tile';
+      el.appendChild(div);
+    }
+  }
+
+  buildTileEl(tile, isVertical, isSelected, canPlay) {
+    const div = document.createElement('div');
+    const aVal = tile.flipped ? tile.b : tile.a;
+    const bVal = tile.flipped ? tile.a : tile.b;
+    const horiz = !isVertical; // board tiles horizontal, hand tiles vertical
+    div.className = `domino ${horiz ? 'horiz' : 'vert'}${isVertical ? '' : ' board-tile'}`;
+    if (isSelected) div.classList.add('selected');
+    if (isVertical) {
+      if (canPlay === true) div.classList.add('playable');
+      else if (canPlay === false) div.classList.add('unplayable');
+    }
+    div.appendChild(this.buildPipHalf(aVal));
+    div.appendChild(this.buildPipHalf(bVal));
+    return div;
+  }
+
+  buildPipHalf(n) {
+    const half = document.createElement('div');
+    half.className = 'pip-half';
+    const pattern = PIP[n] || [];
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'pip-cell';
+      const dot = document.createElement('div');
+      dot.className = pattern.includes(i) ? 'pip-dot' : 'pip-dot empty';
+      cell.appendChild(dot);
+      half.appendChild(cell);
+    }
+    return half;
+  }
+
+  updateEndIndicators() {
+    if (!this.board.isEmpty()) {
+      document.getElementById('left-end-val').textContent  = this.board.leftEnd;
+      document.getElementById('right-end-val').textContent = this.board.rightEnd;
+    }
+  }
+
+  updateBoneyardCount() {
+    document.getElementById('boneyard-count').textContent = this.boneyard.length;
+    document.getElementById('draw-count').textContent = this.boneyard.length;
+  }
+
+  updateScoreDisplay() {
+    document.getElementById('player-score-val').textContent = this.playerTotal;
+    document.getElementById('wendy-score-val').textContent  = this.wendyTotal;
+    document.getElementById('player-bar').style.width = Math.min(100, (this.playerTotal / this.TARGET) * 100) + '%';
+    document.getElementById('wendy-bar').style.width  = Math.min(100, (this.wendyTotal  / this.TARGET) * 100) + '%';
+  }
+
+  flashScore(who) {
+    const el = document.getElementById(who === 'player' ? 'player-score-val' : 'wendy-score-val');
+    el.classList.remove('score-flash');
+    void el.offsetWidth;
+    el.classList.add('score-flash');
+  }
+
+  setSpeech(text) {
+    document.getElementById('speech-bubble').textContent = text;
+  }
+
+  setAction(text) {
+    document.getElementById('action-msg').textContent = text;
+  }
+
+  setTurnIndicator() {
+    const el = document.getElementById('turn-indicator');
+    if (this.turn === 'player') {
+      el.textContent = 'Your Turn';
+      el.className = 'your-turn';
+    } else {
+      el.textContent = "Wendy's Turn";
+      el.className = '';
+    }
+  }
+
+  hideAllOverlays() {
+    document.getElementById('menu-overlay').classList.add('hidden');
+    document.getElementById('round-overlay').classList.add('hidden');
+    document.getElementById('gameover-overlay').classList.add('hidden');
+  }
+
+  // ── HELPERS ──
+  _fullSet() {
+    const t = [];
+    for (let a = 0; a <= 6; a++)
+      for (let b = a; b <= 6; b++)
+        t.push(new Tile(a, b));
+    return t; // 28 tiles
+  }
+
+  _shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  _firstPlayer() {
+    // Highest double in either hand goes first
+    let ph = -1, wh = -1;
+    for (const t of this.playerHand) if (t.isDouble() && t.a > ph) ph = t.a;
+    for (const t of this.wendyHand)  if (t.isDouble() && t.a > wh) wh = t.a;
+    if (ph > wh) return 'player';
+    if (wh > ph) return 'wendy';
+    // tiebreak: highest pip total
+    const pm = Math.max(...this.playerHand.map(t => t.pips()));
+    const wm = Math.max(...this.wendyHand.map(t => t.pips()));
+    return pm >= wm ? 'player' : 'wendy';
+  }
+}
+
+// ── BOOT ──
+const game = new Game();
+</script>
+</body>
+</html>
