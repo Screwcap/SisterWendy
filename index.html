@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sister Wendy's Dominoes</title>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DK6P0HB2MB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-DK6P0HB2MB');
+</script>
 <style>
 :root {
   --felt: #1a4a2e;
@@ -405,6 +413,104 @@ body {
   padding: 3px 8px;
   color: rgba(255,255,255,0.5);
 }
+
+/* ── AUDIO TOGGLE ── */
+#audio-toggle {
+  background: transparent;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--gold);
+  transition: all 0.15s;
+  margin-left: 12px;
+}
+#audio-toggle:hover { background: rgba(201,168,76,0.2); }
+#audio-toggle.muted { opacity: 0.5; }
+
+/* ── KEYBOARD HELP ── */
+#keyboard-hint {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.4);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+#keyboard-hint kbd {
+  background: rgba(255,255,255,0.15);
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin: 0 2px;
+}
+
+/* Help overlay */
+#help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#help-overlay.visible { display: flex; }
+#help-box {
+  background: var(--panel-bg);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 24px 32px;
+  max-width: 360px;
+  text-align: left;
+}
+#help-box h3 {
+  color: var(--gold);
+  margin-bottom: 12px;
+  text-align: center;
+}
+#help-box table {
+  width: 100%;
+  border-collapse: collapse;
+}
+#help-box td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+#help-box td:first-child {
+  color: var(--highlight);
+  font-family: monospace;
+  width: 80px;
+}
+#help-box .close-hint {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--panel-bg);
+  border: 1px solid var(--gold);
+  color: var(--text-light);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 150;
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 </style>
 </head>
 <body>
@@ -413,6 +519,7 @@ body {
   <!-- HEADER -->
   <div id="header">
     <h1>Sister Wendy's Dominoes <span>— Horse Race Rules</span></h1>
+    <button id="audio-toggle" onclick="audio.toggle()" title="Toggle Sound (M)">🔊</button>
     <div id="scores-display">
       <div class="score-block">
         <div class="score-label">You</div>
@@ -510,11 +617,347 @@ body {
   </div>
 </div>
 
+<!-- KEYBOARD HELP OVERLAY -->
+<div id="help-overlay">
+  <div id="help-box">
+    <h3>⌨️ Keyboard Shortcuts</h3>
+    <table>
+      <tr><td>D</td><td>Draw from boneyard</td></tr>
+      <tr><td>1-7</td><td>Select tile by position</td></tr>
+      <tr><td>← →</td><td>Choose left/right end</td></tr>
+      <tr><td>Space</td><td>Continue / Next round</td></tr>
+      <tr><td>M</td><td>Toggle sound</td></tr>
+      <tr><td>H / ?</td><td>Show this help</td></tr>
+      <tr><td>Esc</td><td>Close overlay</td></tr>
+      <tr><td>N</td><td>New game</td></tr>
+    </table>
+    <div class="close-hint">Press any key to close</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 <script>
 // ============================================================
 //  SISTER WENDY'S DOMINOES — Horse Race Rules
-//  v1.0 — Base for nanobot team iteration
+//  v1.1 — Added Audio System + Keyboard Shortcuts
 // ============================================================
+
+// ── AUDIO SYSTEM (Web Audio API) ──
+class AudioSystem {
+  constructor() {
+    this.ctx = null;
+    this.enabled = this.loadPref();
+    this.volume = 0.5;
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.initialized = true;
+    } catch (e) {
+      console.warn('Web Audio not supported');
+      this.enabled = false;
+    }
+  }
+
+  loadPref() {
+    try { return localStorage.getItem('sw_audio') !== 'false'; }
+    catch { return true; }
+  }
+
+  savePref() {
+    try { localStorage.setItem('sw_audio', this.enabled); } catch {}
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    this.savePref();
+    this.updateButton();
+    if (this.enabled) {
+      this.init();
+      this.play('click');
+      showToast('🔊 Sound On');
+    } else {
+      showToast('🔇 Sound Off');
+    }
+  }
+
+  updateButton() {
+    const btn = document.getElementById('audio-toggle');
+    if (btn) {
+      btn.textContent = this.enabled ? '🔊' : '🔇';
+      btn.classList.toggle('muted', !this.enabled);
+    }
+  }
+
+  // Play a synthesized tone
+  tone(freq, duration = 0.1, type = 'sine', gain = 0.3) {
+    if (!this.enabled || !this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    g.gain.setValueAtTime(gain * this.volume, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+
+  // Play a sequence of tones
+  sequence(freqs, noteDur = 0.1, type = 'sine', gain = 0.3) {
+    if (!this.enabled || !this.ctx) return;
+    freqs.forEach((f, i) => {
+      setTimeout(() => this.tone(f, noteDur, type, gain), i * noteDur * 800);
+    });
+  }
+
+  // Noise burst (for shuffle sound)
+  noise(duration = 0.15, gain = 0.2) {
+    if (!this.enabled || !this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+    const noise = this.ctx.createBufferSource();
+    const g = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    noise.buffer = buffer;
+    g.gain.setValueAtTime(gain * this.volume, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    noise.connect(filter);
+    filter.connect(g);
+    g.connect(this.ctx.destination);
+    noise.start();
+  }
+
+  // Named sound effects
+  play(name) {
+    if (!this.enabled) return;
+    this.init();
+    
+    switch(name) {
+      case 'click':
+        this.tone(800, 0.05, 'sine', 0.2);
+        break;
+      case 'select':
+        this.tone(600, 0.08, 'sine', 0.25);
+        break;
+      case 'place':
+        // Satisfying domino clack
+        this.tone(150, 0.08, 'square', 0.4);
+        setTimeout(() => this.tone(100, 0.06, 'square', 0.3), 30);
+        break;
+      case 'score':
+        // Ascending choir-like sound
+        this.sequence([523, 659, 784], 0.12, 'sine', 0.35);
+        break;
+      case 'bigScore':
+        // Church bell + choir
+        this.tone(220, 0.5, 'sine', 0.4);
+        this.sequence([523, 659, 784, 1047], 0.15, 'sine', 0.35);
+        break;
+      case 'draw':
+        // Card draw sound
+        this.noise(0.08, 0.15);
+        setTimeout(() => this.tone(400, 0.05, 'sine', 0.15), 60);
+        break;
+      case 'shuffle':
+        // Multiple shuffle sounds
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => this.noise(0.06, 0.12), i * 80);
+        }
+        break;
+      case 'wendySmug':
+        // Descending smugness
+        this.sequence([500, 450, 400], 0.1, 'sine', 0.2);
+        break;
+      case 'wendyAngry':
+        // Frustrated grunt
+        this.tone(200, 0.15, 'sawtooth', 0.25);
+        setTimeout(() => this.tone(150, 0.2, 'sawtooth', 0.2), 100);
+        break;
+      case 'wendyScore':
+        // Nun triumph
+        this.sequence([392, 494, 587], 0.12, 'triangle', 0.3);
+        break;
+      case 'playerWin':
+        // Victory fanfare
+        this.sequence([523, 659, 784, 1047, 1319], 0.18, 'sine', 0.4);
+        break;
+      case 'wendyWin':
+        // Solemn organ
+        this.sequence([262, 330, 392, 523], 0.25, 'triangle', 0.35);
+        break;
+      case 'blocked':
+        // Sad trombone lite
+        this.sequence([400, 380, 360, 300], 0.2, 'sawtooth', 0.25);
+        break;
+      case 'roundEnd':
+        // Round complete chime
+        this.sequence([659, 784, 880], 0.15, 'sine', 0.3);
+        break;
+      case 'double':
+        // Double bonus
+        this.tone(880, 0.1, 'sine', 0.3);
+        setTimeout(() => this.tone(880, 0.1, 'sine', 0.3), 120);
+        break;
+      case 'error':
+        // Nope
+        this.tone(200, 0.15, 'square', 0.2);
+        break;
+      case 'turn':
+        // Your turn notification
+        this.tone(660, 0.08, 'sine', 0.2);
+        break;
+    }
+  }
+}
+
+const audio = new AudioSystem();
+
+// Initialize audio on first interaction
+document.addEventListener('click', () => audio.init(), { once: true });
+document.addEventListener('keydown', () => audio.init(), { once: true });
+
+// ── TOAST NOTIFICATIONS ──
+function showToast(msg, duration = 2000) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+// ── KEYBOARD HANDLER ──
+document.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  const helpOverlay = document.getElementById('help-overlay');
+  
+  // Close help overlay on any key
+  if (helpOverlay.classList.contains('visible')) {
+    helpOverlay.classList.remove('visible');
+    audio.play('click');
+    return;
+  }
+  
+  // Check for open game overlays
+  const menuOpen = !document.getElementById('menu-overlay').classList.contains('hidden');
+  const roundOpen = !document.getElementById('round-overlay').classList.contains('hidden');
+  const gameoverOpen = !document.getElementById('gameover-overlay').classList.contains('hidden');
+  
+  // Global shortcuts
+  if (key === 'm') {
+    audio.toggle();
+    return;
+  }
+  
+  if (key === 'h' || key === '?') {
+    helpOverlay.classList.add('visible');
+    audio.play('click');
+    return;
+  }
+  
+  if (key === 'escape') {
+    if (helpOverlay.classList.contains('visible')) {
+      helpOverlay.classList.remove('visible');
+    }
+    audio.play('click');
+    return;
+  }
+  
+  // Menu overlay - Space to start
+  if (menuOpen) {
+    if (key === ' ' || key === 'enter') {
+      e.preventDefault();
+      game.startRound();
+      audio.play('click');
+    }
+    return;
+  }
+  
+  // Round end overlay - Space to continue
+  if (roundOpen) {
+    if (key === ' ' || key === 'enter') {
+      e.preventDefault();
+      game.startRound();
+      audio.play('click');
+    }
+    return;
+  }
+  
+  // Game over overlay - Space to play again
+  if (gameoverOpen) {
+    if (key === ' ' || key === 'enter' || key === 'n') {
+      e.preventDefault();
+      game.newGame();
+      audio.play('click');
+    }
+    return;
+  }
+  
+  // In-game shortcuts
+  if (game.turn !== 'player') return;
+  
+  // D to draw
+  if (key === 'd') {
+    if (game.boneyard.length > 0) {
+      game.playerDraw();
+    } else {
+      showToast('Boneyard is empty!');
+      audio.play('error');
+    }
+    return;
+  }
+  
+  // Number keys 1-7 to select tiles
+  if (key >= '1' && key <= '9') {
+    const idx = parseInt(key) - 1;
+    if (idx < game.playerHand.length) {
+      const tile = game.playerHand[idx];
+      if (game.board.canPlay(tile) || game.board.isEmpty()) {
+        game.playerSelectTile(tile);
+      } else {
+        showToast("That tile doesn't fit!");
+        audio.play('error');
+      }
+    }
+    return;
+  }
+  
+  // Arrow keys for end selection
+  if (game.phase === 'end') {
+    if (key === 'arrowleft' || key === 'a') {
+      game.playerSelectEnd('left');
+      return;
+    }
+    if (key === 'arrowright' || key === 'l') {
+      game.playerSelectEnd('right');
+      return;
+    }
+  }
+  
+  // N for new game (with confirmation)
+  if (key === 'n') {
+    if (confirm('Start a new game? Current progress will be lost.')) {
+      game.newGame();
+    }
+    return;
+  }
+});
 
 // ── PIP GRID PATTERNS (3x3 grid, 0=top-left, 4=center, 8=bottom-right) ──
 const PIP = {
@@ -671,6 +1114,7 @@ class Game {
     this.selected   = null;
     this.phase      = 'select'; // select | end
     this.turn       = this._firstPlayer();
+    audio.play('shuffle');
     this.renderAll();
     if (this.turn === 'wendy') {
       this.setAction("Sister Wendy goes first. God's will.");
@@ -679,6 +1123,7 @@ class Game {
     } else {
       this.setSpeech(randQuote('gameStart'));
       this.setAction("Your turn — pick a tile.");
+      audio.play('turn');
     }
   }
 
@@ -687,9 +1132,11 @@ class Game {
     if (this.turn !== 'player' || this.phase === 'wendy-thinking') return;
     if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
       this.setAction("That tile doesn't fit. Try another.");
+      audio.play('error');
       return;
     }
     this.selected = tile;
+    audio.play('select');
     const ends = this.board.validEnds(tile);
     if (ends.length === 1 || this.board.isEmpty()) {
       this.playerPlayTile(tile, ends[0] || 'first');
@@ -711,17 +1158,22 @@ class Game {
     if (idx < 0) return;
     this.playerHand.splice(idx, 1);
     this.board.play(tile, end);
+    audio.play('place');
     const scored = this.board.scoreValue();
     this.phase = 'select';
     this.selected = null;
 
-    if (tile.isDouble()) this.setSpeech(randQuote('playerDouble'));
+    if (tile.isDouble()) {
+      this.setSpeech(randQuote('playerDouble'));
+      audio.play('double');
+    }
 
     if (scored > 0) {
       this.playerTotal += scored;
       this.setSpeech(randQuote('playerScores'));
       this.setAction(`+${scored} points! You score — play again!`);
       this.flashScore('player');
+      scored >= 15 ? audio.play('bigScore') : audio.play('score');
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
@@ -747,12 +1199,14 @@ class Game {
     if (this.boneyard.length === 0) {
       this.setAction("Boneyard empty — you must pass.");
       this.setSpeech(randQuote('playerCantPlay'));
+      audio.play('error');
       this.turn = 'wendy';
       setTimeout(() => this.doWendyTurn(), 900);
       return;
     }
     const drawn = this.boneyard.splice(0, 1)[0];
     this.playerHand.push(drawn);
+    audio.play('draw');
     this.renderAll();
 
     if (this.board.canPlay(drawn)) {
@@ -781,8 +1235,10 @@ class Game {
       // can't play — draw
       if (this.boneyard.length > 0) {
         this.setSpeech(randQuote('herCantPlay'));
+        audio.play('wendyAngry');
         const drawn = this.boneyard.splice(0, 1)[0];
         this.wendyHand.push(drawn);
+        audio.play('draw');
         this.renderAll();
         // try again after brief pause
         setTimeout(() => this.doWendyTurn(), 700);
@@ -790,10 +1246,12 @@ class Game {
       } else {
         // must pass
         this.setSpeech(randQuote('herCantPlay'));
+        audio.play('wendyAngry');
         this.turn = 'player';
         this.setAction("Sister Wendy passes. Your turn!");
         this.setTurnIndicator();
         this.renderHand();
+        audio.play('turn');
         return;
       }
     }
@@ -802,8 +1260,12 @@ class Game {
     const idx = this.wendyHand.indexOf(play.tile);
     this.wendyHand.splice(idx, 1);
     this.board.play(play.tile, play.end);
+    audio.play('place');
 
-    if (play.tile.isDouble()) this.setSpeech(randQuote('herDouble'));
+    if (play.tile.isDouble()) {
+      this.setSpeech(randQuote('herDouble'));
+      audio.play('double');
+    }
 
     if (play.scoreGained > 0) {
       this.wendyTotal += play.scoreGained;
@@ -811,6 +1273,7 @@ class Game {
       this.setSpeech(quote);
       this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
       this.flashScore('wendy');
+      play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
@@ -833,6 +1296,7 @@ class Game {
     this.setTurnIndicator();
     this.setAction("Your turn — pick a tile.");
     this.renderHand();
+    audio.play('turn');
 
     if (!this.playerHand.some(t => this.board.canPlay(t)) && this.boneyard.length === 0) {
       this.setSpeech(randQuote('playerCantPlay'));
@@ -857,12 +1321,14 @@ class Game {
       emoji = "&#x1F3C6;";
       msg = randQuote('playerDomino');
       this.setSpeech(randQuote('playerDomino'));
+      audio.play('roundEnd');
     } else if (winner === 'wendy') {
       wendyRoundPts = Math.round(playerLeftover / 5) * 5;
       title = "Sister Wendy Dominoes!";
       emoji = "&#x1F476;";
       msg = randQuote('herDomino');
       this.setSpeech(randQuote('herDomino'));
+      audio.play('wendyScore');
     } else {
       // blocked: lowest pip count wins
       if (playerLeftover <= wendyLeftover) {
@@ -877,6 +1343,7 @@ class Game {
         msg = randQuote('blocked');
       }
       this.setSpeech(randQuote('blocked'));
+      audio.play('blocked');
     }
 
     this.playerTotal += playerRoundPts;
@@ -907,6 +1374,7 @@ class Game {
       ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
       : `Final: Wendy ${this.wendyTotal} — You ${this.playerTotal}. ${randQuote('herDomino')}`;
     document.getElementById('gameover-overlay').classList.remove('hidden');
+    playerWon ? audio.play('playerWin') : audio.play('wendyWin');
   }
 
   checkGameWin() {
