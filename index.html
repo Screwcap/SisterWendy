@@ -269,6 +269,169 @@ body {
   min-height: 96px;
   padding-bottom: 4px;
 }
+
+/* ── MOBILE TOUCH IMPROVEMENTS ── */
+@media (max-width: 768px), (pointer: coarse) {
+  /* Larger tiles on mobile */
+  .domino.vert {
+    width: 52px;
+    min-height: 104px;
+  }
+  .domino.horiz {
+    height: 48px;
+    min-width: 96px;
+  }
+  
+  /* More gap between hand tiles for fat fingers */
+  #player-hand {
+    gap: 10px;
+    padding: 8px 4px 12px;
+    min-height: 120px;
+  }
+  
+  /* Larger pips on mobile */
+  .pip-dot {
+    width: 8px !important;
+    height: 8px !important;
+  }
+  
+  /* Bigger touch target - invisible padding */
+  #player-hand .domino {
+    padding: 4px;
+    margin: 2px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* More obvious selection state on mobile */
+  .domino.selected {
+    outline: 4px solid var(--highlight) !important;
+    transform: translateY(-12px) scale(1.05);
+    box-shadow: 0 12px 24px rgba(255,224,102,0.6);
+  }
+  
+  /* Playable tiles pulse on mobile */
+  .domino.playable {
+    outline: 3px solid rgba(100,255,150,0.7);
+    animation: mobilePulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes mobilePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(100,255,150,0.4); }
+    50% { box-shadow: 0 0 12px 4px rgba(100,255,150,0.6); }
+  }
+  
+  /* Larger end-select buttons on mobile */
+  .end-left, .end-right {
+    min-width: 70px !important;
+    min-height: 60px !important;
+    font-size: 1.8rem !important;
+  }
+  
+  .end-left div, .end-right div {
+    line-height: 60px !important;
+    font-size: 2rem !important;
+  }
+  
+  /* Bigger draw button on mobile */
+  #draw-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+  
+  /* Larger action message */
+  #action-msg {
+    font-size: 0.95rem;
+    padding: 8px 0;
+    min-height: 24px;
+  }
+  
+  /* Adjust header for mobile */
+  #header {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  #header h1 {
+    font-size: 1.1rem;
+    flex: 1 1 100%;
+    text-align: center;
+  }
+  
+  #header h1 span {
+    display: none; /* Hide subtitle on mobile */
+  }
+  
+  #scores-display {
+    flex: 1 1 100%;
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  /* Wendy panel adjustments */
+  #wendy-panel {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  
+  #wendy-avatar {
+    font-size: 2.2rem;
+  }
+  
+  #speech-bubble {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    min-height: 38px;
+  }
+  
+  .face-down-tile {
+    width: 22px;
+    height: 42px;
+  }
+  
+  /* Board area - ensure scrollable */
+  #board-area {
+    min-height: 140px;
+    padding: 8px;
+  }
+  
+  #board-chain {
+    padding: 12px;
+    gap: 4px;
+  }
+  
+  /* Overlay buttons bigger on mobile */
+  .btn-primary {
+    padding: 16px 40px;
+    font-size: 1.2rem;
+    min-height: 56px;
+  }
+  
+  .btn-secondary {
+    padding: 12px 28px;
+    font-size: 1rem;
+  }
+  
+  /* Hide keyboard hints on touch devices */
+  #keyboard-hint {
+    display: none;
+  }
+  
+  /* Touch feedback state */
+  .domino.touch-active {
+    transform: scale(0.95);
+    opacity: 0.8;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+  
+  /* Unplayable tiles more obvious on mobile */
+  .domino.unplayable {
+    opacity: 0.35;
+    filter: grayscale(30%);
+  }
+}
 #player-controls {
   display: flex;
   justify-content: space-between;
@@ -1211,8 +1374,9 @@ class Game {
 
     if (this.board.canPlay(drawn)) {
       this.setAction(`Drew [${drawn.a}|${drawn.b}] — you can play it!`);
-      this.turn = 'wendy'; // drew & got one — must pass turn per rules
-      setTimeout(() => this.doWendyTurn(), 900);
+      // Let player play the drawn tile - don't auto-pass
+      this.renderHand();
+      return;
     } else if (this.boneyard.length > 0) {
       this.setAction(`Drew [${drawn.a}|${drawn.b}] — still no match. Draw again or pass.`);
     } else {
@@ -1244,9 +1408,15 @@ class Game {
         setTimeout(() => this.doWendyTurn(), 700);
         return;
       } else {
-        // must pass
+        // must pass - check for blocked game first
         this.setSpeech(randQuote('herCantPlay'));
         audio.play('wendyAngry');
+        const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+        if (!playerCanPlay) {
+          // Both stuck, boneyard empty = blocked game
+          this.endRound('blocked');
+          return;
+        }
         this.turn = 'player';
         this.setAction("Sister Wendy passes. Your turn!");
         this.setTurnIndicator();
@@ -1299,6 +1469,12 @@ class Game {
     audio.play('turn');
 
     if (!this.playerHand.some(t => this.board.canPlay(t)) && this.boneyard.length === 0) {
+      // Check if Wendy can play - if not, it's a blocked game
+      const wendyCanPlay = this.wendyHand.some(t => this.board.canPlay(t));
+      if (!wendyCanPlay) {
+        this.endRound('blocked');
+        return;
+      }
       this.setSpeech(randQuote('playerCantPlay'));
       this.setAction("No valid moves and boneyard empty. You must pass.");
       this.turn = 'wendy';
@@ -1316,14 +1492,14 @@ class Game {
     let title, msg, emoji;
 
     if (winner === 'player') {
-      playerRoundPts = Math.round(wendyLeftover / 5) * 5;
+      playerRoundPts = Math.floor(wendyLeftover / 5) * 5;
       title = "Domino!";
       emoji = "&#x1F3C6;";
       msg = randQuote('playerDomino');
       this.setSpeech(randQuote('playerDomino'));
       audio.play('roundEnd');
     } else if (winner === 'wendy') {
-      wendyRoundPts = Math.round(playerLeftover / 5) * 5;
+      wendyRoundPts = Math.floor(playerLeftover / 5) * 5;
       title = "Sister Wendy Dominoes!";
       emoji = "&#x1F476;";
       msg = randQuote('herDomino');
@@ -1332,12 +1508,12 @@ class Game {
     } else {
       // blocked: lowest pip count wins
       if (playerLeftover <= wendyLeftover) {
-        playerRoundPts = Math.round((wendyLeftover - playerLeftover) / 5) * 5;
+        playerRoundPts = Math.floor((wendyLeftover - playerLeftover) / 5) * 5;
         title = "Blocked — You Win!";
         emoji = "&#x1F4AA;";
         msg = randQuote('blocked');
       } else {
-        wendyRoundPts = Math.round((playerLeftover - wendyLeftover) / 5) * 5;
+        wendyRoundPts = Math.floor((playerLeftover - wendyLeftover) / 5) * 5;
         title = "Blocked — Wendy Wins!";
         emoji = "&#x2698;";
         msg = randQuote('blocked');
@@ -1584,6 +1760,42 @@ class Game {
     const pm = Math.max(...this.playerHand.map(t => t.pips()));
     const wm = Math.max(...this.wendyHand.map(t => t.pips()));
     return pm >= wm ? 'player' : 'wendy';
+  }
+}
+
+// ── MOBILE TOUCH ENHANCEMENTS ──
+const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.matchMedia('(pointer: coarse)').matches;
+
+if (isMobile) {
+  // Prevent double-tap zoom on game elements
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - (window.lastTouchEnd || 0) < 300) {
+      e.preventDefault();
+    }
+    window.lastTouchEnd = now;
+  }, { passive: false });
+  
+  // Add touch feedback class
+  document.addEventListener('touchstart', (e) => {
+    const tile = e.target.closest('.domino:not(.board-tile)');
+    if (tile) {
+      tile.classList.add('touch-active');
+    }
+  }, { passive: true });
+  
+  document.addEventListener('touchend', (e) => {
+    document.querySelectorAll('.touch-active').forEach(el => {
+      el.classList.remove('touch-active');
+    });
+  }, { passive: true });
+  
+  // Show mobile-specific help on first visit
+  if (!localStorage.getItem('sw_mobile_help_shown')) {
+    setTimeout(() => {
+      showToast('Tap a tile, then tap where to play it', 3500);
+      localStorage.setItem('sw_mobile_help_shown', 'true');
+    }, 2000);
   }
 }
 
