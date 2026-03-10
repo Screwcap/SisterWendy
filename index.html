@@ -459,6 +459,19 @@ body {
 }
 #draw-btn:hover { background: var(--wood-light); }
 #draw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#pass-btn {
+  background: var(--red);
+  color: var(--text-light);
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-family: 'Georgia', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-left: 8px;
+}
+#pass-btn:hover { background: #a52020; }
 #action-msg {
   font-size: 0.8rem;
   color: var(--highlight);
@@ -865,6 +878,7 @@ body {
     <div id="player-controls">
       <div id="player-label">Your Hand</div>
       <button id="draw-btn" onclick="game.playerDraw()">Draw from Boneyard (<span id="draw-count">14</span> left)</button>
+      <button id="pass-btn" onclick="game.playerPass()" style="display:none;">Pass Turn</button>
     </div>
   </div>
 </div>
@@ -1608,14 +1622,28 @@ class Game {
     setTimeout(() => this.doWendyTurn(), 900 + Math.random() * 600);
   }
 
+  playerPass() {
+    if (this.turn !== 'player') return;
+    // Only allow pass if boneyard is empty and no valid moves
+    const canPlay = this.playerHand.some(t => this.board.canPlay(t));
+    if (canPlay || this.boneyard.length > 0) {
+      this.setAction("You can still play or draw!");
+      audio.play('error');
+      return;
+    }
+    this.setSpeech(randQuote('playerCantPlay'));
+    audio.play('click');
+    this.setAction("You pass. Sister Wendy's turn.");
+    this.turn = 'wendy';
+    this.renderHand(); // Update button states
+    setTimeout(() => this.doWendyTurn(), 900);
+  }
+
   playerDraw() {
     if (this.turn !== 'player') return;
     if (this.boneyard.length === 0) {
-      this.setAction("Boneyard empty — you must pass.");
-      this.setSpeech(randQuote('playerCantPlay'));
+      this.setAction("Boneyard empty — use Pass button if you can't play.");
       audio.play('error');
-      this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 900);
       return;
     }
     const drawn = this.boneyard.splice(0, 1)[0];
@@ -1652,18 +1680,39 @@ class Game {
     if (!play) {
       // can't play — draw
       if (this.boneyard.length > 0) {
-        this.setSpeech(randQuote('herCantPlay'));
-        audio.play('wendyAngry');
-        vfx.wendyMood('angry');
+        // Only show "can't play" message on first draw attempt
+        if (!this.wendyDrawCount) {
+          this.wendyDrawCount = 0;
+          this.setSpeech(randQuote('herCantPlay'));
+          audio.play('wendyAngry');
+          vfx.wendyMood('angry');
+        }
+        this.wendyDrawCount++;
+        
         const drawn = this.boneyard.splice(0, 1)[0];
         this.wendyHand.push(drawn);
         audio.play('draw');
         this.renderAll();
-        // try again after brief pause
-        setTimeout(() => this.doWendyTurn(), 700);
+        
+        // Check if drawn tile can be played immediately
+        if (this.board.canPlay(drawn)) {
+          // Reset draw counter and play the tile
+          this.wendyDrawCount = 0;
+          setTimeout(() => this.doWendyTurn(), 700);
+          return;
+        }
+        
+        // Limit draws to prevent infinite feel - max 3 draws then show status
+        if (this.wendyDrawCount >= 3 && this.boneyard.length > 0) {
+          this.setAction(`Sister Wendy is drawing... (${this.boneyard.length} left)`);
+        }
+        
+        // Continue drawing with delay
+        setTimeout(() => this.doWendyTurn(), 600);
         return;
       } else {
         // must pass - check for blocked game first
+        this.wendyDrawCount = 0; // Reset counter
         this.setSpeech(randQuote('herCantPlay'));
         audio.play('wendyAngry');
         vfx.wendyMood('angry');
@@ -1681,6 +1730,9 @@ class Game {
         return;
       }
     }
+    
+    // Reset draw counter when successfully playing
+    this.wendyDrawCount = 0;
 
     // Play the tile
     const idx = this.wendyHand.indexOf(play.tile);
@@ -1797,7 +1849,9 @@ class Game {
       `Game totals — You: ${this.playerTotal} | Sister Wendy: ${this.wendyTotal} / ${this.TARGET}`;
 
     if (this.playerTotal >= this.TARGET || this.wendyTotal >= this.TARGET) {
-      setTimeout(() => this.showGameEnd(), 400);
+      // Show game end immediately - no delay to prevent overlay flicker
+      this.showGameEnd();
+      return;
     } else {
       document.getElementById('round-overlay').classList.remove('hidden');
     }
@@ -1934,6 +1988,17 @@ class Game {
     const drawBtn = document.getElementById('draw-btn');
     const canDraw = this.turn === 'player' && this.boneyard.length > 0;
     drawBtn.disabled = !canDraw;
+    
+    // Pass button state - show only when stuck (no valid moves AND boneyard empty)
+    const passBtn = document.getElementById('pass-btn');
+    const hasValidMove = this.playerHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
+    const mustPass = this.turn === 'player' && !hasValidMove && this.boneyard.length === 0;
+    passBtn.style.display = mustPass ? 'inline-block' : 'none';
+    
+    // Update action message if stuck
+    if (mustPass) {
+      this.setAction("No valid moves! Click Pass to continue.");
+    }
   }
 
   renderWendyHand() {
