@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sister Wendy's Dominoes</title>
+<link rel="icon" type="image/jpeg" href="assets/images/icon-512.jpeg">
+<link rel="apple-touch-icon" href="assets/images/icon-512.jpeg">
+<meta property="og:title" content="Sister Wendy's Dominoes">
+<meta property="og:description" content="Can you beat the nun? Classic dominoes with attitude.">
+<meta property="og:image" content="assets/images/social-card.jpeg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DK6P0HB2MB"></script>
 <script>
@@ -85,21 +92,32 @@ body {
   flex-shrink: 0;
 }
 #wendy-avatar {
-  font-size: 3rem;
-  line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
   position: relative;
   cursor: default;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--gold);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+#wendy-avatar video,
+#wendy-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 #wendy-avatar .halo {
   position: absolute;
-  top: -4px; left: 50%;
+  top: -6px; left: 50%;
   transform: translateX(-50%);
-  width: 36px; height: 8px;
+  width: 40px; height: 10px;
   border: 3px solid var(--gold);
   border-radius: 50%;
-  opacity: 0.7;
+  opacity: 0.8;
+  z-index: 10;
+  background: transparent;
 }
 #speech-bubble {
   flex: 1;
@@ -1234,8 +1252,10 @@ body {
   <div id="wendy-panel">
     <div id="wendy-avatar">
       <div class="halo"></div>
-      <div style="font-size:2.8rem">&#x1F476;</div>
-      <div style="font-size:0.55rem;text-align:center;color:var(--gold);letter-spacing:1px;margin-top:-2px">SR. WENDY</div>
+      <video id="wendy-video" autoplay loop muted playsinline>
+        <source src="assets/videos/smirk.mp4" type="video/mp4">
+      </video>
+      <img id="wendy-img" src="assets/images/avatar.jpg" alt="Sister Wendy" style="display:none;">
     </div>
     <div id="speech-bubble">Shuffle up and pray, child.</div>
     <div id="wendy-hand-display"></div>
@@ -1270,7 +1290,7 @@ body {
 <!-- MENU OVERLAY -->
 <div class="overlay" id="menu-overlay">
   <div class="overlay-box">
-    <span class="big-emoji">&#x1F476;</span>
+    <img src="assets/images/avatar.jpg" alt="Sister Wendy" style="width:120px;height:120px;border-radius:50%;border:4px solid var(--gold);box-shadow:0 4px 20px rgba(201,168,76,0.4);margin-bottom:12px;object-fit:cover;">
     <h2>Sister Wendy's Dominoes</h2>
     <p style="font-style:italic;color:var(--gold);font-size:1.1rem;">"Bless your heart, child.<br>You're going to need it."</p>
     
@@ -1301,7 +1321,7 @@ body {
 <!-- ROUND END OVERLAY -->
 <div class="overlay hidden" id="round-overlay">
   <div class="overlay-box">
-    <span class="big-emoji" id="round-emoji">&#x2694;</span>
+    <img id="round-avatar" src="assets/images/thinking.jpeg" alt="Sister Wendy" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(201,168,76,0.3);margin-bottom:12px;object-fit:cover;">
     <h2 id="round-title">Round Over</h2>
     <p id="round-msg">...</p>
     <div class="round-scores">
@@ -1323,7 +1343,7 @@ body {
 <!-- GAME END OVERLAY -->
 <div class="overlay hidden" id="gameover-overlay">
   <div class="overlay-box">
-    <span class="big-emoji" id="end-emoji">&#x1F3C6;</span>
+    <img id="end-avatar" src="assets/images/winning.jpeg" alt="Sister Wendy" style="width:100px;height:100px;border-radius:50%;border:4px solid var(--gold);box-shadow:0 4px 20px rgba(201,168,76,0.4);margin-bottom:12px;object-fit:cover;">
     <h2 id="end-title">Game Over</h2>
     <p id="end-msg">...</p>
     <div id="end-callouts"></div>
@@ -1606,6 +1626,55 @@ const audio = new AudioSystem();
 document.addEventListener('click', () => audio.init(), { once: true });
 document.addEventListener('keydown', () => audio.init(), { once: true });
 
+// ── WENDY VIDEO SYSTEM ──
+const wendyVideo = {
+  current: 'smirk',
+  videos: {
+    smirk: 'assets/videos/smirk.mp4',
+    thinking: 'assets/videos/thinking.mp4',
+    victory: 'assets/videos/victory.mp4',
+    lose: 'assets/videos/lose.mp4',
+    frustration: 'assets/videos/frustration.mp4',
+    main: 'assets/videos/main.mp4'
+  },
+  
+  set(mood) {
+    if (this.current === mood) return;
+    const video = document.getElementById('wendy-video');
+    const img = document.getElementById('wendy-img');
+    if (!video) return;
+    
+    const src = this.videos[mood] || this.videos.smirk;
+    this.current = mood;
+    
+    // Show video, hide fallback image
+    video.style.display = 'block';
+    if (img) img.style.display = 'none';
+    
+    // Change source and restart
+    video.src = src;
+    video.load();
+    video.play().catch(() => {
+      // If video fails, show static image
+      video.style.display = 'none';
+      if (img) img.style.display = 'block';
+    });
+  },
+  
+  // Map game states to video moods
+  fromGameState(state) {
+    const map = {
+      'angry': 'frustration',
+      'smug': 'smirk',
+      'thinking': 'thinking',
+      'victory': 'victory',
+      'losing': 'lose',
+      'neutral': 'main'
+    };
+    this.set(map[state] || 'smirk');
+  }
+};
+
 // ── VISUAL EFFECTS SYSTEM ──
 const vfx = {
   // Spawn confetti particles
@@ -1654,6 +1723,9 @@ const vfx = {
     // Clear previous moods
     avatar.classList.remove('wendy-shake', 'wendy-smug', 'wendy-thinking', 'wendy-victory');
     halo?.classList.remove('halo-pulse');
+    
+    // Update video to match mood
+    wendyVideo.fromGameState(mood);
     
     switch(mood) {
       case 'angry':
@@ -2341,7 +2413,17 @@ class Game {
     this.wendyTotal  += wendyRoundPts;
     this.updateScoreDisplay();
 
-    document.getElementById('round-emoji').innerHTML = emoji;
+    // Set round avatar based on winner
+    const roundAvatar = document.getElementById('round-avatar');
+    if (roundAvatar) {
+      if (winner === 'player') {
+        roundAvatar.src = 'assets/images/losing.jpeg';
+      } else if (winner === 'wendy') {
+        roundAvatar.src = 'assets/images/winning.jpeg';
+      } else {
+        roundAvatar.src = 'assets/images/thinking.jpeg';
+      }
+    }
     document.getElementById('round-title').textContent = title;
     document.getElementById('round-msg').textContent = msg;
     document.getElementById('round-player-pts').textContent = `+${playerRoundPts}`;
@@ -2376,7 +2458,11 @@ class Game {
     // Build title based on mode
     const modePrefix = this.isDaily ? '📅 Daily Challenge: ' : '';
     
-    document.getElementById('end-emoji').innerHTML = playerWon ? '&#x1F3C6;' : '&#x1F476;';
+    // Set avatar image based on winner
+    const endAvatar = document.getElementById('end-avatar');
+    if (endAvatar) {
+      endAvatar.src = playerWon ? 'assets/images/losing.jpeg' : 'assets/images/winning.jpeg';
+    }
     document.getElementById('end-title').textContent = modePrefix + (playerWon ? 'You Win!' : 'Sister Wendy Wins!');
     document.getElementById('end-msg').textContent = playerWon
       ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
