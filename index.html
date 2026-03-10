@@ -823,6 +823,161 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ── STATS DISPLAY ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+}
+.stat-item {
+  text-align: center;
+}
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--gold);
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Streak display on menu */
+.streak-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid var(--gold);
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.streak-display .fire { font-size: 1.2rem; }
+.streak-display.no-streak { opacity: 0.5; border-style: dashed; }
+
+/* New personal best callout */
+.new-best {
+  display: inline-block;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #1a0a00;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: newBestPulse 1s ease infinite;
+  margin-top: 8px;
+}
+@keyframes newBestPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,215,0,0.6); }
+}
+
+/* Button row for end screen */
+.btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+/* Share button */
+.btn-share {
+  background: #1da1f2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: 'Georgia', serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-share:hover { background: #0d8ecf; }
+
+/* ── HOW TO PLAY MODAL ── */
+.help-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+  overflow-y: auto;
+}
+.help-modal.visible { display: flex; }
+
+.help-box-large {
+  background: var(--panel-bg);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 24px 32px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.help-box-large h3 {
+  color: var(--gold);
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 1.4rem;
+}
+.help-section {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.help-section:last-of-type {
+  border-bottom: none;
+}
+.help-section h4 {
+  color: var(--highlight);
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+.help-section p {
+  color: var(--text-light);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.help-section ul {
+  margin-left: 20px;
+  color: var(--text-light);
+  line-height: 1.8;
+}
+.help-section li {
+  margin-bottom: 4px;
+}
+.help-section kbd {
+  background: rgba(255,255,255,0.15);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+.help-box-large .btn-primary {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+}
 </style>
 </head>
 <body>
@@ -889,9 +1044,11 @@ body {
     <span class="big-emoji">&#x1F476;</span>
     <h2>Sister Wendy's Dominoes</h2>
     <p style="font-style:italic;color:var(--gold);font-size:1.1rem;">"Bless your heart, child.<br>You're going to need it."</p>
+    <div id="menu-streak"></div>
     <p>Horse Race rules &bull; First to 61 points wins &bull; Score multiples of 5</p>
     <br>
     <button class="btn-primary" onclick="game.startRound()">Begin Penance</button>
+    <button class="btn-secondary" onclick="game.showHowToPlay()" style="margin-top:8px;">📖 How to Play</button>
     <br><br>
     <p style="font-size:0.75rem;opacity:0.5">Made with equal parts love and guilt</p>
   </div>
@@ -925,8 +1082,53 @@ body {
     <span class="big-emoji" id="end-emoji">&#x1F3C6;</span>
     <h2 id="end-title">Game Over</h2>
     <p id="end-msg">...</p>
-    <br>
-    <button class="btn-primary" onclick="game.newGame()">Play Again</button>
+    <div id="end-callouts"></div>
+    <div id="end-stats"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="game.rematch()">🔄 Rematch</button>
+      <button class="btn-secondary" onclick="game.newGame()">New Game</button>
+      <button class="btn-share" onclick="game.shareResult()">📤 Share</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOW TO PLAY OVERLAY -->
+<div id="howtoplay-overlay" class="help-modal">
+  <div id="howtoplay-box" class="help-box-large">
+    <h3>📖 How to Play Dominoes</h3>
+    
+    <div class="help-section">
+      <h4>🎯 Goal</h4>
+      <p>Be the first to reach <strong>61 points</strong>. Score by making the ends of the chain add up to a <strong>multiple of 5</strong>.</p>
+    </div>
+    
+    <div class="help-section">
+      <h4>🎲 Basic Rules</h4>
+      <ul>
+        <li><strong>Match the ends:</strong> Play a tile by matching one of its numbers to an open end of the chain.</li>
+        <li><strong>Draw if stuck:</strong> If you can't play, draw from the boneyard until you can (or it's empty).</li>
+        <li><strong>Domino!</strong> Empty your hand first to win the round and score your opponent's remaining pips.</li>
+      </ul>
+    </div>
+    
+    <div class="help-section">
+      <h4>💰 Scoring (Horse Race)</h4>
+      <p>After each play, add the two open ends:</p>
+      <ul>
+        <li>Ends = 5 → Score <strong>5 points</strong></li>
+        <li>Ends = 10 → Score <strong>10 points</strong></li>
+        <li>Ends = 15 → Score <strong>15 points</strong></li>
+        <li>Ends = 20 → Score <strong>20 points</strong></li>
+      </ul>
+      <p><em>When you score, you get another turn!</em></p>
+    </div>
+    
+    <div class="help-section">
+      <h4>⌨️ Shortcuts</h4>
+      <p><kbd>1-7</kbd> Select tile • <kbd>D</kbd> Draw • <kbd>←→</kbd> Choose end • <kbd>M</kbd> Mute</p>
+    </div>
+    
+    <button class="btn-primary" onclick="game.hideHowToPlay()">Got it!</button>
   </div>
 </div>
 
@@ -1515,13 +1717,17 @@ class Game {
     this.TARGET = 61;
     this.playerTotal = 0;
     this.wendyTotal  = 0;
+    this.maxDeficit = 0; // Track biggest deficit for comeback detection
     this.newGame(true);
+    this.updateMenuStreak();
   }
 
   newGame(silent) {
     this.playerTotal = 0;
     this.wendyTotal  = 0;
+    this.maxDeficit = 0;
     this.updateScoreDisplay();
+    this.updateMenuStreak();
     if (!silent) this.startRound();
   }
 
@@ -1748,6 +1954,13 @@ class Game {
 
     if (play.scoreGained > 0) {
       this.wendyTotal += play.scoreGained;
+      
+      // Track max deficit for comeback detection
+      const deficit = this.wendyTotal - this.playerTotal;
+      if (deficit > this.maxDeficit) {
+        this.maxDeficit = deficit;
+      }
+      
       const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
       this.setSpeech(quote);
       this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
@@ -1860,11 +2073,35 @@ class Game {
   showGameEnd() {
     this.hideAllOverlays();
     const playerWon = this.playerTotal >= this.TARGET;
-    document.getElementById('end-emoji').innerHTML   = playerWon ? '&#x1F3C6;' : '&#x1F476;';
+    
+    // Calculate if this was a comeback (was down by 15+ at some point)
+    const wasComeback = playerWon && this.maxDeficit >= 15 ? this.maxDeficit : 0;
+    
+    // Record stats
+    const achievements = stats.recordGameEnd(playerWon, this.playerTotal, this.wendyTotal, wasComeback);
+    
+    document.getElementById('end-emoji').innerHTML = playerWon ? '&#x1F3C6;' : '&#x1F476;';
     document.getElementById('end-title').textContent = playerWon ? 'You Win!' : 'Sister Wendy Wins!';
-    document.getElementById('end-msg').textContent   = playerWon
+    document.getElementById('end-msg').textContent = playerWon
       ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
       : `Final: Wendy ${this.wendyTotal} — You ${this.playerTotal}. ${randQuote('herDomino')}`;
+    
+    // Show callouts for achievements
+    let callouts = '';
+    if (achievements.isNewBestStreak) {
+      callouts += '<div class="new-best">🔥 New Best Streak!</div> ';
+    }
+    if (achievements.isNewBestScore) {
+      callouts += '<div class="new-best">⭐ New High Score!</div>';
+    }
+    if (playerWon && stats.stats.currentStreak >= 3) {
+      callouts += `<div style="margin-top:8px;color:var(--gold)">🔥 ${stats.stats.currentStreak} Win Streak!</div>`;
+    }
+    document.getElementById('end-callouts').innerHTML = callouts;
+    
+    // Show stats
+    document.getElementById('end-stats').innerHTML = stats.getStatsHTML();
+    
     document.getElementById('gameover-overlay').classList.remove('hidden');
     playerWon ? audio.play('playerWin') : audio.play('wendyWin');
     
@@ -1876,6 +2113,67 @@ class Game {
       vfx.wendyMood('victory');
       vfx.confetti(50, 2500);
       vfx.shake();
+    }
+  }
+  
+  rematch() {
+    // Quick restart without going through menu
+    audio.play('click');
+    this.playerTotal = 0;
+    this.wendyTotal = 0;
+    this.maxDeficit = 0;
+    this.updateScoreDisplay();
+    this.startRound();
+  }
+  
+  shareResult() {
+    const playerWon = this.playerTotal >= this.TARGET;
+    const streak = stats.stats.currentStreak;
+    const streakText = streak >= 2 ? ` 🔥${streak}` : '';
+    const result = playerWon ? '✝️ Victory!' : '😈 Defeated';
+    
+    const text = `Sister Wendy's Dominoes${streakText}\n${result}\nYou: ${this.playerTotal} | Wendy: ${this.wendyTotal}\n\nCan you beat the nun?\nhttps://sister-wendy.vercel.app`;
+    
+    if (navigator.share) {
+      navigator.share({ text }).catch(() => this.copyToClipboard(text));
+    } else {
+      this.copyToClipboard(text);
+    }
+  }
+  
+  copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 Copied to clipboard!');
+    }).catch(() => {
+      showToast('Could not copy');
+    });
+  }
+  
+  showHowToPlay() {
+    document.getElementById('howtoplay-overlay').classList.add('visible');
+    audio.play('click');
+  }
+  
+  hideHowToPlay() {
+    document.getElementById('howtoplay-overlay').classList.remove('visible');
+    audio.play('click');
+  }
+  
+  updateMenuStreak() {
+    const el = document.getElementById('menu-streak');
+    if (!el) return;
+    
+    const streak = stats.stats.currentStreak;
+    const best = stats.stats.bestStreak;
+    const wins = stats.stats.gamesWon;
+    const played = stats.stats.gamesPlayed;
+    
+    if (played === 0) {
+      el.innerHTML = '<div class="streak-display no-streak"><span class="fire">🎲</span> First time? Good luck!</div>';
+    } else if (streak >= 1) {
+      el.innerHTML = `<div class="streak-display"><span class="fire">🔥</span> Win Streak: ${streak} ${streak === best && streak > 1 ? '(Best!)' : ''}</div>`;
+    } else {
+      el.innerHTML = `<div class="streak-display no-streak"><span class="fire">📊</span> ${wins}W/${played - wins}L • Best Streak: ${best}</div>`;
     }
   }
 
@@ -2168,6 +2466,108 @@ if (isMobile) {
     }, 2000);
   }
 }
+
+// ── PERSISTENT STATS SYSTEM ──
+class StatsManager {
+  constructor() {
+    this.stats = this.load();
+  }
+  
+  load() {
+    try {
+      const saved = localStorage.getItem('sw_stats');
+      return saved ? JSON.parse(saved) : this.defaults();
+    } catch { return this.defaults(); }
+  }
+  
+  save() {
+    try {
+      localStorage.setItem('sw_stats', JSON.stringify(this.stats));
+    } catch {}
+  }
+  
+  defaults() {
+    return {
+      gamesPlayed: 0,
+      gamesWon: 0,
+      totalPointsScored: 0,
+      bestGameScore: 0,
+      currentStreak: 0,
+      bestStreak: 0,
+      dominoesPlayed: 0,
+      biggestComeback: 0,
+      totalPlayTime: 0,
+      lastPlayed: null,
+      dailyChallengeStreak: 0,
+      lastDailyChallenge: null
+    };
+  }
+  
+  recordGameEnd(playerWon, playerScore, wendyScore, wasComeback) {
+    this.stats.gamesPlayed++;
+    this.stats.totalPointsScored += playerScore;
+    this.stats.lastPlayed = new Date().toISOString();
+    
+    if (playerScore > this.stats.bestGameScore) {
+      this.stats.bestGameScore = playerScore;
+    }
+    
+    if (playerWon) {
+      this.stats.gamesWon++;
+      this.stats.currentStreak++;
+      if (this.stats.currentStreak > this.stats.bestStreak) {
+        this.stats.bestStreak = this.stats.currentStreak;
+      }
+      if (wasComeback && wasComeback > this.stats.biggestComeback) {
+        this.stats.biggestComeback = wasComeback;
+      }
+    } else {
+      this.stats.currentStreak = 0;
+    }
+    
+    this.save();
+    return {
+      isNewBestStreak: playerWon && this.stats.currentStreak === this.stats.bestStreak && this.stats.currentStreak > 1,
+      isNewBestScore: playerScore === this.stats.bestGameScore && playerScore > 61
+    };
+  }
+  
+  recordTilePlayed() {
+    this.stats.dominoesPlayed++;
+    // Don't save on every tile - too frequent
+  }
+  
+  getWinRate() {
+    if (this.stats.gamesPlayed === 0) return 0;
+    return Math.round((this.stats.gamesWon / this.stats.gamesPlayed) * 100);
+  }
+  
+  getStatsHTML() {
+    const winRate = this.getWinRate();
+    return `
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.gamesWon}/${this.stats.gamesPlayed}</div>
+          <div class="stat-label">Win Record</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${winRate}%</div>
+          <div class="stat-label">Win Rate</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.currentStreak}</div>
+          <div class="stat-label">Current Streak</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.bestStreak}</div>
+          <div class="stat-label">Best Streak</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+const stats = new StatsManager();
 
 // ── BOOT ──
 const game = new Game();
