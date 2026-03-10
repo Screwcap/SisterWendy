@@ -978,6 +978,234 @@ body {
   width: 100%;
   margin-top: 16px;
 }
+
+/* ── ACHIEVEMENT TOAST ── */
+.achievement-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  background: linear-gradient(135deg, #2a1a00 0%, #4a2a10 100%);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(201,168,76,0.4), 0 0 60px rgba(201,168,76,0.2);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.achievement-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.achievement-icon {
+  font-size: 2.5rem;
+  animation: achievementPulse 1s ease infinite;
+}
+@keyframes achievementPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+.achievement-info {
+  text-align: left;
+}
+.achievement-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.achievement-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--white);
+  margin-bottom: 2px;
+}
+.achievement-desc {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── ACHIEVEMENTS ROW ── */
+.achievements-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+.achievement-icons {
+  font-size: 1.5rem;
+  margin-top: 8px;
+  letter-spacing: 4px;
+}
+.achievement-icons span {
+  cursor: help;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.achievement-icons span:hover {
+  transform: scale(1.3);
+}
+
+/* ── DAILY CHALLENGE STYLES ── */
+.daily-banner {
+  background: linear-gradient(135deg, rgba(201,168,76,0.2) 0%, rgba(201,168,76,0.05) 100%);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+.daily-banner h3 {
+  color: var(--gold);
+  font-size: 1rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.daily-banner .date {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 8px;
+}
+.daily-banner .status {
+  font-size: 0.85rem;
+  color: var(--highlight);
+}
+.daily-banner .status.completed {
+  color: #4ecdc4;
+}
+.btn-daily {
+  background: linear-gradient(135deg, var(--gold) 0%, #a08030 100%);
+  color: #1a0a00;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 12px rgba(201,168,76,0.4);
+}
+.btn-daily:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(201,168,76,0.6);
+}
+.btn-daily:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-daily .icon {
+  margin-right: 6px;
+}
+
+/* Daily mode indicator */
+.daily-mode-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--gold) 0%, #a08030 100%);
+  color: #1a0a00;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 10;
+}
+
+/* ── MENU BUTTONS ROW ── */
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.menu-buttons .btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.btn-stats {
+  background: transparent;
+  color: var(--text-light);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-stats:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--gold);
+}
+
+/* Stats modal */
+.stats-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.stats-modal.visible { display: flex; }
+.stats-box {
+  background: var(--panel-bg);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 24px 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+.stats-box h3 {
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.all-achievements {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.ach-item {
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+  transition: all 0.2s;
+}
+.ach-item.locked {
+  opacity: 0.4;
+  filter: grayscale(100%);
+}
+.ach-item .icon {
+  font-size: 1.8rem;
+  display: block;
+  margin-bottom: 4px;
+}
+.ach-item .name {
+  font-size: 0.65rem;
+  color: var(--text-light);
+}
+.ach-item:hover {
+  background: rgba(201,168,76,0.2);
+}
 </style>
 </head>
 <body>
@@ -1015,6 +1243,7 @@ body {
 
   <!-- BOARD -->
   <div id="board-area">
+    <div id="daily-mode-badge" class="daily-mode-badge" style="display:none;">📅 Daily Challenge</div>
     <div id="boneyard-badge">Boneyard: <span id="boneyard-count">14</span></div>
     <div id="turn-indicator">Your Turn</div>
     <div id="board-chain">
@@ -1044,13 +1273,28 @@ body {
     <span class="big-emoji">&#x1F476;</span>
     <h2>Sister Wendy's Dominoes</h2>
     <p style="font-style:italic;color:var(--gold);font-size:1.1rem;">"Bless your heart, child.<br>You're going to need it."</p>
+    
+    <!-- Daily Challenge Banner -->
+    <div class="daily-banner" id="daily-banner">
+      <h3>📅 Daily Challenge</h3>
+      <div class="date" id="daily-date"></div>
+      <div class="status" id="daily-status"></div>
+      <button class="btn-daily" id="daily-btn" onclick="game.startDailyChallenge()">
+        <span class="icon">📅</span> Play Today's Challenge
+      </button>
+    </div>
+    
     <div id="menu-streak"></div>
-    <p>Horse Race rules &bull; First to 61 points wins &bull; Score multiples of 5</p>
-    <br>
-    <button class="btn-primary" onclick="game.startRound()">Begin Penance</button>
-    <button class="btn-secondary" onclick="game.showHowToPlay()" style="margin-top:8px;">📖 How to Play</button>
-    <br><br>
-    <p style="font-size:0.75rem;opacity:0.5">Made with equal parts love and guilt</p>
+    
+    <div class="menu-buttons">
+      <button class="btn-primary" onclick="game.startRound()">🎲 Quick Game</button>
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="game.showHowToPlay()">📖 How to Play</button>
+        <button class="btn-stats" onclick="game.showStats()">📊 Stats</button>
+      </div>
+    </div>
+    
+    <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
   </div>
 </div>
 
@@ -1129,6 +1373,17 @@ body {
     </div>
     
     <button class="btn-primary" onclick="game.hideHowToPlay()">Got it!</button>
+  </div>
+</div>
+
+<!-- STATS MODAL -->
+<div id="stats-modal" class="stats-modal">
+  <div class="stats-box">
+    <h3>📊 Your Stats</h3>
+    <div id="stats-content"></div>
+    <h4 style="color:var(--gold);margin-top:20px;margin-bottom:12px;">🏆 Achievements</h4>
+    <div id="achievements-grid" class="all-achievements"></div>
+    <button class="btn-primary" onclick="game.hideStats()" style="margin-top:20px;">Close</button>
   </div>
 </div>
 
@@ -1718,23 +1973,56 @@ class Game {
     this.playerTotal = 0;
     this.wendyTotal  = 0;
     this.maxDeficit = 0; // Track biggest deficit for comeback detection
+    this.isDaily = false; // Track if playing daily challenge
+    this.turnCount = 0;
     this.newGame(true);
     this.updateMenuStreak();
+    this.updateDailyBanner();
   }
 
   newGame(silent) {
     this.playerTotal = 0;
     this.wendyTotal  = 0;
     this.maxDeficit = 0;
+    this.isDaily = false;
+    this.turnCount = 0;
     this.updateScoreDisplay();
     this.updateMenuStreak();
+    this.updateDailyBanner();
     if (!silent) this.startRound();
   }
+  
+  startDailyChallenge() {
+    if (dailyChallenge.hasPlayedToday()) {
+      showToast("You've already played today's challenge!");
+      return;
+    }
+    this.isDaily = true;
+    this.playerTotal = 0;
+    this.wendyTotal = 0;
+    this.maxDeficit = 0;
+    this.turnCount = 0;
+    this.updateScoreDisplay();
+    this.startRound(true); // Pass true for daily mode
+  }
 
-  startRound() {
+  startRound(isDailyMode = false) {
+    // If starting fresh daily, use seeded tiles
+    if (isDailyMode || this.isDaily) {
+      this.isDaily = true;
+    }
+    
     this.hideAllOverlays();
-    this.board     = new Board();
-    this.boneyard  = this._shuffle(this._fullSet());
+    this.board = new Board();
+    
+    // Use seeded shuffle for daily challenge
+    if (this.isDaily && this.playerTotal === 0 && this.wendyTotal === 0) {
+      const fullSet = this._fullSet();
+      this.boneyard = dailyChallenge.getDailyTiles(fullSet);
+    } else {
+      this.boneyard = this._shuffle(this._fullSet());
+    }
+    
     this.playerHand = this.boneyard.splice(0, 7);
     this.wendyHand  = this.boneyard.splice(0, 7);
     this.selected   = null;
@@ -2077,21 +2365,32 @@ class Game {
     // Calculate if this was a comeback (was down by 15+ at some point)
     const wasComeback = playerWon && this.maxDeficit >= 15 ? this.maxDeficit : 0;
     
-    // Record stats
-    const achievements = stats.recordGameEnd(playerWon, this.playerTotal, this.wendyTotal, wasComeback);
+    // Record stats (pass isDaily flag)
+    const gameAchievements = stats.recordGameEnd(playerWon, this.playerTotal, this.wendyTotal, wasComeback, this.isDaily);
+    
+    // Save daily challenge result
+    if (this.isDaily) {
+      dailyChallenge.saveResult(playerWon, this.playerTotal, this.wendyTotal, this.turnCount);
+    }
+    
+    // Build title based on mode
+    const modePrefix = this.isDaily ? '📅 Daily Challenge: ' : '';
     
     document.getElementById('end-emoji').innerHTML = playerWon ? '&#x1F3C6;' : '&#x1F476;';
-    document.getElementById('end-title').textContent = playerWon ? 'You Win!' : 'Sister Wendy Wins!';
+    document.getElementById('end-title').textContent = modePrefix + (playerWon ? 'You Win!' : 'Sister Wendy Wins!');
     document.getElementById('end-msg').textContent = playerWon
       ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
       : `Final: Wendy ${this.wendyTotal} — You ${this.playerTotal}. ${randQuote('herDomino')}`;
     
     // Show callouts for achievements
     let callouts = '';
-    if (achievements.isNewBestStreak) {
+    if (this.isDaily) {
+      callouts += `<div style="margin-bottom:8px;color:var(--gold)">📅 Daily Challenge Complete!</div>`;
+    }
+    if (gameAchievements.isNewBestStreak) {
       callouts += '<div class="new-best">🔥 New Best Streak!</div> ';
     }
-    if (achievements.isNewBestScore) {
+    if (gameAchievements.isNewBestScore) {
       callouts += '<div class="new-best">⭐ New High Score!</div>';
     }
     if (playerWon && stats.stats.currentStreak >= 3) {
@@ -2114,6 +2413,15 @@ class Game {
       vfx.confetti(50, 2500);
       vfx.shake();
     }
+    
+    // Reset daily flag after game ends
+    const wasDaily = this.isDaily;
+    this.isDaily = false;
+    
+    // Update daily banner in case we just completed it
+    if (wasDaily) {
+      this.updateDailyBanner();
+    }
   }
   
   rematch() {
@@ -2132,7 +2440,16 @@ class Game {
     const streakText = streak >= 2 ? ` 🔥${streak}` : '';
     const result = playerWon ? '✝️ Victory!' : '😈 Defeated';
     
-    const text = `Sister Wendy's Dominoes${streakText}\n${result}\nYou: ${this.playerTotal} | Wendy: ${this.wendyTotal}\n\nCan you beat the nun?\nhttps://sister-wendy.vercel.app`;
+    // Check if this was a daily challenge
+    const todayResult = dailyChallenge.getTodayResult();
+    let text;
+    
+    if (todayResult && todayResult.date === dailyChallenge.today) {
+      // Share daily challenge result
+      text = dailyChallenge.getShareText(todayResult.won, todayResult.playerScore, todayResult.wendyScore);
+    } else {
+      text = `Sister Wendy's Dominoes${streakText}\n${result}\nYou: ${this.playerTotal} | Wendy: ${this.wendyTotal}\n\nCan you beat the nun?\nhttps://sister-wendy.vercel.app`;
+    }
     
     if (navigator.share) {
       navigator.share({ text }).catch(() => this.copyToClipboard(text));
@@ -2176,6 +2493,67 @@ class Game {
       el.innerHTML = `<div class="streak-display no-streak"><span class="fire">📊</span> ${wins}W/${played - wins}L • Best Streak: ${best}</div>`;
     }
   }
+  
+  updateDailyBanner() {
+    const dateEl = document.getElementById('daily-date');
+    const statusEl = document.getElementById('daily-status');
+    const btnEl = document.getElementById('daily-btn');
+    
+    if (!dateEl || !statusEl || !btnEl) return;
+    
+    const today = dailyChallenge.today;
+    const result = dailyChallenge.getTodayResult();
+    
+    dateEl.textContent = today;
+    
+    if (result) {
+      statusEl.className = 'status completed';
+      statusEl.innerHTML = result.won 
+        ? `✅ Completed! You won ${result.playerScore}-${result.wendyScore}`
+        : `❌ Completed. Wendy won ${result.wendyScore}-${result.playerScore}`;
+      btnEl.disabled = true;
+      btnEl.innerHTML = '<span class="icon">✓</span> Challenge Complete';
+    } else {
+      statusEl.className = 'status';
+      statusEl.textContent = 'Same tiles for everyone. One chance per day!';
+      btnEl.disabled = false;
+      btnEl.innerHTML = '<span class="icon">📅</span> Play Today\'s Challenge';
+    }
+  }
+  
+  showStats() {
+    const modal = document.getElementById('stats-modal');
+    const content = document.getElementById('stats-content');
+    const grid = document.getElementById('achievements-grid');
+    
+    if (!modal || !content || !grid) return;
+    
+    // Populate stats
+    content.innerHTML = stats.getFullStatsHTML();
+    
+    // Populate achievements grid
+    const allAch = achievements.definitions;
+    const unlocked = achievements.achievements;
+    
+    grid.innerHTML = allAch.map(a => {
+      const isUnlocked = unlocked.includes(a.id);
+      return `
+        <div class="ach-item ${isUnlocked ? '' : 'locked'}" title="${a.name}: ${a.desc}">
+          <span class="icon">${a.icon}</span>
+          <span class="name">${a.name}</span>
+        </div>
+      `;
+    }).join('');
+    
+    modal.classList.add('visible');
+    audio.play('click');
+  }
+  
+  hideStats() {
+    const modal = document.getElementById('stats-modal');
+    if (modal) modal.classList.remove('visible');
+    audio.play('click');
+  }
 
   checkGameWin() {
     if (this.playerTotal >= this.TARGET) { this.showGameEnd(); return true; }
@@ -2191,6 +2569,14 @@ class Game {
     this.updateEndIndicators();
     this.updateBoneyardCount();
     this.setTurnIndicator();
+    this.updateDailyBadge();
+  }
+  
+  updateDailyBadge() {
+    const badge = document.getElementById('daily-mode-badge');
+    if (badge) {
+      badge.style.display = this.isDaily ? 'block' : 'none';
+    }
   }
 
   renderBoard() {
@@ -2467,6 +2853,175 @@ if (isMobile) {
   }
 }
 
+// ── DAILY CHALLENGE SYSTEM ──
+class DailyChallenge {
+  constructor() {
+    this.today = this.getDateString();
+    this.seed = this.generateSeed(this.today);
+  }
+  
+  getDateString() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  
+  generateSeed(dateStr) {
+    // Simple hash from date string
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      const char = dateStr.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+  
+  // Seeded random number generator
+  seededRandom() {
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    return this.seed / 233280;
+  }
+  
+  // Shuffle array with seed
+  seededShuffle(arr) {
+    const result = [...arr];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(this.seededRandom() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  
+  // Get today's challenge tiles
+  getDailyTiles(fullSet) {
+    // Reset seed for consistent results
+    this.seed = this.generateSeed(this.today);
+    return this.seededShuffle(fullSet);
+  }
+  
+  hasPlayedToday() {
+    try {
+      const last = localStorage.getItem('sw_daily_last');
+      return last === this.today;
+    } catch { return false; }
+  }
+  
+  getTodayResult() {
+    try {
+      const data = localStorage.getItem('sw_daily_result');
+      if (!data) return null;
+      const parsed = JSON.parse(data);
+      return parsed.date === this.today ? parsed : null;
+    } catch { return null; }
+  }
+  
+  saveResult(won, playerScore, wendyScore, turns) {
+    try {
+      localStorage.setItem('sw_daily_last', this.today);
+      localStorage.setItem('sw_daily_result', JSON.stringify({
+        date: this.today,
+        won,
+        playerScore,
+        wendyScore,
+        turns
+      }));
+    } catch {}
+  }
+  
+  getShareText(won, playerScore, wendyScore) {
+    const emoji = won ? '✝️' : '😈';
+    const result = won ? 'Victory!' : 'Defeated';
+    return `Sister Wendy's Dominoes 📅 Daily Challenge\n${this.today}\n${emoji} ${result}\nScore: ${playerScore}-${wendyScore}\n\nhttps://sister-wendy.vercel.app`;
+  }
+}
+
+const dailyChallenge = new DailyChallenge();
+
+// ── ACHIEVEMENTS SYSTEM ──
+class AchievementManager {
+  constructor() {
+    this.achievements = this.load();
+    this.definitions = [
+      { id: 'first_win', name: 'First Blood', desc: 'Win your first game', icon: '🩸', check: (s) => s.gamesWon >= 1 },
+      { id: 'streak_3', name: 'Hat Trick', desc: 'Win 3 games in a row', icon: '🎩', check: (s) => s.bestStreak >= 3 },
+      { id: 'streak_5', name: 'On Fire', desc: 'Win 5 games in a row', icon: '🔥', check: (s) => s.bestStreak >= 5 },
+      { id: 'streak_10', name: 'Unstoppable', desc: 'Win 10 games in a row', icon: '⚡', check: (s) => s.bestStreak >= 10 },
+      { id: 'games_10', name: 'Regular', desc: 'Play 10 games', icon: '🎲', check: (s) => s.gamesPlayed >= 10 },
+      { id: 'games_50', name: 'Devoted', desc: 'Play 50 games', icon: '📿', check: (s) => s.gamesPlayed >= 50 },
+      { id: 'games_100', name: 'Faithful', desc: 'Play 100 games', icon: '⛪', check: (s) => s.gamesPlayed >= 100 },
+      { id: 'big_score', name: 'Twenty-Five!', desc: 'Score 25 points in one play', icon: '💎', check: (s) => s.bestSingleScore >= 25 },
+      { id: 'comeback', name: 'Miracle', desc: 'Win after being down by 20+', icon: '✨', check: (s) => s.biggestComeback >= 20 },
+      { id: 'perfect', name: 'Flawless', desc: 'Win without Wendy scoring', icon: '👼', check: (s) => s.flawlessWins >= 1 },
+      { id: 'daily_3', name: 'Dedicated', desc: 'Complete 3 daily challenges', icon: '📅', check: (s) => s.dailyChallengesCompleted >= 3 },
+      { id: 'daily_7', name: 'Blessed Week', desc: 'Complete 7 daily challenges', icon: '🗓️', check: (s) => s.dailyChallengesCompleted >= 7 },
+    ];
+  }
+  
+  load() {
+    try {
+      const saved = localStorage.getItem('sw_achievements');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  }
+  
+  save() {
+    try {
+      localStorage.setItem('sw_achievements', JSON.stringify(this.achievements));
+    } catch {}
+  }
+  
+  check(stats) {
+    const newlyUnlocked = [];
+    for (const def of this.definitions) {
+      if (!this.achievements.includes(def.id) && def.check(stats)) {
+        this.achievements.push(def.id);
+        newlyUnlocked.push(def);
+      }
+    }
+    if (newlyUnlocked.length > 0) {
+      this.save();
+    }
+    return newlyUnlocked;
+  }
+  
+  getUnlocked() {
+    return this.definitions.filter(d => this.achievements.includes(d.id));
+  }
+  
+  getLocked() {
+    return this.definitions.filter(d => !this.achievements.includes(d.id));
+  }
+  
+  getProgress() {
+    return `${this.achievements.length}/${this.definitions.length}`;
+  }
+  
+  showUnlockToast(achievement) {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.innerHTML = `
+      <div class="achievement-icon">${achievement.icon}</div>
+      <div class="achievement-info">
+        <div class="achievement-title">Achievement Unlocked!</div>
+        <div class="achievement-name">${achievement.name}</div>
+        <div class="achievement-desc">${achievement.desc}</div>
+      </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 50);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 500);
+    }, 4000);
+    
+    audio.play('bigScore');
+  }
+}
+
+const achievements = new AchievementManager();
+
 // ── PERSISTENT STATS SYSTEM ──
 class StatsManager {
   constructor() {
@@ -2492,18 +3047,26 @@ class StatsManager {
       gamesWon: 0,
       totalPointsScored: 0,
       bestGameScore: 0,
+      bestSingleScore: 0,
       currentStreak: 0,
       bestStreak: 0,
       dominoesPlayed: 0,
       biggestComeback: 0,
+      flawlessWins: 0,
+      dailyChallengesCompleted: 0,
       totalPlayTime: 0,
-      lastPlayed: null,
-      dailyChallengeStreak: 0,
-      lastDailyChallenge: null
+      lastPlayed: null
     };
   }
   
-  recordGameEnd(playerWon, playerScore, wendyScore, wasComeback) {
+  recordSingleScore(points) {
+    if (points > this.stats.bestSingleScore) {
+      this.stats.bestSingleScore = points;
+      this.save();
+    }
+  }
+  
+  recordGameEnd(playerWon, playerScore, wendyScore, wasComeback, isDaily = false) {
     this.stats.gamesPlayed++;
     this.stats.totalPointsScored += playerScore;
     this.stats.lastPlayed = new Date().toISOString();
@@ -2521,14 +3084,29 @@ class StatsManager {
       if (wasComeback && wasComeback > this.stats.biggestComeback) {
         this.stats.biggestComeback = wasComeback;
       }
+      // Track flawless wins (Wendy scored 0)
+      if (wendyScore === 0) {
+        this.stats.flawlessWins++;
+      }
     } else {
       this.stats.currentStreak = 0;
     }
     
+    // Track daily challenge completion
+    if (isDaily) {
+      this.stats.dailyChallengesCompleted++;
+    }
+    
     this.save();
+    
+    // Check for new achievements
+    const newAchievements = achievements.check(this.stats);
+    newAchievements.forEach(a => achievements.showUnlockToast(a));
+    
     return {
       isNewBestStreak: playerWon && this.stats.currentStreak === this.stats.bestStreak && this.stats.currentStreak > 1,
-      isNewBestScore: playerScore === this.stats.bestGameScore && playerScore > 61
+      isNewBestScore: playerScore === this.stats.bestGameScore && playerScore > 61,
+      newAchievements
     };
   }
   
@@ -2562,6 +3140,37 @@ class StatsManager {
           <div class="stat-value">${this.stats.bestStreak}</div>
           <div class="stat-label">Best Streak</div>
         </div>
+      </div>
+    `;
+  }
+  
+  getFullStatsHTML() {
+    const winRate = this.getWinRate();
+    const unlockedAch = achievements.getUnlocked();
+    const achIcons = unlockedAch.map(a => `<span title="${a.name}: ${a.desc}">${a.icon}</span>`).join(' ') || '—';
+    
+    return `
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.gamesWon}/${this.stats.gamesPlayed}</div>
+          <div class="stat-label">Win Record</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${winRate}%</div>
+          <div class="stat-label">Win Rate</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.currentStreak}</div>
+          <div class="stat-label">Current Streak</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">${this.stats.bestStreak}</div>
+          <div class="stat-label">Best Streak</div>
+        </div>
+      </div>
+      <div class="achievements-row">
+        <div class="stat-label">Achievements (${achievements.getProgress()})</div>
+        <div class="achievement-icons">${achIcons}</div>
       </div>
     `;
   }
