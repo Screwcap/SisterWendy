@@ -724,6 +724,75 @@ body {
               opacity  0.45s ease;
 }
 
+/* 3D flip card for Wendy's tile reveal */
+.wendy-flip-wrap {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  perspective: 600px;
+  transition: left 0.6s cubic-bezier(0.34, 1.2, 0.64, 1),
+              top  0.6s cubic-bezier(0.34, 1.2, 0.64, 1),
+              opacity 0.25s ease;
+}
+.wendy-flip-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.wendy-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+.wendy-flip-front, .wendy-flip-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.wendy-flip-front {
+  /* face-down: blue hatch */
+  background: repeating-linear-gradient(
+    45deg, #1a3a8a, #1a3a8a 4px, #0f2060 4px, #0f2060 8px
+  );
+  border: 2px solid #4a6abf;
+}
+.wendy-flip-back {
+  background: var(--ivory);
+  border: 2px solid #c8a060;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.wendy-flip-pip-row {
+  display: flex;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--pip);
+  font-family: monospace;
+  padding: 2px 4px;
+}
+.wendy-plays-label {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  font-family: Georgia, serif;
+  font-size: 0.82rem;
+  color: var(--gold);
+  background: rgba(20,10,5,0.85);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
 /* Subtle idle float for board tiles */
 @keyframes tileIdleFloat {
   0%, 100% { transform: translateY(0); }
@@ -2641,6 +2710,87 @@ class Game {
     });
   }
 
+  /**
+   * Wendy tile flip animation: face-down tile flips to reveal values, then flies to board.
+   * @param {number} tileIdx - index of tile in wendyHand (before removal)
+   * @param {Object} tile    - the Tile object being played
+   * @param {Function} done  - callback after animation completes
+   */
+  _flyWendyTileToBoard(tileIdx, tile, done) {
+    const handEl = document.getElementById('wendy-hand-display');
+    const boardChain = document.getElementById('board-chain');
+    if (!handEl || !boardChain) { done && done(); return; }
+
+    const faceDownTiles = handEl.querySelectorAll('.face-down-tile');
+    const srcEl = faceDownTiles[Math.min(tileIdx, faceDownTiles.length - 1)];
+    if (!srcEl) { done && done(); return; }
+
+    const fromRect = srcEl.getBoundingClientRect();
+    const toRect   = boardChain.getBoundingClientRect();
+
+    const W = fromRect.width;
+    const H = fromRect.height;
+
+    // Build the 3D flip card
+    const wrap = document.createElement('div');
+    wrap.className = 'wendy-flip-wrap';
+    wrap.style.cssText = `width:${W}px; height:${H}px; left:${fromRect.left}px; top:${fromRect.top}px;`;
+
+    const inner = document.createElement('div');
+    inner.className = 'wendy-flip-inner';
+
+    const front = document.createElement('div');
+    front.className = 'wendy-flip-front';
+
+    const back = document.createElement('div');
+    back.className = 'wendy-flip-back';
+    // Show tile value on the back
+    const aVal = tile.flipped !== undefined && tile.flipped ? tile.b : tile.a;
+    const bVal = tile.flipped !== undefined && tile.flipped ? tile.a : tile.b;
+    back.innerHTML = `<div class="wendy-flip-pip-row">${aVal}|${bVal}</div>`;
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    wrap.appendChild(inner);
+    document.body.appendChild(wrap);
+
+    // "Wendy plays X|Y" label
+    const label = document.createElement('div');
+    label.className = 'wendy-plays-label';
+    label.textContent = `Sister Wendy plays [${tile.a}|${tile.b}]`;
+    label.style.cssText = `left:${fromRect.left - 20}px; top:${fromRect.top - 28}px;`;
+    document.body.appendChild(label);
+
+    // Phase 1: flip the tile (reveal face)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        inner.classList.add('flipped');
+        label.style.opacity = '1';
+
+        // Phase 2 (after flip): fly to board
+        setTimeout(() => {
+          const destX = toRect.left + toRect.width / 2 - W / 2;
+          const destY = toRect.top  + toRect.height / 2 - H / 2;
+          wrap.style.left = destX + 'px';
+          wrap.style.top  = destY + 'px';
+          label.style.left = destX + 'px';
+          label.style.top  = (destY - 28) + 'px';
+
+          // Phase 3 (after flight): fade out, trigger done
+          setTimeout(() => {
+            wrap.style.opacity = '0';
+            label.style.opacity = '0';
+            setTimeout(() => {
+              wrap.remove();
+              label.remove();
+              done && done();
+            }, 260);
+          }, 620);
+        }, 520);
+      });
+    });
+  }
+
   // ── PLAYER ACTIONS ──
   playerSelectTile(tile) {
     if (this.turn !== 'player' || this.phase === 'wendy-thinking') return;
@@ -2909,16 +3059,18 @@ class Game {
     
     // Reset draw counter on successful play
     this.wendyDrawCount = 0;
-    
-    // Play the tile
-    const idx = this.wendyHand.indexOf(play.tile);
-    this.wendyHand.splice(idx, 1);
+
+    // Capture the tile's position in Wendy's hand BEFORE we remove it
+    const playIdx = this.wendyHand.indexOf(play.tile);
+
+    // Update game state immediately (tile leaves hand, lands on board)
+    this.wendyHand.splice(playIdx, 1);
     this.board.play(play.tile, play.end);
     this.lastPlacedTile = play.tile;
     this.lastPlacedEnd = play.end;
     this._hideThinking();
-    audio.play('place');
 
+    // Immediate feedback (speech/audio) before animation
     if (play.tile.isDouble()) {
       const dVal = play.tile.a;
       const specificQuip = dVal === 6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
@@ -2928,38 +3080,42 @@ class Game {
       this.setSpeech(specificQuip || randQuote('herDouble'));
       audio.play('double');
       wendyVideo.set('smirk', true);
-    }
-
-    if (play.scoreGained > 0) {
-      this.wendyTotal += play.scoreGained;
-      
-      // Track max deficit for comeback detection
-      const deficit = this.wendyTotal - this.playerTotal;
-      if (deficit > this.maxDeficit) {
-        this.maxDeficit = deficit;
-      }
-      
+    } else if (play.scoreGained > 0) {
       const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
       this.setSpeech(quote);
+      wendyVideo.set('smirk', true);
+    }
+
+    audio.play('place');
+
+    // Flip-fly animation — ALL post-play logic runs in the callback so it
+    // fires AFTER the tile visibly lands on the board.
+    this._flyWendyTileToBoard(playIdx, play.tile, () => {
+      this._doWendyActFinish(play);
+    });
+  }
+
+  // Called by _flyWendyTileToBoard callback once animation completes
+  _doWendyActFinish(play) {
+    if (play.scoreGained > 0) {
+      this.wendyTotal += play.scoreGained;
+      const deficit = this.wendyTotal - this.playerTotal;
+      if (deficit > this.maxDeficit) this.maxDeficit = deficit;
       this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
       this.flashScore('wendy');
       play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
-      
-      // Visual celebrations
       vfx.wendyMood('smug');
-      wendyVideo.set('smirk', true);
       vfx.celebrateScore('wendy', play.scoreGained);
-
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
       if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
       this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 1200);
+      setTimeout(() => this.doWendyTurn(), 1100);
       return;
     }
 
-    // Contextual commentary based on game state
+    // Contextual commentary on non-scoring move
     const scoreGap = this.playerTotal - this.wendyTotal;
     if (scoreGap >= 15 && Math.random() < 0.6) {
       this.setSpeech(randQuote('wendyLosing'));
@@ -2973,11 +3129,20 @@ class Game {
     this.renderAll();
     if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
 
-    // Check if player is blocked too → blocked game
     const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
     const wendyCanPlay  = this.wendyHand.some(t => this.board.canPlay(t));
     if (!playerCanPlay && !wendyCanPlay && this.boneyard.length === 0) {
       this.endRound('blocked'); return;
+    }
+
+    if (!playerCanPlay && this.boneyard.length === 0) {
+      this.setSpeech(randQuote('playerCantPlay'));
+      vfx.wendyMood('smug');
+      wendyVideo.set('smirk', true);
+      this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
+      this.turn = 'wendy';
+      setTimeout(() => this.doWendyTurn(), 1200);
+      return;
     }
 
     this.turn = 'player';
@@ -2985,22 +3150,7 @@ class Game {
     this.setAction("Your turn — pick a tile.");
     this.renderHand();
     audio.play('turn');
-
-    // Check if player is immediately stuck
-    const playerHasMoves = this.board.isEmpty() || this.playerHand.some(t => this.board.canPlay(t));
-    if (!playerHasMoves && this.boneyard.length === 0) {
-      const wendyStillCanPlay = this.board.isEmpty() || this.wendyHand.some(t => this.board.canPlay(t));
-      if (!wendyStillCanPlay) {
-        this.endRound('blocked');
-        return;
-      }
-      this.setSpeech(randQuote('playerCantPlay'));
-      vfx.wendyMood('smug');
-      wendyVideo.set('smirk', true);
-      this.setAction("No valid moves and boneyard empty — Sister Wendy smiles...");
-      this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 1200);
-    }
+    showToast("Your turn!", 1800);
   }
 
   // ── ROUND END ──
