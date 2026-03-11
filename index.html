@@ -70,6 +70,18 @@ body {
   letter-spacing: 1px;
 }
 #header h1 span { color: var(--white); font-size: 1rem; }
+#header h1 span.rules-link {
+  color: var(--gold);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+#header h1 span.rules-link:hover {
+  color: var(--highlight);
+  text-decoration-style: solid;
+}
 #rules-btn {
   background: rgba(201,168,76,0.2);
   border: 1px solid var(--gold);
@@ -1654,8 +1666,7 @@ body {
 <div id="game-wrap">
   <!-- HEADER -->
   <div id="header">
-    <h1>Sister Wendy's Dominoes <span>— Horse Race Rules</span></h1>
-    <button id="rules-btn" onclick="game.showHowToPlay()" title="View Rules">📖 Rules</button>
+    <h1>Sister Wendy's Dominoes <span class="rules-link" onclick="game.showHowToPlay()">— Horse Race Rules 📖</span></h1>
     <div id="scores-display">
       <div class="score-block">
         <div class="score-label">You</div>
@@ -2833,7 +2844,7 @@ class Game {
     if (this.turn === 'wendy') {
       this.setAction("Sister Wendy goes first. God's will.");
       this.setSpeech(randQuote('gameStart'));
-      setTimeout(() => this.doWendyTurn(), 1400);
+      setTimeout(() => this.doWendyTurn(), 700);
     } else {
       this.setSpeech(randQuote('gameStart'));
       this.setAction("Your turn — tap a tile to play it!");
@@ -2969,7 +2980,7 @@ class Game {
       this.setAction("Sister Wendy's turn...");
       this.setTurnIndicator();
       this.renderHand(); // grey out tiles while Wendy plays
-      setTimeout(() => this.doWendyTurn(), 1000);
+      setTimeout(() => this.doWendyTurn(), 500);
     }
   }
 
@@ -2986,7 +2997,7 @@ class Game {
     this.setAction("You pass. Sister Wendy's turn.");
     this.turn = 'wendy';
     this.renderHand();
-    setTimeout(() => this.doWendyTurn(), 900);
+    setTimeout(() => this.doWendyTurn(), 500);
   }
 
   playerDraw() {
@@ -3022,7 +3033,7 @@ class Game {
         this.setAction("Boneyard empty. No moves — passing to Sister Wendy.");
         this.setSpeech(randQuote('playerCantPlay'));
         this.turn = 'wendy';
-        setTimeout(() => this.doWendyTurn(), 900);
+        setTimeout(() => this.doWendyTurn(), 500);
       } else {
         this.setAction(`Drew ${pipLabel} — boneyard empty. Play a tile or pass.`);
       }
@@ -3041,7 +3052,7 @@ class Game {
     this.setAction("Sister Wendy is thinking...");
     this.setTurnIndicator();
 
-    const thinkDelay = 600 + Math.random() * 800;
+    const thinkDelay = 300 + Math.random() * 300;
     setTimeout(() => this._doWendyAct(), thinkDelay);
   }
 
@@ -3070,10 +3081,10 @@ class Game {
         if (this.board.canPlay(drawn)) {
           this.wendyDrawCount = 0;
           this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 800);
+          setTimeout(() => this.doWendyTurn(), 400);
         } else {
           this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 700);
+          setTimeout(() => this.doWendyTurn(), 400);
         }
         return;
       }
@@ -3165,7 +3176,7 @@ class Game {
         this.setAction(`Sister Wendy plays a double! She plays again...`);
       }
       this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 1100);
+      setTimeout(() => this.doWendyTurn(), 600);
     } else {
       // Commentary on non-scoring move
       const scoreGap = this.playerTotal - this.wendyTotal;
@@ -3180,7 +3191,7 @@ class Game {
         wendyVideo.set('smirk', true);
         this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
         this.turn = 'wendy';
-        setTimeout(() => this.doWendyTurn(), 1200);
+        setTimeout(() => this.doWendyTurn(), 600);
         return;
       }
 
