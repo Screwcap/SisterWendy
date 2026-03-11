@@ -70,6 +70,21 @@ body {
   letter-spacing: 1px;
 }
 #header h1 span { color: var(--white); font-size: 1rem; }
+#rules-btn {
+  background: rgba(201,168,76,0.2);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Georgia', serif;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#rules-btn:hover {
+  background: rgba(201,168,76,0.4);
+  transform: scale(1.05);
+}
 #scores-display {
   display: flex;
   gap: 24px;
@@ -956,6 +971,39 @@ body {
 }
 .hand-tile-enter { animation: handTileEnter 0.25s ease-out backwards; }
 
+/* First turn tutorial hint */
+#first-turn-hint {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--gold) 0%, #a08030 100%);
+  color: #1a0a00;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  white-space: nowrap;
+  animation: hintBounce 1s ease-in-out infinite;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  display: none;
+}
+#first-turn-hint::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: #a08030;
+}
+@keyframes hintBounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-8px); }
+}
+#first-turn-hint.visible { display: block; }
+
 /* Turn indicator */
 #turn-indicator {
   position: absolute;
@@ -1607,6 +1655,7 @@ body {
   <!-- HEADER -->
   <div id="header">
     <h1>Sister Wendy's Dominoes <span>— Horse Race Rules</span></h1>
+    <button id="rules-btn" onclick="game.showHowToPlay()" title="View Rules">📖 Rules</button>
     <div id="scores-display">
       <div class="score-block">
         <div class="score-label">You</div>
@@ -1655,6 +1704,7 @@ body {
 
   <!-- PLAYER PANEL -->
   <div id="player-panel">
+    <div id="first-turn-hint">👆 TAP A TILE TO PLAY IT</div>
     <div id="action-msg">Select a tile to play.</div>
     <div id="player-hand">
       <!-- tiles inserted by JS -->
@@ -1741,37 +1791,55 @@ body {
 <!-- HOW TO PLAY OVERLAY -->
 <div id="howtoplay-overlay" class="help-modal">
   <div id="howtoplay-box" class="help-box-large">
-    <h3>📖 How to Play Dominoes</h3>
+    <h3>📖 Horse Race Dominoes Rules</h3>
+    
+    <div class="help-section">
+      <h4>🎮 How to Play a Tile</h4>
+      <ul>
+        <li><strong>Tap/Click</strong> any tile in your hand to select it</li>
+        <li>If it fits one end → it plays automatically</li>
+        <li>If it fits both ends → choose LEFT or RIGHT</li>
+        <li>Green glow = playable tiles</li>
+      </ul>
+    </div>
     
     <div class="help-section">
       <h4>🎯 Goal</h4>
-      <p>Be the first to reach <strong>61 points</strong>. Score by making the ends of the chain add up to a <strong>multiple of 5</strong>.</p>
+      <p>Be the first to reach <strong>61 points</strong>. Score by making the open ends add up to a <strong>multiple of 5</strong>.</p>
     </div>
     
     <div class="help-section">
-      <h4>🎲 Basic Rules</h4>
+      <h4>💰 Horse Race Scoring</h4>
+      <p>After each play, add the two open ends of the chain:</p>
       <ul>
-        <li><strong>Match the ends:</strong> Play a tile by matching one of its numbers to an open end of the chain.</li>
-        <li><strong>Draw if stuck:</strong> If you can't play, draw from the boneyard until you can (or it's empty).</li>
-        <li><strong>Domino!</strong> Empty your hand first to win the round and score your opponent's remaining pips.</li>
+        <li>Ends total 5 → Score <strong>5 points</strong></li>
+        <li>Ends total 10 → Score <strong>10 points</strong></li>
+        <li>Ends total 15 → Score <strong>15 points</strong></li>
+        <li>Ends total 20 → Score <strong>20 points</strong></li>
       </ul>
     </div>
     
     <div class="help-section">
-      <h4>💰 Scoring (Horse Race)</h4>
-      <p>After each play, add the two open ends:</p>
+      <h4>🎲 Special Rules for Doubles</h4>
       <ul>
-        <li>Ends = 5 → Score <strong>5 points</strong></li>
-        <li>Ends = 10 → Score <strong>10 points</strong></li>
-        <li>Ends = 15 → Score <strong>15 points</strong></li>
-        <li>Ends = 20 → Score <strong>20 points</strong></li>
+        <li><strong>Doubles count BOTH pips</strong> — a [5|5] on the end = 10 points, not 5!</li>
+        <li><strong>Playing a double = bonus turn</strong> — you play again!</li>
+        <li><strong>Scoring = bonus turn</strong> — keep playing while you're hot!</li>
       </ul>
-      <p><em>When you score, you get another turn!</em></p>
     </div>
     
     <div class="help-section">
-      <h4>⌨️ Shortcuts</h4>
-      <p><kbd>1-7</kbd> Select tile • <kbd>D</kbd> Draw • <kbd>←→</kbd> Choose end • <kbd>M</kbd> Mute</p>
+      <h4>📋 Other Rules</h4>
+      <ul>
+        <li><strong>Draw if stuck:</strong> Can't play? Draw from the boneyard until you can (or it's empty)</li>
+        <li><strong>Domino!</strong> Empty your hand first to win the round and score opponent's remaining pips (rounded to nearest 5)</li>
+        <li><strong>Blocked game:</strong> If nobody can play, lowest pip count wins</li>
+      </ul>
+    </div>
+    
+    <div class="help-section">
+      <h4>⌨️ Keyboard Shortcuts</h4>
+      <p><kbd>1-7</kbd> Select tile • <kbd>D</kbd> Draw • <kbd>←→</kbd> Choose end • <kbd>M</kbd> Mute • <kbd>?</kbd> Help</p>
     </div>
     
     <button class="btn-primary" onclick="game.hideHowToPlay()">Got it!</button>
@@ -2616,9 +2684,43 @@ class Board {
   }
 
   // Horse Race / All-Fives scoring: sum of both open ends; award if multiple of 5
+  // DOUBLES count as BOTH pips (e.g., [3|3] on end = 6, not 3)
   scoreValue() {
     if (this.chain.length === 0) return 0;
-    const sum = this.leftEnd + this.rightEnd;
+    
+    const leftTile = this.chain[0];
+    const rightTile = this.chain[this.chain.length - 1];
+    
+    // Special case: only one tile on board
+    if (this.chain.length === 1) {
+      if (leftTile.isDouble()) {
+        // Single double = both pips (e.g., [5|5] = 10)
+        const sum = leftTile.a * 2;
+        return sum % 5 === 0 ? sum : 0;
+      } else {
+        // Single non-double = both ends
+        const sum = leftTile.a + leftTile.b;
+        return sum % 5 === 0 ? sum : 0;
+      }
+    }
+    
+    // Multiple tiles: check each end
+    let sum = 0;
+    
+    // Left end - doubles count both pips
+    if (leftTile.isDouble()) {
+      sum += leftTile.a * 2;
+    } else {
+      sum += this.leftEnd;
+    }
+    
+    // Right end - doubles count both pips
+    if (rightTile.isDouble()) {
+      sum += rightTile.a * 2;
+    } else {
+      sum += this.rightEnd;
+    }
+    
     return sum % 5 === 0 ? sum : 0;
   }
 }
@@ -2734,8 +2836,9 @@ class Game {
       setTimeout(() => this.doWendyTurn(), 1400);
     } else {
       this.setSpeech(randQuote('gameStart'));
-      this.setAction("Your turn — pick a tile.");
+      this.setAction("Your turn — tap a tile to play it!");
       audio.play('turn');
+      this.showFirstTurnHint();
     }
   }
 
@@ -2784,6 +2887,9 @@ class Game {
     const idx = this.playerHand.indexOf(tile);
     if (idx < 0) return;
 
+    // Hide first-turn hint once they play
+    this.hideFirstTurnHint();
+
     // ── 2. Update state SYNCHRONOUSLY ──
     this.playerHand.splice(idx, 1);
     this.board.play(tile, end);
@@ -2822,22 +2928,35 @@ class Game {
     if (this.checkGameWin()) return;
 
     // ── 6. Hand off turn ──
-    if (scored > 0) {
-      // Score reaction
+    // Bonus turn if: scored OR played a double
+    const playedDouble = tile.isDouble();
+    const getBonusTurn = scored > 0 || playedDouble;
+    
+    if (getBonusTurn) {
+      // Reaction based on what happened
       if (scored >= 20) {
         this.setSpeech(randQuote('playerBigScore'));
         vfx.wendyMood('angry');
         wendyVideo.set('frustration', true);
-      } else {
+      } else if (scored > 0) {
         const gap = this.playerTotal - this.wendyTotal;
         if (gap > 15) this.setSpeech(randQuote('wendyLosing'));
         else if (Math.abs(gap) <= 10 && this.playerTotal > 20) this.setSpeech(randQuote('closeScore'));
         else this.setSpeech(randQuote('playerScores'));
         vfx.wendyMood('angry');
         wendyVideo.set('frustration', true);
+      } else if (playedDouble) {
+        // Played double but didn't score
+        this.setSpeech(randQuote('playerDouble'));
       }
-      // Player scored — plays again
-      this.setAction(`+${scored} pts! Play again — still your turn.`);
+      // Player scored OR played double — plays again
+      if (scored > 0 && playedDouble) {
+        this.setAction(`+${scored} pts with a double! Play again — still your turn.`);
+      } else if (scored > 0) {
+        this.setAction(`+${scored} pts! Play again — still your turn.`);
+      } else {
+        this.setAction(`Double played! Play again — still your turn.`);
+      }
       // turn stays 'player', no timeout needed
     } else {
       // No score — Wendy's turn
@@ -3033,8 +3152,18 @@ class Game {
     if (this.checkGameWin()) return;
 
     // ── 5. Hand off turn ──
-    if (play.scoreGained > 0) {
-      this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
+    // Bonus turn if: scored OR played a double
+    const wendyPlayedDouble = play.tile.isDouble();
+    const wendyGetsBonusTurn = play.scoreGained > 0 || wendyPlayedDouble;
+    
+    if (wendyGetsBonusTurn) {
+      if (play.scoreGained > 0 && wendyPlayedDouble) {
+        this.setAction(`Sister Wendy scores ${play.scoreGained} with a double! She plays again...`);
+      } else if (play.scoreGained > 0) {
+        this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
+      } else {
+        this.setAction(`Sister Wendy plays a double! She plays again...`);
+      }
       this.turn = 'wendy';
       setTimeout(() => this.doWendyTurn(), 1100);
     } else {
@@ -3296,6 +3425,20 @@ class Game {
 
   showHowToPlay() { document.getElementById('howtoplay-overlay').classList.add('visible'); audio.play('click'); }
   hideHowToPlay() { document.getElementById('howtoplay-overlay').classList.remove('visible'); audio.play('click'); }
+  
+  showFirstTurnHint() {
+    // Only show for players who haven't played before (or first few games)
+    const gamesPlayed = stats.stats.gamesPlayed || 0;
+    if (gamesPlayed < 3) {
+      const hint = document.getElementById('first-turn-hint');
+      if (hint) hint.classList.add('visible');
+    }
+  }
+  
+  hideFirstTurnHint() {
+    const hint = document.getElementById('first-turn-hint');
+    if (hint) hint.classList.remove('visible');
+  }
 
   updateMenuStreak() {
     const el = document.getElementById('menu-streak');
