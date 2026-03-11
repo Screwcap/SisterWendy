@@ -3097,6 +3097,10 @@ class Game {
 
   // Called by _flyWendyTileToBoard callback once animation completes
   _doWendyActFinish(play) {
+    // Verify score against live board (simulation can diverge)
+    const actualScore = this.board.scoreValue();
+    if (actualScore > 0 && play.scoreGained === 0) play.scoreGained = actualScore;
+
     if (play.scoreGained > 0) {
       this.wendyTotal += play.scoreGained;
       const deficit = this.wendyTotal - this.playerTotal;
@@ -3529,7 +3533,7 @@ class Game {
       // Set tile index for staggered idle animation
       tileEl.style.setProperty('--tile-index', i);
 
-      // Add glide animation to the most recently placed tile
+      // Add glide animation to the most recently placed tile (only once)
       if (this.lastPlacedTile === tile) {
         if (this.lastPlacedEnd === 'left') {
           tileEl.classList.add('tile-glide-left');
@@ -3538,10 +3542,9 @@ class Game {
         } else {
           tileEl.classList.add('tile-glide-down');
         }
-        setTimeout(() => {
-          this.lastPlacedTile = null;
-          this.lastPlacedEnd = null;
-        }, 500);
+        // Clear immediately so re-renders don't replay the animation
+        this.lastPlacedTile = null;
+        this.lastPlacedEnd = null;
       }
 
       // Glow the left/right end tiles when player has a tile selected (shows valid placement ends)
@@ -3580,22 +3583,21 @@ class Game {
         div.style.animationDelay = (i * 0.08) + 's';
       }
 
-      // Always attach click handler; playerSelectTile handles invalid moves with shake
-      if (isPlayerTurn) {
-        div.addEventListener('click', () => {
-          if (!canPlay && !this.board.isEmpty()) {
-            // Invalid move — shake the tile
-            div.classList.remove('shake-invalid');
-            void div.offsetWidth;
-            div.classList.add('shake-invalid');
-            audio.play('error');
-            this.setAction("That tile doesn't fit — numbers must match the open ends.");
-            setTimeout(() => div.classList.remove('shake-invalid'), 500);
-            return;
-          }
-          this.playerSelectTile(tile);
-        });
-      }
+      // Always attach click handler — playerSelectTile enforces turn guards
+      div.addEventListener('click', () => {
+        if (this.turn !== 'player') return; // Wendy's turn or animating — ignore
+        if (!canPlay && !this.board.isEmpty()) {
+          // Invalid move — shake the tile
+          div.classList.remove('shake-invalid');
+          void div.offsetWidth;
+          div.classList.add('shake-invalid');
+          audio.play('error');
+          this.setAction("That tile doesn't fit — numbers must match the open ends.");
+          setTimeout(() => div.classList.remove('shake-invalid'), 500);
+          return;
+        }
+        this.playerSelectTile(tile);
+      });
       el.appendChild(div);
     }
 
