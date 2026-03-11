@@ -92,8 +92,8 @@ body {
   flex-shrink: 0;
 }
 #wendy-avatar {
-  width: 72px;
-  height: 72px;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
   position: relative;
   cursor: default;
@@ -781,18 +781,25 @@ body {
 
 /* ── AUDIO TOGGLE ── */
 #audio-toggle {
-  background: transparent;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0,0,0,0.5);
   border: 1px solid var(--gold);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 1rem;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
   cursor: pointer;
   color: var(--gold);
   transition: all 0.15s;
-  margin-left: 12px;
+  z-index: 50;
 }
-#audio-toggle:hover { background: rgba(201,168,76,0.2); }
+#audio-toggle:hover { background: rgba(201,168,76,0.3); }
 #audio-toggle.muted { opacity: 0.5; }
+
+#player-panel {
+  position: relative;
+}
 
 /* ── KEYBOARD HELP ── */
 #keyboard-hint {
@@ -1267,7 +1274,6 @@ body {
   <!-- HEADER -->
   <div id="header">
     <h1>Sister Wendy's Dominoes <span>— Horse Race Rules</span></h1>
-    <button id="audio-toggle" onclick="audio.toggle()" title="Toggle Sound (M)">🔊</button>
     <div id="scores-display">
       <div class="score-block">
         <div class="score-label">You</div>
@@ -1276,7 +1282,7 @@ body {
       </div>
       <div style="color:var(--gold);font-size:1.2rem;align-self:center;">vs</div>
       <div class="score-block">
-        <div class="score-label">Sr. Wendy</div>
+        <div class="score-label">S. Wendy</div>
         <div class="score-val" id="wendy-score-val">0</div>
         <div class="score-bar-wrap"><div class="score-bar" id="wendy-bar" style="width:0%;background:#c04040"></div></div>
       </div>
@@ -1319,6 +1325,7 @@ body {
       <button id="draw-btn" onclick="game.playerDraw()">Draw from Boneyard (<span id="draw-count">14</span> left)</button>
       <button id="pass-btn" onclick="game.playerPass()" style="display:none;">Pass Turn</button>
     </div>
+    <button id="audio-toggle" onclick="audio.toggle()" title="Toggle Sound (M)">🔊</button>
   </div>
 </div>
 
@@ -2218,10 +2225,20 @@ class Game {
 
     this.renderAll();
     if (this.playerHand.length === 0) { this.endRound('player'); return; }
-    this.setAction("Select a tile to play.");
+    
+    // Hand off to Wendy - use wendy-pending to survive any state checks
     this.turn = 'wendy';
+    this.setAction("Sister Wendy's turn...");
     this.setSpeech(randQuote('herTurn'));
-    setTimeout(() => this.doWendyTurn(), 900 + Math.random() * 600);
+    this.setTurnIndicator();
+    this.renderHand(); // Update UI to show it's not player's turn
+    
+    // Trigger Wendy's turn after delay
+    setTimeout(() => {
+      if (this.turn === 'wendy' || this.turn === 'wendy-pending') {
+        this.doWendyTurn();
+      }
+    }, 1000);
   }
 
   playerPass() {
@@ -2270,7 +2287,11 @@ class Game {
 
   // ── WENDY AI TURN ──
   doWendyTurn() {
-    if (this.turn !== 'wendy') return;
+    // Accept both 'wendy' and allow forced calls
+    if (this.turn !== 'wendy' && this.turn !== 'wendy-pending') {
+      console.log('doWendyTurn blocked, turn is:', this.turn);
+      return;
+    }
     
     // Prevent re-entry during animation
     this.turn = 'wendy-thinking';
@@ -2952,16 +2973,15 @@ class Game {
   }
 
   _firstPlayer() {
-    // Highest double in either hand goes first
-    let ph = -1, wh = -1;
-    for (const t of this.playerHand) if (t.isDouble() && t.a > ph) ph = t.a;
-    for (const t of this.wendyHand)  if (t.isDouble() && t.a > wh) wh = t.a;
-    if (ph > wh) return 'player';
-    if (wh > ph) return 'wendy';
-    // tiebreak: highest pip total
-    const pm = Math.max(...this.playerHand.map(t => t.pips()));
-    const wm = Math.max(...this.wendyHand.map(t => t.pips()));
-    return pm >= wm ? 'player' : 'wendy';
+    // Simple coin toss - 50/50 chance
+    const coinFlip = Math.random() < 0.5;
+    const winner = coinFlip ? 'player' : 'wendy';
+    
+    // Show coin toss result
+    const coinResult = coinFlip ? '🪙 Heads! You go first.' : '🪙 Tails! Sister Wendy goes first.';
+    showToast(coinResult, 2500);
+    
+    return winner;
   }
 }
 
