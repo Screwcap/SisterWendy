@@ -1829,7 +1829,7 @@ body {
 <script>
 // ============================================================
 //  SISTER WENDY'S DOMINOES — Horse Race Rules
-//  v1.1 — Added Audio System + Keyboard Shortcuts
+//  v2.0 — Complete rewrite: state-first, animations cosmetic
 // ============================================================
 
 // ── AUDIO SYSTEM (Web Audio API) ──
@@ -2353,7 +2353,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ── PIP GRID PATTERNS (3x3 grid, 0=top-left, 4=center, 8=bottom-right) ──
+// ── PIP GRID PATTERNS (3×3 grid, 0=top-left, 4=center, 8=bottom-right) ──
 const PIP = {
   0: [],
   1: [4],
@@ -2561,9 +2561,10 @@ class Tile {
     this.flipped = false; // if true, b is the "left" end when placed
   }
   isDouble() { return this.a === this.b; }
-  left()  { return this.flipped ? this.b : this.a; }
-  right() { return this.flipped ? this.a : this.b; }
-  pips()  { return this.a + this.b; }
+  leftVal()  { return this.flipped ? this.b : this.a; }
+  rightVal() { return this.flipped ? this.a : this.b; }
+  pips()     { return this.a + this.b; }
+  matches(val) { return this.a === val || this.b === val; }
 }
 
 // ── BOARD ──
@@ -2580,7 +2581,6 @@ class Board {
     const ends = [];
     if (tile.a === this.leftEnd || tile.b === this.leftEnd)  ends.push('left');
     if (tile.a === this.rightEnd || tile.b === this.rightEnd) ends.push('right');
-    // dedupe if both ends are same value
     return [...new Set(ends)];
   }
 
@@ -2589,43 +2589,33 @@ class Board {
   play(tile, end) {
     if (this.isEmpty() || end === 'first') {
       tile.flipped = false;
-      this.chain.push(tile);
+      this.chain = [tile];
       this.leftEnd  = tile.a;
       this.rightEnd = tile.b;
       return;
     }
     if (end === 'left') {
-      // Tile is prepended (unshifted). LEFT half is exposed (new leftEnd), RIGHT half touches chain.
       if (tile.b === this.leftEnd) {
-        // b goes on RIGHT (touches chain), a goes on LEFT (exposed)
-        // flipped=false → left=a, right=b  ✓
-        tile.flipped = false;
+        tile.flipped = false;   // left=a exposed, right=b matches chain
         this.leftEnd = tile.a;
       } else {
-        // a goes on RIGHT (touches chain), b goes on LEFT (exposed)
-        // flipped=true → left=b, right=a  ✓
-        tile.flipped = true;
+        tile.flipped = true;    // left=b exposed, right=a matches chain
         this.leftEnd = tile.b;
       }
       this.chain.unshift(tile);
     } else { // 'right'
-      // Tile is appended (pushed). LEFT half touches chain (matches rightEnd), RIGHT half is exposed.
       if (tile.a === this.rightEnd) {
-        // a goes on LEFT (touches chain), b goes on RIGHT (exposed)
-        // flipped=false → left=a, right=b  ✓
-        tile.flipped = false;
+        tile.flipped = false;   // left=a matches chain, right=b exposed
         this.rightEnd = tile.b;
       } else {
-        // b goes on LEFT (touches chain), a goes on RIGHT (exposed)
-        // flipped=true → left=b, right=a  ✓
-        tile.flipped = true;
+        tile.flipped = true;    // left=b matches chain, right=a exposed
         this.rightEnd = tile.a;
       }
       this.chain.push(tile);
     }
   }
 
-  // Horse Race scoring: left + right ends; award if multiple of 5
+  // Horse Race / All-Fives scoring: sum of both open ends; award if multiple of 5
   scoreValue() {
     if (this.chain.length === 0) return 0;
     const sum = this.leftEnd + this.rightEnd;
@@ -2639,9 +2629,10 @@ function aiPickPlay(hand, board) {
   for (const tile of hand) {
     const ends = board.validEnds(tile);
     for (const end of ends) {
-      // simulate the play to get score
       const sim = new Board();
-      Object.assign(sim, { chain: [...board.chain], leftEnd: board.leftEnd, rightEnd: board.rightEnd });
+      sim.chain    = [...board.chain];
+      sim.leftEnd  = board.leftEnd;
+      sim.rightEnd = board.rightEnd;
       const simTile = new Tile(tile.a, tile.b);
       sim.play(simTile, end);
       const scoreGained = sim.scoreValue();
@@ -2649,8 +2640,6 @@ function aiPickPlay(hand, board) {
     }
   }
   if (candidates.length === 0) return null;
-
-  // Strategy: prefer highest scoring play, then doubles, then highest pip tile
   candidates.sort((a, b) => {
     if (b.scoreGained !== a.scoreGained) return b.scoreGained - a.scoreGained;
     if (a.tile.isDouble() !== b.tile.isDouble()) return a.tile.isDouble() ? -1 : 1;
@@ -2665,12 +2654,12 @@ class Game {
     this.TARGET = 61;
     this.playerTotal = 0;
     this.wendyTotal  = 0;
-    this.maxDeficit = 0;
-    this.isDaily = false;
-    this.turnCount = 0;
+    this.maxDeficit  = 0;
+    this.isDaily     = false;
+    this.turnCount   = 0;
     this.wendyDrawCount = 0;
-    this.roundNum = 0;
-    this.roundHistory = []; // array of {winner:'player'|'wendy'|'draw', pPts, wPts}
+    this.roundNum    = 0;
+    this.roundHistory = [];
     this.newGame(true);
     this.updateMenuStreak();
     this.updateDailyBanner();
@@ -2679,10 +2668,10 @@ class Game {
   newGame(silent) {
     this.playerTotal = 0;
     this.wendyTotal  = 0;
-    this.maxDeficit = 0;
-    this.isDaily = false;
-    this.turnCount = 0;
-    this.roundNum = 0;
+    this.maxDeficit  = 0;
+    this.isDaily     = false;
+    this.turnCount   = 0;
+    this.roundNum    = 0;
     this.roundHistory = [];
     this.updateScoreDisplay();
     this.updateRoundIndicator();
@@ -2691,7 +2680,7 @@ class Game {
     this.updateDailyBanner();
     if (!silent) this.startRound();
   }
-  
+
   startDailyChallenge() {
     if (dailyChallenge.hasPlayedToday()) {
       showToast("You've already played today's challenge!");
@@ -2699,47 +2688,46 @@ class Game {
     }
     this.isDaily = true;
     this.playerTotal = 0;
-    this.wendyTotal = 0;
-    this.maxDeficit = 0;
-    this.turnCount = 0;
-    this.roundNum = 0;
+    this.wendyTotal  = 0;
+    this.maxDeficit  = 0;
+    this.turnCount   = 0;
+    this.roundNum    = 0;
     this.roundHistory = [];
     this.updateScoreDisplay();
     this.updateRoundIndicator();
     this.updateRoundHistory();
-    this.startRound(true); // Pass true for daily mode
+    this.startRound(true);
   }
 
   startRound(isDailyMode = false) {
-    // If starting fresh daily, use seeded tiles
-    if (isDailyMode || this.isDaily) {
-      this.isDaily = true;
-    }
-    
+    if (isDailyMode || this.isDaily) this.isDaily = true;
+
     this.hideAllOverlays();
     this.roundNum++;
     this.board = new Board();
     this.updateRoundIndicator();
 
-    // Use seeded shuffle for daily challenge
     if (this.isDaily && this.playerTotal === 0 && this.wendyTotal === 0) {
-      const fullSet = this._fullSet();
-      this.boneyard = dailyChallenge.getDailyTiles(fullSet);
+      this.boneyard = dailyChallenge.getDailyTiles(this._fullSet());
     } else {
       this.boneyard = this._shuffle(this._fullSet());
     }
-    
+
     this.playerHand = this.boneyard.splice(0, 7);
     this.wendyHand  = this.boneyard.splice(0, 7);
     this.selected   = null;
-    this.phase      = 'select'; // select | end
+    this.phase      = 'select';
     this.wendyDrawCount = 0;
-    this.turn       = this._firstPlayer();
-    this.animateHand = true; // Trigger entrance animation
     this.lastPlacedTile = null;
-    wendyVideo.set('main'); // Reset to main idle video on new round
+    this.lastPlacedEnd  = null;
+    this.animateHand    = true;
+
+    wendyVideo.set('main');
     audio.play('shuffle');
+
+    this.turn = this._firstPlayer();
     this.renderAll();
+
     if (this.turn === 'wendy') {
       this.setAction("Sister Wendy goes first. God's will.");
       this.setSpeech(randQuote('gameStart'));
@@ -2751,198 +2739,33 @@ class Game {
     }
   }
 
-  // ── FLIP: capture tile element rect before it leaves the hand ──
-  _captureTileRect(tile) {
-    const hand = document.getElementById('player-hand');
-    if (!hand) return null;
-    const tiles = hand.querySelectorAll('.domino');
-    for (const el of tiles) {
-      // match by data or text content pip counts
-      if (el.dataset && el.dataset.tileId === tile.id) return el.getBoundingClientRect();
-    }
-    return null;
-  }
-
-  _flyTileToBoard(fromRect) {
-    if (!fromRect) return;
-    const boardChain = document.getElementById('board-chain');
-    if (!boardChain) return;
-    const toRect = boardChain.getBoundingClientRect();
-
-    // Clone a domino-shaped div at the source position
-    const clone = document.createElement('div');
-    clone.className = 'tile-flip-fly';
-    clone.style.cssText = `
-      width:${fromRect.width}px; height:${fromRect.height}px;
-      left:${fromRect.left}px; top:${fromRect.top}px;
-      background:var(--ivory); border:2px solid #c8a060;
-    `;
-    document.body.appendChild(clone);
-
-    // Next frame: animate to board center
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        clone.style.left = (toRect.left + toRect.width / 2 - fromRect.width / 2) + 'px';
-        clone.style.top  = (toRect.top  + toRect.height / 2 - fromRect.height / 2) + 'px';
-        clone.style.transform = 'scale(0.7) rotate(4deg)';
-        clone.style.opacity = '0';
-        setTimeout(() => clone.remove(), 500);
-      });
-    });
-  }
-
-  /**
-   * Wendy tile flip animation: face-down tile flips to reveal values, then flies to board.
-   * Bulletproof: always calls done() no matter what, with a 2s safety net.
-   * @param {number} tileIdx - index of tile in wendyHand (before removal)
-   * @param {Object} tile    - the Tile object being played
-   * @param {Function} done  - callback after animation completes
-   */
-  _flyWendyTileToBoard(tileIdx, tile, done) {
-    // ── SAFETY GATE: done() is called exactly once, no matter what ──
-    let doneCalled = false;
-    const safeDone = () => {
-      if (doneCalled) return;
-      doneCalled = true;
-      done && done();
-    };
-
-    // Absolute fallback: fire after 2s even if every other path fails
-    const safetyTimer = setTimeout(safeDone, 2000);
-
-    try {
-      const handEl = document.getElementById('wendy-hand-display');
-      const boardChain = document.getElementById('board-chain');
-      if (!handEl || !boardChain) {
-        clearTimeout(safetyTimer);
-        safeDone();
-        return;
-      }
-
-      const faceDownTiles = handEl.querySelectorAll('.face-down-tile');
-      const srcEl = faceDownTiles[Math.min(tileIdx, faceDownTiles.length - 1)];
-      if (!srcEl) {
-        clearTimeout(safetyTimer);
-        safeDone();
-        return;
-      }
-
-      const fromRect = srcEl.getBoundingClientRect();
-      const toRect   = boardChain.getBoundingClientRect();
-
-      const W = fromRect.width;
-      const H = fromRect.height;
-
-      // Build the 3D flip card
-      const wrap = document.createElement('div');
-      wrap.className = 'wendy-flip-wrap';
-      wrap.style.cssText = `width:${W}px; height:${H}px; left:${fromRect.left}px; top:${fromRect.top}px;`;
-
-      const inner = document.createElement('div');
-      inner.className = 'wendy-flip-inner';
-
-      const front = document.createElement('div');
-      front.className = 'wendy-flip-front';
-
-      const back = document.createElement('div');
-      back.className = 'wendy-flip-back';
-      // Show tile value on the back
-      const aVal = tile.flipped !== undefined && tile.flipped ? tile.b : tile.a;
-      const bVal = tile.flipped !== undefined && tile.flipped ? tile.a : tile.b;
-      back.innerHTML = `<div class="wendy-flip-pip-row">${aVal}|${bVal}</div>`;
-
-      inner.appendChild(front);
-      inner.appendChild(back);
-      wrap.appendChild(inner);
-      document.body.appendChild(wrap);
-
-      // "Wendy plays X|Y" label
-      const label = document.createElement('div');
-      label.className = 'wendy-plays-label';
-      label.textContent = `Sister Wendy plays [${tile.a}|${tile.b}]`;
-      label.style.cssText = `left:${fromRect.left - 20}px; top:${fromRect.top - 28}px;`;
-      document.body.appendChild(label);
-
-      // Phase 1: flip the tile (reveal face)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          try {
-            inner.classList.add('flipped');
-            label.style.opacity = '1';
-
-            // Phase 2 (after flip): fly to board
-            setTimeout(() => {
-              try {
-                const destX = toRect.left + toRect.width / 2 - W / 2;
-                const destY = toRect.top  + toRect.height / 2 - H / 2;
-                wrap.style.left = destX + 'px';
-                wrap.style.top  = destY + 'px';
-                label.style.left = destX + 'px';
-                label.style.top  = (destY - 28) + 'px';
-
-                // Phase 3 (after flight): fade out, trigger done
-                setTimeout(() => {
-                  try {
-                    wrap.style.opacity = '0';
-                    label.style.opacity = '0';
-                    setTimeout(() => {
-                      try { wrap.remove(); } catch(e) {}
-                      try { label.remove(); } catch(e) {}
-                      clearTimeout(safetyTimer);
-                      safeDone();
-                    }, 260);
-                  } catch(e) {
-                    try { wrap.remove(); } catch(e2) {}
-                    try { label.remove(); } catch(e2) {}
-                    clearTimeout(safetyTimer);
-                    safeDone();
-                  }
-                }, 620);
-              } catch(e) {
-                try { wrap.remove(); } catch(e2) {}
-                try { label.remove(); } catch(e2) {}
-                clearTimeout(safetyTimer);
-                safeDone();
-              }
-            }, 520);
-          } catch(e) {
-            try { wrap.remove(); } catch(e2) {}
-            try { label.remove(); } catch(e2) {}
-            clearTimeout(safetyTimer);
-            safeDone();
-          }
-        });
-      });
-    } catch(e) {
-      clearTimeout(safetyTimer);
-      safeDone();
-    }
-  }
-
   // ── PLAYER ACTIONS ──
+
   playerSelectTile(tile) {
-    if (this.turn !== 'player' || this.phase === 'wendy-thinking') return;
+    if (this.turn !== 'player') return;
     if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
       this.setAction("That tile doesn't fit. Try another.");
       audio.play('error');
-      // Shake the clicked tile
       const hand = document.getElementById('player-hand');
       if (hand) {
-        const tileEls = hand.querySelectorAll('.domino');
-        tileEls.forEach(el => { if (el.dataset.tileId === tile.id) { el.classList.add('wendy-shake'); setTimeout(() => el.classList.remove('wendy-shake'), 400); }});
+        hand.querySelectorAll('.domino').forEach(el => {
+          if (el.dataset.tileId === tile.id) {
+            el.classList.add('wendy-shake');
+            setTimeout(() => el.classList.remove('wendy-shake'), 400);
+          }
+        });
       }
       return;
     }
-    // Capture position before re-render removes it from hand
-    const fromRect = this._captureTileRect(tile);
     this.selected = tile;
     audio.play('select');
     const ends = this.board.validEnds(tile);
     if (ends.length === 1 || this.board.isEmpty()) {
-      this._flyTileToBoard(fromRect);
+      // Cosmetic fly — purely visual, fires after state is already committed
+      const fromRect = this._captureTileRect(tile);
       this.playerPlayTile(tile, ends[0] || 'first');
+      this._flyTileToBoard(fromRect);
     } else {
-      // Both ends work — ask player to pick
       this.phase = 'end';
       this.setAction("Both ends fit — use the ← LEFT or RIGHT → buttons below.", true);
       this.renderBoard();
@@ -2957,96 +2780,82 @@ class Game {
   }
 
   playerPlayTile(tile, end) {
+    // ── 1. Validate ──
     const idx = this.playerHand.indexOf(tile);
     if (idx < 0) return;
+
+    // ── 2. Update state SYNCHRONOUSLY ──
     this.playerHand.splice(idx, 1);
     this.board.play(tile, end);
-    this.lastPlacedTile = tile; // Track for glide animation
-    this.lastPlacedEnd = end; // Track which end for direction
-    audio.play('place');
-    const scored = this.board.scoreValue();
+    this.lastPlacedTile = tile;
+    this.lastPlacedEnd  = end;
     this.phase = 'select';
     this.selected = null;
-    // Clear urgent class from action-msg
     const actionEl = document.getElementById('action-msg');
     if (actionEl) actionEl.classList.remove('urgent');
 
+    // ── 3. Score ──
+    const scored = this.board.scoreValue();
+    if (scored > 0) this.playerTotal += scored;
+
+    // ── 4. Render IMMEDIATELY ──
+    this.renderAll();
+    audio.play('place');
+    if (scored > 0) {
+      this.updateScoreDisplay();
+      this.flashScore('player');
+      showScorePopup(scored, document.getElementById('player-score-val'));
+      scored >= 15 ? audio.play('bigScore') : audio.play('score');
+      vfx.celebrateScore('player', scored);
+    }
     if (tile.isDouble()) {
-      const dVal = tile.a;
-      const specificQuip = dVal === 6 ? "The [6|6]?! You had that all along?!"
-                         : dVal === 5 ? "A [5|5]. Hmm. Well played. Don't expect praise."
-                         : null;
-      this.setSpeech(specificQuip || randQuote('playerDouble'));
       audio.play('double');
+      const dVal = tile.a;
+      const quip = dVal === 6 ? "The [6|6]?! You had that all along?!"
+                 : dVal === 5 ? "A [5|5]. Hmm. Well played. Don't expect praise."
+                 : randQuote('playerDouble');
+      this.setSpeech(quip);
     }
 
+    // ── 5. Check win / round end ──
+    if (this.playerHand.length === 0) { this.endRound('player'); return; }
+    if (this.checkGameWin()) return;
+
+    // ── 6. Hand off turn ──
     if (scored > 0) {
-      this.playerTotal += scored;
-      // Contextual Wendy reaction based on score size and game state
+      // Score reaction
       if (scored >= 20) {
         this.setSpeech(randQuote('playerBigScore'));
         vfx.wendyMood('angry');
         wendyVideo.set('frustration', true);
-      } else if (scored >= 10) {
-        this.setSpeech(randQuote('playerScores'));
-        vfx.wendyMood('angry');
-        wendyVideo.set('frustration', true);
       } else {
-        // Close score commentary
         const gap = this.playerTotal - this.wendyTotal;
-        if (gap > 15) {
-          this.setSpeech(randQuote('wendyLosing'));
-        } else if (Math.abs(gap) <= 10 && this.playerTotal > 20) {
-          this.setSpeech(randQuote('closeScore'));
-        } else {
-          this.setSpeech(randQuote('playerScores'));
-        }
+        if (gap > 15) this.setSpeech(randQuote('wendyLosing'));
+        else if (Math.abs(gap) <= 10 && this.playerTotal > 20) this.setSpeech(randQuote('closeScore'));
+        else this.setSpeech(randQuote('playerScores'));
         vfx.wendyMood('angry');
         wendyVideo.set('frustration', true);
       }
-      this.setAction(`+${scored} points! You score — play again!`);
-      this.flashScore('player');
-      // Show floating score popup near score display
-      showScorePopup(scored, document.getElementById('player-score-val'));
-      scored >= 15 ? audio.play('bigScore') : audio.play('score');
-      vfx.celebrateScore('player', scored);
-
-      this.updateScoreDisplay();
-      this.renderAll();
-      if (this.checkGameWin()) return;
-      if (this.playerHand.length === 0) { this.endRound('player'); return; }
-      // Player gets another turn after scoring — remind them
-      this.setAction(`+${scored} points! Play again — it's still your turn.`);
-      return;
-    }
-
-    this.renderAll();
-    if (this.playerHand.length === 0) { this.endRound('player'); return; }
-
-    // 30% chance of Wendy commentary on player non-scoring move
-    if (Math.random() < 0.30) {
-      const commentaryKey = ['commentary', 'smug', 'angry'][Math.floor(Math.random() * 3)];
-      this.setSpeech(randQuote(commentaryKey));
-    }
-
-    // Hand off to Wendy
-    this.turn = 'wendy';
-    this.setAction("Sister Wendy's turn...");
-    if (Math.random() >= 0.30) this.setSpeech(randQuote('herTurn')); // only override if no commentary
-    this.setTurnIndicator();
-    this.renderHand();
-
-    // Trigger Wendy's turn after delay
-    setTimeout(() => {
-      if (this.turn === 'wendy' || this.turn === 'wendy-pending') {
-        this.doWendyTurn();
+      // Player scored — plays again
+      this.setAction(`+${scored} pts! Play again — still your turn.`);
+      // turn stays 'player', no timeout needed
+    } else {
+      // No score — Wendy's turn
+      if (Math.random() < 0.30) {
+        this.setSpeech(randQuote(['commentary', 'smug', 'angry'][Math.floor(Math.random() * 3)]));
+      } else {
+        this.setSpeech(randQuote('herTurn'));
       }
-    }, 1000);
+      this.turn = 'wendy';
+      this.setAction("Sister Wendy's turn...");
+      this.setTurnIndicator();
+      this.renderHand(); // grey out tiles while Wendy plays
+      setTimeout(() => this.doWendyTurn(), 1000);
+    }
   }
 
   playerPass() {
     if (this.turn !== 'player') return;
-    // Only allow pass if boneyard is empty and no valid moves
     const canPlay = this.playerHand.some(t => this.board.canPlay(t));
     if (canPlay || this.boneyard.length > 0) {
       this.setAction("You can still play or draw!");
@@ -3057,7 +2866,7 @@ class Game {
     audio.play('click');
     this.setAction("You pass. Sister Wendy's turn.");
     this.turn = 'wendy';
-    this.renderHand(); // Update button states
+    this.renderHand();
     setTimeout(() => this.doWendyTurn(), 900);
   }
 
@@ -3068,12 +2877,11 @@ class Game {
       audio.play('error');
       return;
     }
-    // Per Muggins rules: you must play a tile if you have a valid move; drawing is only allowed when stuck
     const hasValidMove = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
     if (hasValidMove) {
       this.setAction("You have playable tiles — you must play before drawing!");
       audio.play('error');
-      showToast("Must play first — drawing not allowed when you have valid moves!", 2500);
+      showToast("Must play first!", 2500);
       return;
     }
     const drawn = this.boneyard.splice(0, 1)[0];
@@ -3084,18 +2892,13 @@ class Game {
     const pipLabel = `[${drawn.a}|${drawn.b}]`;
     if (this.board.isEmpty() || this.board.canPlay(drawn)) {
       this.setAction(`Drew ${pipLabel} — you can play it!`);
-      this.renderHand();
       return;
     } else if (this.boneyard.length > 0) {
-      this.setAction(`Drew ${pipLabel} — still no match. Draw again or pass.`);
+      this.setAction(`Drew ${pipLabel} — still no match. Draw again.`);
     } else {
-      // Boneyard now empty — check if blocked game
       const playerCanPlay = this.board.isEmpty() || this.playerHand.some(t => this.board.canPlay(t));
       const wendyCanPlay  = this.board.isEmpty() || this.wendyHand.some(t => this.board.canPlay(t));
-      if (!playerCanPlay && !wendyCanPlay) {
-        this.endRound('blocked');
-        return;
-      }
+      if (!playerCanPlay && !wendyCanPlay) { this.endRound('blocked'); return; }
       if (!playerCanPlay) {
         this.setAction("Boneyard empty. No moves — passing to Sister Wendy.");
         this.setSpeech(randQuote('playerCantPlay'));
@@ -3109,27 +2912,17 @@ class Game {
 
   // ── WENDY AI TURN ──
   doWendyTurn() {
-    // Accept both 'wendy' and allow forced calls
-    if (this.turn !== 'wendy' && this.turn !== 'wendy-pending') {
-      console.log('doWendyTurn blocked, turn is:', this.turn);
-      return;
-    }
-    
-    // Prevent re-entry during animation
+    if (this.turn !== 'wendy') return;
+
     this.turn = 'wendy-thinking';
-    
-    document.getElementById('turn-indicator').textContent = "Sister Wendy's Turn";
-    document.getElementById('turn-indicator').className = '';
-    
-    // Show thinking animation
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
-    const thinkingOverlayEl = document.getElementById('thinking-overlay');
-    if (thinkingOverlayEl) thinkingOverlayEl.classList.add('show');
+    const thinkEl = document.getElementById('thinking-overlay');
+    if (thinkEl) thinkEl.classList.add('show');
     this.setAction("Sister Wendy is thinking...");
+    this.setTurnIndicator();
 
-    // Small delay so thinking state is visible before AI acts
-    const thinkDelay = 600 + Math.random() * 800; // 0.6–1.4s
+    const thinkDelay = 600 + Math.random() * 800;
     setTimeout(() => this._doWendyAct(), thinkDelay);
   }
 
@@ -3137,215 +2930,263 @@ class Game {
     const play = aiPickPlay(this.wendyHand, this.board);
 
     if (!play) {
-      // can't play — draw from boneyard or pass
+      // Can't play — draw or pass
       if (this.boneyard.length > 0) {
-        // Only show "can't play" speech on first draw attempt
-        if (!this.wendyDrawCount || this.wendyDrawCount === 0) {
+        if (!this.wendyDrawCount) {
           this.setSpeech(randQuote('herCantPlay'));
           audio.play('wendyAngry');
           vfx.wendyMood('angry');
           wendyVideo.set('frustration', true);
           this.setAction("Sister Wendy can't play — drawing...");
         }
-        if (!this.wendyDrawCount) this.wendyDrawCount = 0;
-        this.wendyDrawCount++;
+        this.wendyDrawCount = (this.wendyDrawCount || 0) + 1;
 
+        // ── State update FIRST ──
         const drawn = this.boneyard.splice(0, 1)[0];
         this.wendyHand.push(drawn);
         audio.play('draw');
+        // ── Render IMMEDIATELY ──
         this.renderAll();
 
-        if (this.wendyDrawCount >= 2 && this.boneyard.length > 0) {
-          this.setAction(`Sister Wendy drawing... (${this.boneyard.length} left in boneyard)`);
-        }
-
-        // Check if drawn tile can be played immediately
         if (this.board.canPlay(drawn)) {
           this.wendyDrawCount = 0;
           this.turn = 'wendy';
           setTimeout(() => this.doWendyTurn(), 800);
-          return;
+        } else {
+          this.turn = 'wendy';
+          setTimeout(() => this.doWendyTurn(), 700);
         }
-
-        // Continue drawing
-        this.turn = 'wendy';
-        setTimeout(() => this.doWendyTurn(), 700);
-        return;
-      } else {
-        // Boneyard empty — must pass
-        this.wendyDrawCount = 0;
-        this.setSpeech(randQuote('herCantPlay'));
-        audio.play('wendyAngry');
-        vfx.wendyMood('angry');
-        wendyVideo.set('frustration', true);
-        const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
-        if (!playerCanPlay) {
-          // Both stuck, boneyard empty = blocked game
-          this.endRound('blocked');
-          return;
-        }
-        this.turn = 'player';
-        this._hideThinking();
-        this.setAction("Sister Wendy passes — it's your turn!");
-        this.setTurnIndicator();
-        this.renderHand();
-        audio.play('turn');
-        showToast("Your turn!", 2000);
         return;
       }
-    }
-    
-    // Reset draw counter on successful play
-    this.wendyDrawCount = 0;
 
-    // Capture the tile's position in Wendy's hand BEFORE we remove it
+      // Boneyard empty — pass
+      this.wendyDrawCount = 0;
+      this.setSpeech(randQuote('herCantPlay'));
+      audio.play('wendyAngry');
+      vfx.wendyMood('angry');
+      wendyVideo.set('frustration', true);
+      this._hideThinking();
+
+      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+      if (!playerCanPlay) { this.endRound('blocked'); return; }
+
+      this.turn = 'player';
+      this.renderAll();
+      this.setAction("Sister Wendy passes — it's your turn!");
+      this.setTurnIndicator();
+      audio.play('turn');
+      showToast("Your turn!", 2000);
+      return;
+    }
+
+    // Has a play — execute it
+    this.wendyDrawCount = 0;
     const playIdx = this.wendyHand.indexOf(play.tile);
 
-    // Update game state immediately (tile leaves hand, lands on board)
+    // ── 1. Update state SYNCHRONOUSLY ──
     this.wendyHand.splice(playIdx, 1);
     this.board.play(play.tile, play.end);
     this.lastPlacedTile = play.tile;
-    this.lastPlacedEnd = play.end;
-    this._hideThinking();
+    this.lastPlacedEnd  = play.end;
 
-    // Immediate feedback (speech/audio) before animation
-    if (play.tile.isDouble()) {
-      const dVal = play.tile.a;
-      const specificQuip = dVal === 6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
-                         : dVal === 5 ? "A [5|5]! Fitting — five is the number of grace."
-                         : dVal === 0 ? "Even the blanks serve God's plan. And mine."
-                         : null;
-      this.setSpeech(specificQuip || randQuote('herDouble'));
-      audio.play('double');
-      wendyVideo.set('smirk', true);
-    } else if (play.scoreGained > 0) {
-      const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
-      this.setSpeech(quote);
-      wendyVideo.set('smirk', true);
-    }
-
-    audio.play('place');
-
-    // Flip-fly animation — ALL post-play logic runs in the callback so it
-    // fires AFTER the tile visibly lands on the board.
-    this._flyWendyTileToBoard(playIdx, play.tile, () => {
-      this._doWendyActFinish(play);
-    });
-  }
-
-  // Called by _flyWendyTileToBoard callback once animation completes
-  _doWendyActFinish(play) {
-    // Verify score against live board (simulation can diverge)
+    // ── 2. Score ──
     const actualScore = this.board.scoreValue();
-    if (actualScore > 0 && play.scoreGained === 0) play.scoreGained = actualScore;
-
+    if (actualScore > 0) play.scoreGained = actualScore;
     if (play.scoreGained > 0) {
       this.wendyTotal += play.scoreGained;
       const deficit = this.wendyTotal - this.playerTotal;
       if (deficit > this.maxDeficit) this.maxDeficit = deficit;
-      this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
+    }
+
+    // ── 3. Render IMMEDIATELY ──
+    this._hideThinking();
+    this.renderAll();
+    audio.play('place');
+
+    // Cosmetic: speech + video based on what happened
+    if (play.tile.isDouble()) {
+      const dVal = play.tile.a;
+      const quip = dVal === 6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
+                 : dVal === 5 ? "A [5|5]! Fitting — five is the number of grace."
+                 : dVal === 0 ? "Even the blanks serve God's plan. And mine."
+                 : randQuote('herDouble');
+      this.setSpeech(quip);
+      audio.play('double');
+      wendyVideo.set('smirk', true);
+    }
+    if (play.scoreGained > 0) {
+      this.updateScoreDisplay();
       this.flashScore('wendy');
-      // Show floating score popup near Wendy's score display
       showScorePopup(play.scoreGained, document.getElementById('wendy-score-val'));
       play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
       vfx.wendyMood('smug');
       vfx.celebrateScore('wendy', play.scoreGained);
-      this.updateScoreDisplay();
-      this.renderAll();
-      if (this.checkGameWin()) return;
-      if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+      const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
+      this.setSpeech(quote);
+    }
+
+    // Cosmetic fly animation — pure eye candy, game already updated
+    this._flyWendyTileToBoard(playIdx, play.tile);
+
+    // ── 4. Check win / round end ──
+    if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+    if (this.checkGameWin()) return;
+
+    // ── 5. Hand off turn ──
+    if (play.scoreGained > 0) {
+      this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
       this.turn = 'wendy';
       setTimeout(() => this.doWendyTurn(), 1100);
-      return;
+    } else {
+      // Commentary on non-scoring move
+      const scoreGap = this.playerTotal - this.wendyTotal;
+      if (scoreGap >= 15 && Math.random() < 0.6) this.setSpeech(randQuote('wendyLosing'));
+      else if (Math.abs(scoreGap) <= 8 && this.playerTotal > 20 && Math.random() < 0.5) this.setSpeech(randQuote('closeScore'));
+      else if (Math.random() < 0.30) this.setSpeech(randQuote(['smug','herTurn','angry','commentary'][Math.floor(Math.random()*4)]));
+
+      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+      if (!playerCanPlay && this.boneyard.length === 0) {
+        this.setSpeech(randQuote('playerCantPlay'));
+        vfx.wendyMood('smug');
+        wendyVideo.set('smirk', true);
+        this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
+        this.turn = 'wendy';
+        setTimeout(() => this.doWendyTurn(), 1200);
+        return;
+      }
+
+      this.turn = 'player';
+      this.renderAll(); // re-render to update hand playability indicators
+      this.setAction("Your turn — pick a tile.");
+      this.setTurnIndicator();
+      audio.play('turn');
+      showToast("Your turn!", 1800);
     }
+  }
 
-    // Contextual commentary on non-scoring move
-    const scoreGap = this.playerTotal - this.wendyTotal;
-    if (scoreGap >= 15 && Math.random() < 0.6) {
-      this.setSpeech(randQuote('wendyLosing'));
-    } else if (Math.abs(scoreGap) <= 8 && this.playerTotal > 20 && Math.random() < 0.5) {
-      this.setSpeech(randQuote('closeScore'));
-    } else if (Math.random() < 0.30) {
-      const commentaryKey = ['smug', 'herTurn', 'angry', 'commentary'][Math.floor(Math.random() * 4)];
-      this.setSpeech(randQuote(commentaryKey));
+  // ── COSMETIC ONLY: fly animation for player tile (no state changes) ──
+  _captureTileRect(tile) {
+    const hand = document.getElementById('player-hand');
+    if (!hand) return null;
+    for (const el of hand.querySelectorAll('.domino')) {
+      if (el.dataset.tileId === tile.id) return el.getBoundingClientRect();
     }
+    return null;
+  }
 
-    this.renderAll();
-    if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+  _flyTileToBoard(fromRect) {
+    if (!fromRect) return;
+    const boardChain = document.getElementById('board-chain');
+    if (!boardChain) return;
+    const toRect = boardChain.getBoundingClientRect();
+    const clone = document.createElement('div');
+    clone.className = 'tile-flip-fly';
+    clone.style.cssText = `width:${fromRect.width}px;height:${fromRect.height}px;left:${fromRect.left}px;top:${fromRect.top}px;background:var(--ivory);border:2px solid #c8a060;`;
+    document.body.appendChild(clone);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clone.style.left = (toRect.left + toRect.width/2 - fromRect.width/2) + 'px';
+      clone.style.top  = (toRect.top  + toRect.height/2 - fromRect.height/2) + 'px';
+      clone.style.transform = 'scale(0.7) rotate(4deg)';
+      clone.style.opacity = '0';
+      setTimeout(() => clone.remove(), 500);
+    }));
+  }
 
-    const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
-    const wendyCanPlay  = this.wendyHand.some(t => this.board.canPlay(t));
-    if (!playerCanPlay && !wendyCanPlay && this.boneyard.length === 0) {
-      this.endRound('blocked'); return;
-    }
+  // ── COSMETIC ONLY: Wendy's tile flip animation (no state changes, no callback needed) ──
+  _flyWendyTileToBoard(tileIdx, tile) {
+    try {
+      const handEl = document.getElementById('wendy-hand-display');
+      const boardChain = document.getElementById('board-chain');
+      if (!handEl || !boardChain) return;
+      const faceDownTiles = handEl.querySelectorAll('.face-down-tile');
+      const srcEl = faceDownTiles[Math.min(tileIdx, faceDownTiles.length - 1)];
+      if (!srcEl) return;
 
-    if (!playerCanPlay && this.boneyard.length === 0) {
-      this.setSpeech(randQuote('playerCantPlay'));
-      vfx.wendyMood('smug');
-      wendyVideo.set('smirk', true);
-      this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
-      this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 1200);
-      return;
-    }
+      const fromRect = srcEl.getBoundingClientRect();
+      const toRect   = boardChain.getBoundingClientRect();
+      const W = fromRect.width, H = fromRect.height;
 
-    this.turn = 'player';
-    this.setTurnIndicator();
-    this.setAction("Your turn — pick a tile.");
-    this.renderHand();
-    audio.play('turn');
-    showToast("Your turn!", 1800);
+      const wrap = document.createElement('div');
+      wrap.className = 'wendy-flip-wrap';
+      wrap.style.cssText = `width:${W}px;height:${H}px;left:${fromRect.left}px;top:${fromRect.top}px;`;
+      const inner = document.createElement('div');
+      inner.className = 'wendy-flip-inner';
+      const front = document.createElement('div');
+      front.className = 'wendy-flip-front';
+      const back = document.createElement('div');
+      back.className = 'wendy-flip-back';
+      back.innerHTML = `<div class="wendy-flip-pip-row">${tile.a}|${tile.b}</div>`;
+      inner.appendChild(front);
+      inner.appendChild(back);
+      wrap.appendChild(inner);
+      document.body.appendChild(wrap);
+
+      const label = document.createElement('div');
+      label.className = 'wendy-plays-label';
+      label.textContent = `Sister Wendy plays [${tile.a}|${tile.b}]`;
+      label.style.cssText = `left:${fromRect.left - 20}px;top:${fromRect.top - 28}px;`;
+      document.body.appendChild(label);
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        try {
+          inner.classList.add('flipped');
+          label.style.opacity = '1';
+          setTimeout(() => {
+            try {
+              const destX = toRect.left + toRect.width/2 - W/2;
+              const destY = toRect.top  + toRect.height/2 - H/2;
+              wrap.style.left = destX + 'px';
+              wrap.style.top  = destY + 'px';
+              label.style.left = destX + 'px';
+              label.style.top  = (destY - 28) + 'px';
+              setTimeout(() => {
+                wrap.style.opacity = '0';
+                label.style.opacity = '0';
+                setTimeout(() => { try { wrap.remove(); label.remove(); } catch(e) {} }, 260);
+              }, 620);
+            } catch(e) { try { wrap.remove(); label.remove(); } catch(e2) {} }
+          }, 520);
+        } catch(e) { try { wrap.remove(); label.remove(); } catch(e2) {} }
+      }));
+    } catch(e) { /* animation failed silently — game state already correct */ }
   }
 
   // ── ROUND END ──
   endRound(winner) {
-    // Count remaining pips
+    this._hideThinking();
     let playerLeftover = this.playerHand.reduce((s, t) => s + t.pips(), 0);
     let wendyLeftover  = this.wendyHand.reduce((s, t) => s + t.pips(), 0);
-
     let playerRoundPts = 0, wendyRoundPts = 0;
-    let title, msg, emoji;
-
-    this._hideThinking();
-    // Helper: round pip total to nearest 5 (standard Horse Race scoring)
-    const roundTo5 = (n) => Math.round(n / 5) * 5;
+    let title, msg;
+    const roundTo5 = n => Math.round(n / 5) * 5;
 
     if (winner === 'player') {
       playerRoundPts = roundTo5(wendyLeftover);
       title = "Domino!";
-      emoji = "&#x1F3C6;";
       msg = randQuote('playerDomino');
-      this.setSpeech(randQuote('playerDomino'));
+      this.setSpeech(msg);
       audio.play('roundEnd');
       vfx.confetti(40, 2000);
       wendyVideo.set('lose', true);
     } else if (winner === 'wendy') {
       wendyRoundPts = roundTo5(playerLeftover);
       title = "Sister Wendy Dominoes!";
-      emoji = "&#x1F476;";
       msg = randQuote('herDomino');
-      this.setSpeech(randQuote('herDomino'));
+      this.setSpeech(msg);
       audio.play('wendyScore');
       wendyVideo.set('winning', true);
     } else {
-      // blocked: lower pip count wins the difference (rounded to 5)
       if (playerLeftover < wendyLeftover) {
         playerRoundPts = roundTo5(wendyLeftover - playerLeftover);
         title = "Blocked — You Win!";
-        emoji = "&#x1F4AA;";
-        msg = randQuote('blocked');
       } else if (wendyLeftover < playerLeftover) {
         wendyRoundPts = roundTo5(playerLeftover - wendyLeftover);
         title = "Blocked — Wendy Wins!";
-        emoji = "&#x2698;";
-        msg = randQuote('blocked');
       } else {
-        // exact tie — no points
         title = "Blocked — Tie!";
-        emoji = "&#x2696;";
-        msg = randQuote('blocked');
       }
-      this.setSpeech(randQuote('blocked'));
+      msg = randQuote('blocked');
+      this.setSpeech(msg);
       audio.play('blocked');
     }
 
@@ -3353,36 +3194,23 @@ class Game {
     this.wendyTotal  += wendyRoundPts;
     this.updateScoreDisplay();
 
-    // Record round result for history display
     const roundWinner = winner === 'player' ? 'player'
                       : winner === 'wendy'  ? 'wendy'
-                      : (playerRoundPts > wendyRoundPts ? 'player'
-                         : wendyRoundPts > playerRoundPts ? 'wendy' : 'draw');
+                      : playerRoundPts > wendyRoundPts ? 'player'
+                      : wendyRoundPts > playerRoundPts ? 'wendy' : 'draw';
     this.roundHistory.push({ winner: roundWinner, pPts: playerRoundPts, wPts: wendyRoundPts });
     this.updateRoundHistory();
 
-    // Set round avatar based on winner
     const roundAvatar = document.getElementById('round-avatar');
-    if (roundAvatar) {
-      if (winner === 'player') {
-        roundAvatar.src = 'assets/images/losing.jpeg';
-      } else if (winner === 'wendy') {
-        roundAvatar.src = 'assets/images/winning.jpeg';
-      } else {
-        roundAvatar.src = 'assets/images/thinking.jpeg';
-      }
-    }
+    if (roundAvatar) roundAvatar.src = winner === 'player' ? 'assets/images/losing.jpeg' : winner === 'wendy' ? 'assets/images/winning.jpeg' : 'assets/images/thinking.jpeg';
     document.getElementById('round-title').textContent = title;
-    document.getElementById('round-msg').textContent = msg;
+    document.getElementById('round-msg').textContent   = msg;
     document.getElementById('round-player-pts').textContent = `+${playerRoundPts}`;
-    document.getElementById('round-wendy-pts').textContent = `+${wendyRoundPts}`;
-    document.getElementById('round-totals').textContent =
-      `Game totals — You: ${this.playerTotal} | Sister Wendy: ${this.wendyTotal} / ${this.TARGET}`;
+    document.getElementById('round-wendy-pts').textContent  = `+${wendyRoundPts}`;
+    document.getElementById('round-totals').textContent = `Game totals — You: ${this.playerTotal} | Sister Wendy: ${this.wendyTotal} / ${this.TARGET}`;
 
     if (this.playerTotal >= this.TARGET || this.wendyTotal >= this.TARGET) {
-      // Show game end immediately - no delay to prevent overlay flicker
       this.showGameEnd();
-      return;
     } else {
       document.getElementById('round-overlay').classList.remove('hidden');
     }
@@ -3391,166 +3219,107 @@ class Game {
   showGameEnd() {
     this.hideAllOverlays();
     const playerWon = this.playerTotal >= this.TARGET;
-    
-    // Calculate if this was a comeback (was down by 15+ at some point)
     const wasComeback = playerWon && this.maxDeficit >= 15 ? this.maxDeficit : 0;
-    
-    // Record stats (pass isDaily flag)
     const gameAchievements = stats.recordGameEnd(playerWon, this.playerTotal, this.wendyTotal, wasComeback, this.isDaily);
-    
-    // Save daily challenge result
-    if (this.isDaily) {
-      dailyChallenge.saveResult(playerWon, this.playerTotal, this.wendyTotal, this.turnCount);
-    }
-    
-    // Build title based on mode
+
+    if (this.isDaily) dailyChallenge.saveResult(playerWon, this.playerTotal, this.wendyTotal, this.turnCount);
+
     const modePrefix = this.isDaily ? '📅 Daily Challenge: ' : '';
-    
-    // Set avatar image based on winner
     const endAvatar = document.getElementById('end-avatar');
-    if (endAvatar) {
-      endAvatar.src = playerWon ? 'assets/images/losing.jpeg' : 'assets/images/winning.jpeg';
-    }
+    if (endAvatar) endAvatar.src = playerWon ? 'assets/images/losing.jpeg' : 'assets/images/winning.jpeg';
     document.getElementById('end-title').textContent = modePrefix + (playerWon ? 'You Win!' : 'Sister Wendy Wins!');
     document.getElementById('end-msg').textContent = playerWon
       ? `Final: You ${this.playerTotal} — Wendy ${this.wendyTotal}. ${randQuote('playerDomino')}`
       : `Final: Wendy ${this.wendyTotal} — You ${this.playerTotal}. ${randQuote('herDomino')}`;
-    
-    // Show callouts for achievements
+
     let callouts = '';
-    if (this.isDaily) {
-      callouts += `<div style="margin-bottom:8px;color:var(--gold)">📅 Daily Challenge Complete!</div>`;
-    }
-    if (gameAchievements.isNewBestStreak) {
-      callouts += '<div class="new-best">🔥 New Best Streak!</div> ';
-    }
-    if (gameAchievements.isNewBestScore) {
-      callouts += '<div class="new-best">⭐ New High Score!</div>';
-    }
-    if (playerWon && stats.stats.currentStreak >= 3) {
-      callouts += `<div style="margin-top:8px;color:var(--gold)">🔥 ${stats.stats.currentStreak} Win Streak!</div>`;
-    }
+    if (this.isDaily) callouts += `<div style="margin-bottom:8px;color:var(--gold)">📅 Daily Challenge Complete!</div>`;
+    if (gameAchievements.isNewBestStreak) callouts += '<div class="new-best">🔥 New Best Streak!</div> ';
+    if (gameAchievements.isNewBestScore) callouts += '<div class="new-best">⭐ New High Score!</div>';
+    if (playerWon && stats.stats.currentStreak >= 3) callouts += `<div style="margin-top:8px;color:var(--gold)">🔥 ${stats.stats.currentStreak} Win Streak!</div>`;
     document.getElementById('end-callouts').innerHTML = callouts;
-    
-    // Show stats
     document.getElementById('end-stats').innerHTML = stats.getStatsHTML();
-    
     document.getElementById('gameover-overlay').classList.remove('hidden');
     playerWon ? audio.play('playerWin') : audio.play('wendyWin');
 
-    // Victory celebrations + proper video
     if (playerWon) {
       vfx.confetti(80, 3000);
       vfx.wendyMood('angry');
-      wendyVideo.set('lose'); // Wendy loses — play lose video on loop
+      wendyVideo.set('lose');
     } else {
       vfx.wendyMood('victory');
-      wendyVideo.set('victory'); // Wendy wins — play victory video on loop
+      wendyVideo.set('victory');
       vfx.confetti(50, 2500);
       vfx.shake();
     }
-    
-    // Reset daily flag after game ends
+
     const wasDaily = this.isDaily;
     this.isDaily = false;
-    
-    // Update daily banner in case we just completed it
-    if (wasDaily) {
-      this.updateDailyBanner();
-    }
+    if (wasDaily) this.updateDailyBanner();
   }
-  
+
   rematch() {
-    // Quick restart without going through menu
     audio.play('click');
     this.playerTotal = 0;
-    this.wendyTotal = 0;
-    this.maxDeficit = 0;
-    this.roundNum = 0;
+    this.wendyTotal  = 0;
+    this.maxDeficit  = 0;
+    this.roundNum    = 0;
     this.roundHistory = [];
     this.updateScoreDisplay();
     this.updateRoundIndicator();
     this.updateRoundHistory();
     this.startRound();
   }
-  
+
   shareResult() {
     const playerWon = this.playerTotal >= this.TARGET;
     const streak = stats.stats.currentStreak;
     const streakText = streak >= 2 ? ` 🔥${streak}` : '';
     const result = playerWon ? '✝️ Victory!' : '😈 Defeated';
-    
-    // Check if this was a daily challenge
     const todayResult = dailyChallenge.getTodayResult();
     let text;
-    
     if (todayResult && todayResult.date === dailyChallenge.today) {
-      // Share daily challenge result
       text = dailyChallenge.getShareText(todayResult.won, todayResult.playerScore, todayResult.wendyScore);
     } else {
       text = `Sister Wendy's Dominoes${streakText}\n${result}\nYou: ${this.playerTotal} | Wendy: ${this.wendyTotal}\n\nCan you beat the nun?\nhttps://sister-wendy.vercel.app`;
     }
-    
     if (navigator.share) {
       navigator.share({ text }).catch(() => this.copyToClipboard(text));
     } else {
       this.copyToClipboard(text);
     }
   }
-  
+
   copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('📋 Copied to clipboard!');
-    }).catch(() => {
-      showToast('Could not copy');
-    });
+    navigator.clipboard.writeText(text).then(() => showToast('📋 Copied to clipboard!')).catch(() => showToast('Could not copy'));
   }
-  
-  showHowToPlay() {
-    document.getElementById('howtoplay-overlay').classList.add('visible');
-    audio.play('click');
-  }
-  
-  hideHowToPlay() {
-    document.getElementById('howtoplay-overlay').classList.remove('visible');
-    audio.play('click');
-  }
-  
+
+  showHowToPlay() { document.getElementById('howtoplay-overlay').classList.add('visible'); audio.play('click'); }
+  hideHowToPlay() { document.getElementById('howtoplay-overlay').classList.remove('visible'); audio.play('click'); }
+
   updateMenuStreak() {
     const el = document.getElementById('menu-streak');
     if (!el) return;
-    
-    const streak = stats.stats.currentStreak;
-    const best = stats.stats.bestStreak;
-    const wins = stats.stats.gamesWon;
-    const played = stats.stats.gamesPlayed;
-    
+    const { currentStreak: streak, bestStreak: best, gamesWon: wins, gamesPlayed: played } = stats.stats;
     if (played === 0) {
       el.innerHTML = '<div class="streak-display no-streak"><span class="fire">🎲</span> First time? Good luck!</div>';
     } else if (streak >= 1) {
       el.innerHTML = `<div class="streak-display"><span class="fire">🔥</span> Win Streak: ${streak} ${streak === best && streak > 1 ? '(Best!)' : ''}</div>`;
     } else {
-      el.innerHTML = `<div class="streak-display no-streak"><span class="fire">📊</span> ${wins}W/${played - wins}L • Best Streak: ${best}</div>`;
+      el.innerHTML = `<div class="streak-display no-streak"><span class="fire">📊</span> ${wins}W/${played-wins}L • Best Streak: ${best}</div>`;
     }
   }
-  
+
   updateDailyBanner() {
     const dateEl = document.getElementById('daily-date');
     const statusEl = document.getElementById('daily-status');
     const btnEl = document.getElementById('daily-btn');
-    
     if (!dateEl || !statusEl || !btnEl) return;
-    
-    const today = dailyChallenge.today;
     const result = dailyChallenge.getTodayResult();
-    
-    dateEl.textContent = today;
-    
+    dateEl.textContent = dailyChallenge.today;
     if (result) {
       statusEl.className = 'status completed';
-      statusEl.innerHTML = result.won 
-        ? `✅ Completed! You won ${result.playerScore}-${result.wendyScore}`
-        : `❌ Completed. Wendy won ${result.wendyScore}-${result.playerScore}`;
+      statusEl.innerHTML = result.won ? `✅ Completed! You won ${result.playerScore}-${result.wendyScore}` : `❌ Completed. Wendy won ${result.wendyScore}-${result.playerScore}`;
       btnEl.disabled = true;
       btnEl.innerHTML = '<span class="icon">✓</span> Challenge Complete';
     } else {
@@ -3560,35 +3329,21 @@ class Game {
       btnEl.innerHTML = '<span class="icon">📅</span> Play Today\'s Challenge';
     }
   }
-  
+
   showStats() {
     const modal = document.getElementById('stats-modal');
     const content = document.getElementById('stats-content');
     const grid = document.getElementById('achievements-grid');
-    
     if (!modal || !content || !grid) return;
-    
-    // Populate stats
     content.innerHTML = stats.getFullStatsHTML();
-    
-    // Populate achievements grid
-    const allAch = achievements.definitions;
-    const unlocked = achievements.achievements;
-    
-    grid.innerHTML = allAch.map(a => {
-      const isUnlocked = unlocked.includes(a.id);
-      return `
-        <div class="ach-item ${isUnlocked ? '' : 'locked'}" title="${a.name}: ${a.desc}">
-          <span class="icon">${a.icon}</span>
-          <span class="name">${a.name}</span>
-        </div>
-      `;
+    grid.innerHTML = achievements.definitions.map(a => {
+      const isUnlocked = achievements.achievements.includes(a.id);
+      return `<div class="ach-item ${isUnlocked ? '' : 'locked'}" title="${a.name}: ${a.desc}"><span class="icon">${a.icon}</span><span class="name">${a.name}</span></div>`;
     }).join('');
-    
     modal.classList.add('visible');
     audio.play('click');
   }
-  
+
   hideStats() {
     const modal = document.getElementById('stats-modal');
     if (modal) modal.classList.remove('visible');
@@ -3597,25 +3352,18 @@ class Game {
 
   updateRoundIndicator() {
     const el = document.getElementById('round-indicator');
-    if (el && this.roundNum > 0) {
-      el.textContent = `Round ${this.roundNum}`;
-    } else if (el) {
-      el.textContent = '';
-    }
+    if (el) el.textContent = this.roundNum > 0 ? `Round ${this.roundNum}` : '';
   }
 
   updateRoundHistory() {
     const el = document.getElementById('round-history');
-    if (!el || this.roundHistory.length === 0) {
-      if (el) el.innerHTML = '';
-      return;
-    }
-    const items = this.roundHistory.map((r, i) => {
-      const cls = r.winner === 'player' ? 'won' : r.winner === 'wendy' ? 'lost' : 'draw';
+    if (!el) return;
+    if (this.roundHistory.length === 0) { el.innerHTML = ''; return; }
+    el.innerHTML = this.roundHistory.map((r, i) => {
+      const cls   = r.winner === 'player' ? 'won' : r.winner === 'wendy' ? 'lost' : 'draw';
       const label = r.winner === 'player' ? `R${i+1} +${r.pPts}` : r.winner === 'wendy' ? `R${i+1} -${r.wPts}` : `R${i+1} tie`;
       return `<span class="${cls}" title="Round ${i+1}: You +${r.pPts} | Wendy +${r.wPts}">${label}</span>`;
     }).join('');
-    el.innerHTML = items;
   }
 
   checkGameWin() {
@@ -3635,23 +3383,17 @@ class Game {
     this.updateDailyBadge();
     this.updateRoundIndicator();
   }
-  
+
   updateDailyBadge() {
     const badge = document.getElementById('daily-mode-badge');
-    if (badge) {
-      badge.style.display = this.isDaily ? 'block' : 'none';
-    }
+    if (badge) badge.style.display = this.isDaily ? 'block' : 'none';
   }
 
   renderBoard() {
-    const chain = document.getElementById('board-chain');
+    const chain    = document.getElementById('board-chain');
     const emptyMsg = document.getElementById('board-empty-msg');
     const endOverlay = document.getElementById('end-select-overlay');
-
-    // Show/hide fixed end-select overlay
-    if (endOverlay) {
-      endOverlay.classList.toggle('visible', this.phase === 'end' && !!this.selected);
-    }
+    if (endOverlay) endOverlay.classList.toggle('visible', this.phase === 'end' && !!this.selected);
 
     if (this.board.isEmpty()) {
       chain.innerHTML = '';
@@ -3662,75 +3404,53 @@ class Game {
     }
     emptyMsg.style.display = 'none';
     document.getElementById('end-indicators').classList.remove('hidden');
-
     chain.innerHTML = '';
 
     const chainLen = this.board.chain.length;
     for (let i = 0; i < chainLen; i++) {
       const tile = this.board.chain[i];
       const tileEl = this.buildTileEl(tile, false, tile === this.selected);
-
-      // Set tile index for staggered idle animation
       tileEl.style.setProperty('--tile-index', i);
 
-      // Add glide animation to the most recently placed tile (only once)
       if (this.lastPlacedTile === tile) {
-        if (this.lastPlacedEnd === 'left') {
-          tileEl.classList.add('tile-glide-left');
-        } else if (this.lastPlacedEnd === 'right') {
-          tileEl.classList.add('tile-glide-right');
-        } else {
-          tileEl.classList.add('tile-glide-down');
-        }
-        // Clear immediately so re-renders don't replay the animation
+        if (this.lastPlacedEnd === 'left') tileEl.classList.add('tile-glide-left');
+        else if (this.lastPlacedEnd === 'right') tileEl.classList.add('tile-glide-right');
+        else tileEl.classList.add('tile-glide-down');
         this.lastPlacedTile = null;
-        this.lastPlacedEnd = null;
+        this.lastPlacedEnd  = null;
       }
 
-      // Glow the left/right end tiles when player has a tile selected (shows valid placement ends)
       if (this.selected && this.turn === 'player' && this.phase !== 'end') {
         const validEnds = this.board.validEnds(this.selected);
-        if (i === 0 && validEnds.includes('left')) {
-          tileEl.classList.add('board-end-glow');
-        }
-        if (i === chainLen - 1 && validEnds.includes('right')) {
-          tileEl.classList.add('board-end-glow');
-        }
+        if (i === 0 && validEnds.includes('left')) tileEl.classList.add('board-end-glow');
+        if (i === chainLen - 1 && validEnds.includes('right')) tileEl.classList.add('board-end-glow');
       }
-
       chain.appendChild(tileEl);
     }
-
-    // Auto-scroll rightward so newest tile is always visible
-    requestAnimationFrame(() => {
-      chain.scrollLeft = chain.scrollWidth;
-    });
+    requestAnimationFrame(() => { chain.scrollLeft = chain.scrollWidth; });
   }
 
   renderHand() {
-    const el = document.getElementById('player-hand');
-    // Remove only tile elements (domino), leave the draw/pass buttons in place
-    el.querySelectorAll('.domino').forEach(d => d.remove());
+    const el      = document.getElementById('player-hand');
     const drawBtn = document.getElementById('draw-btn');
     const passBtn = document.getElementById('pass-btn');
-    const isPlayerTurn = this.turn === 'player';
-    for (let i = 0; i < this.playerHand.length; i++) {
-      const tile = this.playerHand[i];
-      const canPlay = this.board.isEmpty() ? true : this.board.canPlay(tile);
-      const isSelected = tile === this.selected;
-      const div = this.buildTileEl(tile, true, isSelected, canPlay);
+    el.querySelectorAll('.domino').forEach(d => d.remove());
 
-      // Staggered entrance animation for new deals
+    const isPlayerTurn = this.turn === 'player';
+
+    for (let i = 0; i < this.playerHand.length; i++) {
+      const tile    = this.playerHand[i];
+      const canPlay = this.board.isEmpty() ? true : this.board.canPlay(tile);
+      const div     = this.buildTileEl(tile, true, tile === this.selected, canPlay);
+
       if (this.animateHand) {
         div.classList.add('hand-tile-enter');
         div.style.animationDelay = (i * 0.08) + 's';
       }
 
-      // Always attach click handler — playerSelectTile enforces turn guards
       div.addEventListener('click', () => {
-        if (this.turn !== 'player') return; // Wendy's turn or animating — ignore
+        if (this.turn !== 'player') return;
         if (!canPlay && !this.board.isEmpty()) {
-          // Invalid move — shake the tile
           div.classList.remove('shake-invalid');
           void div.offsetWidth;
           div.classList.add('shake-invalid');
@@ -3744,16 +3464,11 @@ class Game {
       el.insertBefore(div, drawBtn);
     }
 
-    // Clear animation flag after render
-    if (this.animateHand) {
-      setTimeout(() => this.animateHand = false, 600);
-    }
+    if (this.animateHand) setTimeout(() => { this.animateHand = false; }, 600);
 
-    // Draw button state — per Muggins rules, you may only draw when you have no valid plays
     const hasAnyValidMove = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
     const canDraw = isPlayerTurn && this.boneyard.length > 0 && !hasAnyValidMove;
     drawBtn.disabled = !canDraw;
-    // Tooltip explaining why draw is blocked
     if (isPlayerTurn && this.boneyard.length > 0 && hasAnyValidMove) {
       drawBtn.title = 'You have valid plays — you must play before drawing';
     } else if (this.boneyard.length === 0) {
@@ -3762,16 +3477,10 @@ class Game {
       drawBtn.title = 'Draw from boneyard';
     }
 
-    // Pass button state — only when truly stuck
     const mustPass = isPlayerTurn && !hasAnyValidMove && this.boneyard.length === 0;
     passBtn.style.display = mustPass ? 'flex' : 'none';
-
-    if (mustPass) {
-      this.setAction("No valid moves and boneyard is empty — click Pass.");
-    }
-
-    // Hint when stuck but boneyard available
-    if (isPlayerTurn && !hasAnyValidMove && this.boneyard.length > 0) {
+    if (mustPass) this.setAction("No valid moves and boneyard is empty — click Pass.");
+    else if (isPlayerTurn && !hasAnyValidMove && this.boneyard.length > 0) {
       this.setAction(`No playable tiles — draw from the boneyard (${this.boneyard.length} left).`);
     }
   }
@@ -3787,24 +3496,17 @@ class Game {
   }
 
   buildTileEl(tile, isVertical, isSelected, canPlay) {
-    const div = document.createElement('div');
+    const div  = document.createElement('div');
     const aVal = tile.flipped ? tile.b : tile.a;
     const bVal = tile.flipped ? tile.a : tile.b;
-    const horiz = !isVertical; // board tiles horizontal, hand tiles vertical
+    const horiz = !isVertical;
     div.className = `domino ${horiz ? 'horiz' : 'vert'}${isVertical ? '' : ' board-tile'}`;
-    div.dataset.tileId = tile.id; // for FLIP animation targeting
+    div.dataset.tileId = tile.id;
     if (isSelected) div.classList.add('selected');
     if (isVertical) {
-      if (canPlay === true) {
-        div.classList.add('playable');
-        div.classList.add('tile-glow');
-      }
+      if (canPlay === true)  { div.classList.add('playable'); div.classList.add('tile-glow'); }
       else if (canPlay === false) div.classList.add('unplayable');
-      
-      // Highlight doubles with special pulse
-      if (tile.isDouble() && canPlay) {
-        div.classList.add('double-highlight');
-      }
+      if (tile.isDouble() && canPlay) div.classList.add('double-highlight');
     }
     div.appendChild(this.buildPipHalf(aVal));
     div.appendChild(this.buildPipHalf(bVal));
@@ -3812,7 +3514,7 @@ class Game {
   }
 
   buildPipHalf(n) {
-    const half = document.createElement('div');
+    const half    = document.createElement('div');
     half.className = 'pip-half';
     const pattern = PIP[n] || [];
     for (let i = 0; i < 9; i++) {
@@ -3835,7 +3537,7 @@ class Game {
 
   updateBoneyardCount() {
     document.getElementById('boneyard-count').textContent = this.boneyard.length;
-    document.getElementById('draw-count').textContent = this.boneyard.length;
+    document.getElementById('draw-count').textContent     = this.boneyard.length;
   }
 
   updateScoreDisplay() {
@@ -3873,9 +3575,7 @@ class Game {
     if (this.turn === 'player') {
       el.textContent = 'YOUR TURN';
       el.className = 'your-turn';
-      // Pulse the player panel border
       if (playerPanel) playerPanel.classList.add('your-turn');
-      // Flash the YOUR TURN banner
       if (banner) {
         banner.classList.remove('show');
         void banner.offsetWidth;
@@ -3899,8 +3599,8 @@ class Game {
   }
 
   _hideThinking() {
-    const thinkingOverlay = document.getElementById('thinking-overlay');
-    if (thinkingOverlay) thinkingOverlay.classList.remove('show');
+    const el = document.getElementById('thinking-overlay');
+    if (el) el.classList.remove('show');
   }
 
   hideAllOverlays() {
@@ -3915,7 +3615,7 @@ class Game {
     for (let a = 0; a <= 6; a++)
       for (let b = a; b <= 6; b++)
         t.push(new Tile(a, b));
-    return t; // 28 tiles
+    return t;
   }
 
   _shuffle(arr) {
@@ -3927,28 +3627,16 @@ class Game {
   }
 
   _firstPlayer() {
-    // Double-six rule: whoever holds the highest double goes first.
-    // Check for 6-6, then 5-5, etc.
     for (let d = 6; d >= 0; d--) {
       const playerHas = this.playerHand.some(t => t.isDouble() && t.a === d);
       const wendyHas  = this.wendyHand.some(t => t.isDouble() && t.a === d);
-      if (playerHas) {
-        showToast(`You hold the [${d}|${d}] — you go first!`, 2500);
-        return 'player';
-      }
-      if (wendyHas) {
-        showToast(`Sister Wendy holds the [${d}|${d}] — she goes first.`, 2500);
-        return 'wendy';
-      }
+      if (playerHas) { showToast(`You hold the [${d}|${d}] — you go first!`, 2500); return 'player'; }
+      if (wendyHas)  { showToast(`Sister Wendy holds the [${d}|${d}] — she goes first.`, 2500); return 'wendy'; }
     }
-    // No doubles: highest pip count goes first
     const playerMax = Math.max(...this.playerHand.map(t => t.pips()));
     const wendyMax  = Math.max(...this.wendyHand.map(t => t.pips()));
-    if (playerMax >= wendyMax) {
-      showToast('No doubles drawn — highest pip wins. You go first!', 2500);
-      return 'player';
-    }
-    showToast('No doubles drawn — Sister Wendy goes first.', 2500);
+    if (playerMax >= wendyMax) { showToast('No doubles — highest pip wins. You go first!', 2500); return 'player'; }
+    showToast('No doubles — Sister Wendy goes first.', 2500);
     return 'wendy';
   }
 }
