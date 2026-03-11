@@ -593,6 +593,41 @@ body {
 }
 .tile-bounce { animation: tileBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
+/* Smooth tile glide onto board */
+@keyframes tileGlideLeft {
+  0% { transform: translateX(-80px) rotate(-8deg); opacity: 0; }
+  60% { transform: translateX(5px) rotate(1deg); opacity: 1; }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+@keyframes tileGlideRight {
+  0% { transform: translateX(80px) rotate(8deg); opacity: 0; }
+  60% { transform: translateX(-5px) rotate(-1deg); opacity: 1; }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+@keyframes tileGlideDown {
+  0% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+  70% { transform: translateY(3px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+.tile-glide-left { animation: tileGlideLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.tile-glide-right { animation: tileGlideRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.tile-glide-down { animation: tileGlideDown 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+/* Subtle idle float for board tiles */
+@keyframes tileIdleFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+.board-tile {
+  animation: tileIdleFloat 4s ease-in-out infinite;
+  animation-delay: calc(var(--tile-index, 0) * 0.2s);
+}
+
+/* Tile shadow grows when hovering nearby */
+.domino.board-tile {
+  transition: box-shadow 0.3s ease;
+}
+
 /* Screen shake for big moments */
 @keyframes screenShake {
   0%, 100% { transform: translateX(0); }
@@ -2146,7 +2181,8 @@ class Game {
     if (idx < 0) return;
     this.playerHand.splice(idx, 1);
     this.board.play(tile, end);
-    this.lastPlacedTile = tile; // Track for bounce animation
+    this.lastPlacedTile = tile; // Track for glide animation
+    this.lastPlacedEnd = end; // Track which end for direction
     audio.play('place');
     const scored = this.board.scoreValue();
     this.phase = 'select';
@@ -2235,11 +2271,16 @@ class Game {
   // ── WENDY AI TURN ──
   doWendyTurn() {
     if (this.turn !== 'wendy') return;
+    
+    // Prevent re-entry during animation
+    this.turn = 'wendy-thinking';
+    
     document.getElementById('turn-indicator').textContent = "Sister Wendy's Turn";
     document.getElementById('turn-indicator').className = '';
     
     // Show thinking animation
     vfx.wendyMood('thinking');
+    this.setAction("Sister Wendy is thinking...");
 
     const play = aiPickPlay(this.wendyHand, this.board);
 
@@ -2264,6 +2305,7 @@ class Game {
         if (this.board.canPlay(drawn)) {
           // Reset draw counter and play the tile
           this.wendyDrawCount = 0;
+          this.turn = 'wendy'; // Reset turn state for next call
           setTimeout(() => this.doWendyTurn(), 700);
           return;
         }
@@ -2274,6 +2316,7 @@ class Game {
         }
         
         // Continue drawing with delay
+        this.turn = 'wendy'; // Reset turn state for next call
         setTimeout(() => this.doWendyTurn(), 600);
         return;
       } else {
@@ -2300,11 +2343,15 @@ class Game {
     // Reset draw counter when successfully playing
     this.wendyDrawCount = 0;
 
+    // Reset draw counter on successful play
+    this.wendyDrawCount = 0;
+    
     // Play the tile
     const idx = this.wendyHand.indexOf(play.tile);
     this.wendyHand.splice(idx, 1);
     this.board.play(play.tile, play.end);
-    this.lastPlacedTile = play.tile; // Track for bounce animation
+    this.lastPlacedTile = play.tile; // Track for glide animation
+    this.lastPlacedEnd = play.end; // Track which end for direction
     audio.play('place');
 
     if (play.tile.isDouble()) {
@@ -2335,6 +2382,7 @@ class Game {
       this.renderAll();
       if (this.checkGameWin()) return;
       if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
+      this.turn = 'wendy'; // Reset for next turn
       setTimeout(() => this.doWendyTurn(), 1100);
       return;
     }
@@ -2357,8 +2405,8 @@ class Game {
 
     if (!this.playerHand.some(t => this.board.canPlay(t)) && this.boneyard.length === 0) {
       // Check if Wendy can play - if not, it's a blocked game
-      const wendyCanPlay = this.wendyHand.some(t => this.board.canPlay(t));
-      if (!wendyCanPlay) {
+      const wendyStillCanPlay = this.wendyHand.some(t => this.board.canPlay(t));
+      if (!wendyStillCanPlay) {
         this.endRound('blocked');
         return;
       }
@@ -2700,11 +2748,25 @@ class Game {
       const tile = this.board.chain[i];
       const tileEl = this.buildTileEl(tile, false, tile === this.selected);
       
-      // Add bounce animation to the most recently placed tile
+      // Set tile index for staggered idle animation
+      tileEl.style.setProperty('--tile-index', i);
+      
+      // Add glide animation to the most recently placed tile
       if (this.lastPlacedTile === tile) {
-        tileEl.classList.add('tile-bounce');
+        // Determine glide direction based on which end it was played
+        if (this.lastPlacedEnd === 'left') {
+          tileEl.classList.add('tile-glide-left');
+        } else if (this.lastPlacedEnd === 'right') {
+          tileEl.classList.add('tile-glide-right');
+        } else {
+          // First tile glides down from above
+          tileEl.classList.add('tile-glide-down');
+        }
         // Clear after animation
-        setTimeout(() => this.lastPlacedTile = null, 400);
+        setTimeout(() => {
+          this.lastPlacedTile = null;
+          this.lastPlacedEnd = null;
+        }, 500);
       }
       
       chain.appendChild(tileEl);
