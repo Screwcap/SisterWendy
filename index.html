@@ -162,13 +162,29 @@ body {
 #board-area {
   flex: 1;
   background: var(--felt);
-  background-image: radial-gradient(ellipse at center, #1e5535 0%, #112e1c 100%);
+  background-image:
+    radial-gradient(ellipse at center, #1e5535 0%, #112e1c 100%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(0,0,0,0.04) 10px,
+      rgba(0,0,0,0.04) 11px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      rgba(0,0,0,0.04) 10px,
+      rgba(0,0,0,0.04) 11px
+    );
   overflow: auto;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  scroll-behavior: smooth;
 }
 #board-chain {
   display: flex;
@@ -178,6 +194,7 @@ body {
   min-height: 120px;
   flex-wrap: nowrap;
   transition: all 0.3s;
+  scroll-behavior: smooth;
 }
 #board-empty-msg {
   color: rgba(255,255,255,0.25);
@@ -225,8 +242,8 @@ body {
   height: 44px;
   min-width: 88px;
 }
-.domino { transition: transform 0.15s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.15s ease, outline 0.1s ease; }
-.domino:hover { transform: translateY(-7px) scale(1.04); box-shadow: 3px 10px 18px rgba(0,0,0,0.75); }
+.domino { transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s ease, outline 0.1s ease; }
+.domino:hover { transform: translateY(-9px) scale(1.05); box-shadow: 4px 12px 22px rgba(0,0,0,0.8), 0 0 8px rgba(255,255,255,0.08); }
 .domino.selected {
   outline: 3px solid var(--highlight);
   transform: translateY(-12px) scale(1.08);
@@ -284,12 +301,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 72px;
-  min-height: 56px;
-  padding: 6px 10px;
+  min-width: 80px;
+  min-height: 64px;
+  padding: 8px 14px;
   background: rgba(255,224,102,0.18);
   border: 3px solid var(--highlight);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   flex-shrink: 0;
   animation: endBtnPulse 1.2s ease-in-out infinite;
@@ -298,15 +315,15 @@ body {
 }
 .end-select-btn:hover, .end-select-btn:active {
   background: rgba(255,224,102,0.45);
-  transform: scale(1.1) !important;
+  transform: scale(1.12) !important;
 }
 .end-btn-arrow {
-  font-size: 1.8rem;
+  font-size: 2rem;
   line-height: 1;
   color: var(--highlight);
 }
 .end-btn-label {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: bold;
   letter-spacing: 1.5px;
   color: var(--highlight);
@@ -314,11 +331,39 @@ body {
   white-space: nowrap;
 }
 
+/* Fixed end-select overlay so buttons are always visible */
+#end-select-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 12px 24px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  width: 100%;
+  max-width: 1100px;
+}
+#end-select-overlay.visible {
+  display: flex;
+}
+#end-select-overlay .end-prompt {
+  font-size: 0.9rem;
+  color: var(--highlight);
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
 /* ── PLAYER PANEL ── */
 #player-panel {
   background: var(--panel-bg);
   border-top: 3px solid var(--gold);
-  padding: 10px 16px;
+  padding: 10px 16px 12px;
   flex-shrink: 0;
 }
 #player-hand {
@@ -534,11 +579,18 @@ body {
 }
 #pass-btn:hover { background: #a52020; }
 #action-msg {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--highlight);
   font-style: italic;
   text-align: center;
-  min-height: 18px;
+  min-height: 20px;
+  transition: color 0.3s, font-weight 0.2s;
+}
+#action-msg.urgent {
+  color: #ffe066;
+  font-weight: bold;
+  font-style: normal;
+  letter-spacing: 0.5px;
 }
 
 /* ── OVERLAYS ── */
@@ -1223,6 +1275,27 @@ body {
   color: rgba(255,255,255,0.7);
 }
 
+/* ── ROUND HISTORY ── */
+#round-history {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+  min-height: 14px;
+}
+#round-history span {
+  display: inline-block;
+  margin: 0 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+#round-history span.won { border-color: rgba(100,255,150,0.4); color: rgba(100,255,150,0.8); }
+#round-history span.lost { border-color: rgba(192,64,64,0.4); color: rgba(220,100,100,0.8); }
+#round-history span.draw { border-color: rgba(201,168,76,0.3); color: rgba(201,168,76,0.7); }
+
 /* ── ACHIEVEMENTS ROW ── */
 .achievements-row {
   margin-top: 12px;
@@ -1415,7 +1488,10 @@ body {
         <div class="score-val" id="player-score-val">0</div>
         <div class="score-bar-wrap"><div class="score-bar" id="player-bar" style="width:0%"></div></div>
       </div>
-      <div style="color:var(--gold);font-size:1.2rem;align-self:center;">vs</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="color:var(--gold);font-size:1.2rem;">vs</div>
+        <div id="round-indicator" style="font-size:0.65rem;color:rgba(255,255,255,0.5);letter-spacing:1px;white-space:nowrap;"></div>
+      </div>
       <div class="score-block">
         <div class="score-label">S. Wendy</div>
         <div class="score-val" id="wendy-score-val">0</div>
@@ -1456,6 +1532,7 @@ body {
   <div id="player-panel">
     <div id="action-msg">Select a tile to play.</div>
     <div id="player-hand"></div>
+    <div id="round-history"></div>
     <div id="player-controls">
       <div id="player-label">Your Hand</div>
       <button id="draw-btn" onclick="game.playerDraw()">Draw from Boneyard (<span id="draw-count">14</span> left)</button>
@@ -1600,6 +1677,19 @@ body {
       <tr><td>N</td><td>New game</td></tr>
     </table>
     <div class="close-hint">Press any key to close</div>
+  </div>
+</div>
+
+<!-- END-SELECT OVERLAY (fixed, always visible above player panel) -->
+<div id="end-select-overlay">
+  <div class="end-select-btn" id="end-btn-left" onclick="game.playerSelectEnd('left')">
+    <div class="end-btn-arrow">&#x2190;</div>
+    <div class="end-btn-label">Play Left</div>
+  </div>
+  <div class="end-prompt">Both ends fit — choose a side</div>
+  <div class="end-select-btn" id="end-btn-right" onclick="game.playerSelectEnd('right')">
+    <div class="end-btn-arrow">&#x2192;</div>
+    <div class="end-btn-label">Play Right</div>
   </div>
 </div>
 
@@ -1807,6 +1897,7 @@ document.addEventListener('keydown', () => audio.init(), { once: true });
 // ── WENDY VIDEO SYSTEM ──
 const wendyVideo = {
   current: 'main',
+  _oneShotHandler: null,
   videos: {
     smirk:       'assets/videos/wendy-smirk.mp4',
     thinking:    'assets/videos/wendy-thinking.mp4',
@@ -1826,9 +1917,18 @@ const wendyVideo = {
     const src = this.videos[mood] || this.videos.main;
     this.current = mood;
 
+    // Remove any previous ended listener to avoid stale callbacks
+    if (this._oneShotHandler) {
+      video.removeEventListener('ended', this._oneShotHandler);
+      this._oneShotHandler = null;
+    }
+
     // Show video, hide fallback image
     video.style.display = 'block';
     if (img) img.style.display = 'none';
+
+    // oneShot videos don't loop; looping videos do
+    video.loop = !oneShot;
 
     // Change source and restart
     video.src = src;
@@ -1836,22 +1936,26 @@ const wendyVideo = {
     const playPromise = video.play();
     if (playPromise) {
       playPromise.catch(() => {
-        // If video fails, show static image
-        video.style.display = 'none';
-        if (img) img.style.display = 'block';
+        // If autoplay blocked, try muted (already muted) then show static image fallback
+        video.muted = true;
+        video.play().catch(() => {
+          video.style.display = 'none';
+          if (img) img.style.display = 'block';
+        });
       });
     }
 
     // One-shot: after video ends, return to main
     if (oneShot) {
-      const returnToMain = () => {
-        video.removeEventListener('ended', returnToMain);
+      this._oneShotHandler = () => {
+        video.removeEventListener('ended', this._oneShotHandler);
+        this._oneShotHandler = null;
         if (this.current === mood) {
           this.current = 'main';
           this.set('main');
         }
       };
-      video.addEventListener('ended', returnToMain);
+      video.addEventListener('ended', this._oneShotHandler);
     }
   },
   
@@ -2120,6 +2224,8 @@ const WENDY_QUOTES = {
     "I do hope you've been practising. I have.",
     "Remember: pride goeth before a fall. Just saying.",
     "The convent hasn't lost a game since 1987. Today will be no different.",
+    "I have blessed these tiles. My blessing, not yours.",
+    "The Lord shuffles in mysterious ways.",
   ],
   herTurn: [
     "Calculating divine strategy...",
@@ -2130,6 +2236,8 @@ const WENDY_QUOTES = {
     "Don't rush me. Holiness takes time.",
     "I am deliberating. Prayerfully.",
     "A moment of contemplation before I crush you.",
+    "Every tile a prayer. Every play a sermon.",
+    "Processing. Divinely.",
   ],
   herScores: [
     "God rewards the devout — and my arithmetic!",
@@ -2140,6 +2248,8 @@ const WENDY_QUOTES = {
     "I am SO good at this it frightens me.",
     "Blessed are the scorers, for they shall have points.",
     "Do try to keep up.",
+    "Another five points closer to heaven.",
+    "I don't mean to gloat. Actually, yes I do.",
   ],
   herBigScore: [
     "Sweet Mary! That's a miracle!",
@@ -2147,6 +2257,8 @@ const WENDY_QUOTES = {
     "The rosary pays off at last!",
     "That. Was. GORGEOUS.",
     "Lord, I am not worthy. But also, I totally am.",
+    "Twenty points! I need a moment to collect myself.",
+    "That's what we call divine intervention, child.",
   ],
   playerScores: [
     "Hmph. Beginner's grace.",
@@ -2156,6 +2268,16 @@ const WENDY_QUOTES = {
     "Very well. I'm choosing to be magnanimous.",
     "I'll allow it. Once.",
     "I see you've been practising. Unfortunately.",
+    "You lucky, lucky sinner.",
+    "That was... acceptable. Barely.",
+    "I'm not angry. I'm disappointed. Play again.",
+  ],
+  playerBigScore: [
+    "TWENTY?! That's... no. No, I refuse to acknowledge it.",
+    "How. Just... how.",
+    "I'm going to need a moment of silent prayer.",
+    "That should not have happened. God is testing my patience.",
+    "Fine! FINE. But this changes nothing.",
   ],
   herCantPlay: [
     "Drawing like rosary beads... give me strength.",
@@ -2165,6 +2287,8 @@ const WENDY_QUOTES = {
     "These tiles are conspiring against me.",
     "Not ideal. But I remain faithful.",
     "A temporary setback. God is testing me.",
+    "The boneyard gives and the boneyard takes away.",
+    "I draw with dignity. Unlike some people who draw with desperation.",
   ],
   playerCantPlay: [
     "Even your dominoes are hiding from you.",
@@ -2174,6 +2298,8 @@ const WENDY_QUOTES = {
     "Oh dear. Oh, dear dear dear.",
     "Perhaps prayer would help. I wouldn't know.",
     "You seem stuck. I am not stuck. Interesting contrast.",
+    "The tiles have abandoned you. Can't say I blame them.",
+    "Tsk. Tsk. Tsk.",
   ],
   herDomino: [
     "DOMINO! The Lord's work is done.",
@@ -2182,6 +2308,8 @@ const WENDY_QUOTES = {
     "In nomine Patris et Filii — DOMINO!",
     "I have been playing dominoes since before you were born. It shows.",
     "Done. Simply done. Say your prayers.",
+    "Empty hand, full heart. The way of the righteous.",
+    "Domino! Count your remaining tiles and weep.",
   ],
   playerDomino: [
     "Fine. You got lucky.",
@@ -2190,6 +2318,8 @@ const WENDY_QUOTES = {
     "Well. I'll be saying extra prayers tonight.",
     "I am not upset. I am disappointed. There is a difference.",
     "A fluke. A statistical aberration. Nothing more.",
+    "I see. Very good. I shall remember this.",
+    "God grants even the undeserving occasional victory.",
   ],
   blocked: [
     "This is what happens when nobody listened at Mass.",
@@ -2197,19 +2327,41 @@ const WENDY_QUOTES = {
     "A draw. How very... Protestant of us.",
     "The tiles have spoken. Neither of us wins.",
     "God, in His wisdom, has declared a tie. I remain suspicious.",
+    "Stalemate. The Lord works in mysterious ways. Frustrating ones.",
   ],
   herDouble: [
     "A divine double! Providence smiles.",
     "Double blessing!",
     "The Lord gives in pairs.",
-    "A [6|6]? How delightful. For me.",
     "Doubles are my speciality. Along with humility.",
+    "A double! The angels rejoice.",
+    "Symmetry. The Lord loves symmetry.",
   ],
   playerDouble: [
     "Even a broken clock...",
     "Don't celebrate. It's one double.",
     "Fine. Double. Very impressive.",
     "Enjoy your double. I have a plan.",
+    "A double. Noted. Unimpressed.",
+  ],
+  closingIn: [
+    "You're getting close. Suspiciously close.",
+    "Don't get cocky. The Lord humbleth the proud.",
+    "Hm. You're better than I thought. Don't tell anyone.",
+    "This is... more interesting than expected.",
+  ],
+  closeScore: [
+    "This is uncomfortably close. I am uncomfortable.",
+    "Neck and neck. As the Lord intended. I suppose.",
+    "One of us will pull ahead. It will be me.",
+    "A tight game. My heart rate is elevated. Spiritually.",
+  ],
+  wendyLosing: [
+    "This is merely a tactical retreat.",
+    "I am luring you into complacency.",
+    "Don't mistake my generosity for weakness.",
+    "I am... recalibrating.",
+    "The Lord tests me today. Severely.",
   ],
   angry: [
     "You think this is FUNNY?!",
@@ -2219,6 +2371,7 @@ const WENDY_QUOTES = {
     "I am vexed. The Lord sees my vexation.",
     "Right. That's enough of that.",
     "Oh, we're doing THIS, are we.",
+    "I have never been so disrespected by a dominoes board.",
   ],
   smug: [
     "As I was saying...",
@@ -2228,6 +2381,7 @@ const WENDY_QUOTES = {
     "I did mention this would happen.",
     "The tiles never lie. Unlike some people.",
     "Just as the scriptures predicted.",
+    "I am nothing if not consistent.",
   ],
   commentary: [
     "The board is getting interesting.",
@@ -2238,6 +2392,8 @@ const WENDY_QUOTES = {
     "I'm keeping score in more ways than one.",
     "God sees all dominoes played.",
     "The chain reveals the soul of the player.",
+    "An intriguing move. Wrong, but intriguing.",
+    "I respect the attempt. I do not respect the result.",
   ],
 };
 
@@ -2363,6 +2519,8 @@ class Game {
     this.isDaily = false;
     this.turnCount = 0;
     this.wendyDrawCount = 0;
+    this.roundNum = 0;
+    this.roundHistory = []; // array of {winner:'player'|'wendy'|'draw', pPts, wPts}
     this.newGame(true);
     this.updateMenuStreak();
     this.updateDailyBanner();
@@ -2374,7 +2532,11 @@ class Game {
     this.maxDeficit = 0;
     this.isDaily = false;
     this.turnCount = 0;
+    this.roundNum = 0;
+    this.roundHistory = [];
     this.updateScoreDisplay();
+    this.updateRoundIndicator();
+    this.updateRoundHistory();
     this.updateMenuStreak();
     this.updateDailyBanner();
     if (!silent) this.startRound();
@@ -2390,7 +2552,11 @@ class Game {
     this.wendyTotal = 0;
     this.maxDeficit = 0;
     this.turnCount = 0;
+    this.roundNum = 0;
+    this.roundHistory = [];
     this.updateScoreDisplay();
+    this.updateRoundIndicator();
+    this.updateRoundHistory();
     this.startRound(true); // Pass true for daily mode
   }
 
@@ -2401,8 +2567,10 @@ class Game {
     }
     
     this.hideAllOverlays();
+    this.roundNum++;
     this.board = new Board();
-    
+    this.updateRoundIndicator();
+
     // Use seeded shuffle for daily challenge
     if (this.isDaily && this.playerTotal === 0 && this.wendyTotal === 0) {
       const fullSet = this._fullSet();
@@ -2498,13 +2666,15 @@ class Game {
     } else {
       // Both ends work — ask player to pick
       this.phase = 'end';
-      this.setAction("✋ Both ends fit! Click the ← LEFT or RIGHT → button on the board to place your tile.");
+      this.setAction("Both ends fit — use the ← LEFT or RIGHT → buttons below.", true);
       this.renderBoard();
     }
   }
 
   playerSelectEnd(end) {
     if (this.phase !== 'end' || !this.selected) return;
+    const endOverlay = document.getElementById('end-select-overlay');
+    if (endOverlay) endOverlay.classList.remove('visible');
     this.playerPlayTile(this.selected, end);
   }
 
@@ -2519,30 +2689,54 @@ class Game {
     const scored = this.board.scoreValue();
     this.phase = 'select';
     this.selected = null;
+    // Clear urgent class from action-msg
+    const actionEl = document.getElementById('action-msg');
+    if (actionEl) actionEl.classList.remove('urgent');
 
     if (tile.isDouble()) {
-      this.setSpeech(randQuote('playerDouble'));
+      const dVal = tile.a;
+      const specificQuip = dVal === 6 ? "The [6|6]?! You had that all along?!"
+                         : dVal === 5 ? "A [5|5]. Hmm. Well played. Don't expect praise."
+                         : null;
+      this.setSpeech(specificQuip || randQuote('playerDouble'));
       audio.play('double');
     }
 
     if (scored > 0) {
       this.playerTotal += scored;
-      this.setSpeech(randQuote('playerScores'));
+      // Contextual Wendy reaction based on score size and game state
+      if (scored >= 20) {
+        this.setSpeech(randQuote('playerBigScore'));
+        vfx.wendyMood('angry');
+        wendyVideo.set('frustration', true);
+      } else if (scored >= 10) {
+        this.setSpeech(randQuote('playerScores'));
+        vfx.wendyMood('angry');
+        wendyVideo.set('frustration', true);
+      } else {
+        // Close score commentary
+        const gap = this.playerTotal - this.wendyTotal;
+        if (gap > 15) {
+          this.setSpeech(randQuote('wendyLosing'));
+        } else if (Math.abs(gap) <= 10 && this.playerTotal > 20) {
+          this.setSpeech(randQuote('closeScore'));
+        } else {
+          this.setSpeech(randQuote('playerScores'));
+        }
+        vfx.wendyMood('angry');
+        wendyVideo.set('frustration', true);
+      }
       this.setAction(`+${scored} points! You score — play again!`);
       this.flashScore('player');
       scored >= 15 ? audio.play('bigScore') : audio.play('score');
-
-      // Wendy is NOT happy
-      vfx.wendyMood('angry');
-      wendyVideo.set('frustration', true);
       vfx.celebrateScore('player', scored);
 
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
       if (this.playerHand.length === 0) { this.endRound('player'); return; }
-      // extra turn on score — 30% chance of commentary
-      if (Math.random() < 0.30) this.setSpeech(randQuote('playerScores'));
+      // Player gets another turn after scoring — remind them
+      this.setAction(`+${scored} points! Play again — it's still your turn.`);
       return;
     }
 
@@ -2608,8 +2802,8 @@ class Game {
       this.setAction(`Drew ${pipLabel} — still no match. Draw again or pass.`);
     } else {
       // Boneyard now empty — check if blocked game
-      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
-      const wendyCanPlay  = this.wendyHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
+      const playerCanPlay = this.board.isEmpty() || this.playerHand.some(t => this.board.canPlay(t));
+      const wendyCanPlay  = this.board.isEmpty() || this.wendyHand.some(t => this.board.canPlay(t));
       if (!playerCanPlay && !wendyCanPlay) {
         this.endRound('blocked');
         return;
@@ -2703,10 +2897,12 @@ class Game {
           return;
         }
         this.turn = 'player';
-        this.setAction("Sister Wendy passes. Your turn!");
+        this._hideThinking();
+        this.setAction("Sister Wendy passes — it's your turn!");
         this.setTurnIndicator();
         this.renderHand();
         audio.play('turn');
+        showToast("Your turn!", 2000);
         return;
       }
     }
@@ -2724,7 +2920,12 @@ class Game {
     audio.play('place');
 
     if (play.tile.isDouble()) {
-      this.setSpeech(randQuote('herDouble'));
+      const dVal = play.tile.a;
+      const specificQuip = dVal === 6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
+                         : dVal === 5 ? "A [5|5]! Fitting — five is the number of grace."
+                         : dVal === 0 ? "Even the blanks serve God's plan. And mine."
+                         : null;
+      this.setSpeech(specificQuip || randQuote('herDouble'));
       audio.play('double');
       wendyVideo.set('smirk', true);
     }
@@ -2758,8 +2959,13 @@ class Game {
       return;
     }
 
-    // 30% chance of witty commentary after a normal non-scoring play
-    if (Math.random() < 0.30) {
+    // Contextual commentary based on game state
+    const scoreGap = this.playerTotal - this.wendyTotal;
+    if (scoreGap >= 15 && Math.random() < 0.6) {
+      this.setSpeech(randQuote('wendyLosing'));
+    } else if (Math.abs(scoreGap) <= 8 && this.playerTotal > 20 && Math.random() < 0.5) {
+      this.setSpeech(randQuote('closeScore'));
+    } else if (Math.random() < 0.30) {
       const commentaryKey = ['smug', 'herTurn', 'angry', 'commentary'][Math.floor(Math.random() * 4)];
       this.setSpeech(randQuote(commentaryKey));
     }
@@ -2781,9 +2987,9 @@ class Game {
     audio.play('turn');
 
     // Check if player is immediately stuck
-    const playerHasMoves = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
+    const playerHasMoves = this.board.isEmpty() || this.playerHand.some(t => this.board.canPlay(t));
     if (!playerHasMoves && this.boneyard.length === 0) {
-      const wendyStillCanPlay = this.wendyHand.some(t => this.board.canPlay(t));
+      const wendyStillCanPlay = this.board.isEmpty() || this.wendyHand.some(t => this.board.canPlay(t));
       if (!wendyStillCanPlay) {
         this.endRound('blocked');
         return;
@@ -2791,7 +2997,7 @@ class Game {
       this.setSpeech(randQuote('playerCantPlay'));
       vfx.wendyMood('smug');
       wendyVideo.set('smirk', true);
-      this.setAction("No valid moves and boneyard is empty — Sister Wendy smiles...");
+      this.setAction("No valid moves and boneyard empty — Sister Wendy smiles...");
       this.turn = 'wendy';
       setTimeout(() => this.doWendyTurn(), 1200);
     }
@@ -2807,16 +3013,20 @@ class Game {
     let title, msg, emoji;
 
     this._hideThinking();
+    // Helper: round pip total to nearest 5 (standard Horse Race scoring)
+    const roundTo5 = (n) => Math.round(n / 5) * 5;
+
     if (winner === 'player') {
-      playerRoundPts = Math.floor(wendyLeftover / 5) * 5;
+      playerRoundPts = roundTo5(wendyLeftover);
       title = "Domino!";
       emoji = "&#x1F3C6;";
       msg = randQuote('playerDomino');
       this.setSpeech(randQuote('playerDomino'));
       audio.play('roundEnd');
+      vfx.confetti(40, 2000);
       wendyVideo.set('lose', true);
     } else if (winner === 'wendy') {
-      wendyRoundPts = Math.floor(playerLeftover / 5) * 5;
+      wendyRoundPts = roundTo5(playerLeftover);
       title = "Sister Wendy Dominoes!";
       emoji = "&#x1F476;";
       msg = randQuote('herDomino');
@@ -2824,16 +3034,21 @@ class Game {
       audio.play('wendyScore');
       wendyVideo.set('winning', true);
     } else {
-      // blocked: lowest pip count wins
-      if (playerLeftover <= wendyLeftover) {
-        playerRoundPts = Math.floor((wendyLeftover - playerLeftover) / 5) * 5;
+      // blocked: lower pip count wins the difference (rounded to 5)
+      if (playerLeftover < wendyLeftover) {
+        playerRoundPts = roundTo5(wendyLeftover - playerLeftover);
         title = "Blocked — You Win!";
         emoji = "&#x1F4AA;";
         msg = randQuote('blocked');
-      } else {
-        wendyRoundPts = Math.floor((playerLeftover - wendyLeftover) / 5) * 5;
+      } else if (wendyLeftover < playerLeftover) {
+        wendyRoundPts = roundTo5(playerLeftover - wendyLeftover);
         title = "Blocked — Wendy Wins!";
         emoji = "&#x2698;";
+        msg = randQuote('blocked');
+      } else {
+        // exact tie — no points
+        title = "Blocked — Tie!";
+        emoji = "&#x2696;";
         msg = randQuote('blocked');
       }
       this.setSpeech(randQuote('blocked'));
@@ -2843,6 +3058,14 @@ class Game {
     this.playerTotal += playerRoundPts;
     this.wendyTotal  += wendyRoundPts;
     this.updateScoreDisplay();
+
+    // Record round result for history display
+    const roundWinner = winner === 'player' ? 'player'
+                      : winner === 'wendy'  ? 'wendy'
+                      : (playerRoundPts > wendyRoundPts ? 'player'
+                         : wendyRoundPts > playerRoundPts ? 'wendy' : 'draw');
+    this.roundHistory.push({ winner: roundWinner, pPts: playerRoundPts, wPts: wendyRoundPts });
+    this.updateRoundHistory();
 
     // Set round avatar based on winner
     const roundAvatar = document.getElementById('round-avatar');
@@ -2949,7 +3172,11 @@ class Game {
     this.playerTotal = 0;
     this.wendyTotal = 0;
     this.maxDeficit = 0;
+    this.roundNum = 0;
+    this.roundHistory = [];
     this.updateScoreDisplay();
+    this.updateRoundIndicator();
+    this.updateRoundHistory();
     this.startRound();
   }
   
@@ -3074,6 +3301,29 @@ class Game {
     audio.play('click');
   }
 
+  updateRoundIndicator() {
+    const el = document.getElementById('round-indicator');
+    if (el && this.roundNum > 0) {
+      el.textContent = `Round ${this.roundNum}`;
+    } else if (el) {
+      el.textContent = '';
+    }
+  }
+
+  updateRoundHistory() {
+    const el = document.getElementById('round-history');
+    if (!el || this.roundHistory.length === 0) {
+      if (el) el.innerHTML = '';
+      return;
+    }
+    const items = this.roundHistory.map((r, i) => {
+      const cls = r.winner === 'player' ? 'won' : r.winner === 'wendy' ? 'lost' : 'draw';
+      const label = r.winner === 'player' ? `R${i+1} +${r.pPts}` : r.winner === 'wendy' ? `R${i+1} -${r.wPts}` : `R${i+1} tie`;
+      return `<span class="${cls}" title="Round ${i+1}: You +${r.pPts} | Wendy +${r.wPts}">${label}</span>`;
+    }).join('');
+    el.innerHTML = items;
+  }
+
   checkGameWin() {
     if (this.playerTotal >= this.TARGET) { this.showGameEnd(); return true; }
     if (this.wendyTotal  >= this.TARGET) { this.showGameEnd(); return true; }
@@ -3089,6 +3339,7 @@ class Game {
     this.updateBoneyardCount();
     this.setTurnIndicator();
     this.updateDailyBadge();
+    this.updateRoundIndicator();
   }
   
   updateDailyBadge() {
@@ -3101,6 +3352,12 @@ class Game {
   renderBoard() {
     const chain = document.getElementById('board-chain');
     const emptyMsg = document.getElementById('board-empty-msg');
+    const endOverlay = document.getElementById('end-select-overlay');
+
+    // Show/hide fixed end-select overlay
+    if (endOverlay) {
+      endOverlay.classList.toggle('visible', this.phase === 'end' && !!this.selected);
+    }
 
     if (this.board.isEmpty()) {
       chain.innerHTML = '';
@@ -3113,16 +3370,6 @@ class Game {
     document.getElementById('end-indicators').classList.remove('hidden');
 
     chain.innerHTML = '';
-
-    // end-select mode — add left/right click zones
-    if (this.phase === 'end' && this.selected) {
-      const leftBtn = document.createElement('div');
-      leftBtn.className = 'end-select-btn end-left-btn';
-      leftBtn.title = 'Play on LEFT end';
-      leftBtn.innerHTML = '<div class="end-btn-arrow">&#x2190;</div><div class="end-btn-label">PLAY LEFT</div>';
-      leftBtn.onclick = () => this.playerSelectEnd('left');
-      chain.appendChild(leftBtn);
-    }
 
     const chainLen = this.board.chain.length;
     for (let i = 0; i < chainLen; i++) {
@@ -3161,21 +3408,10 @@ class Game {
       chain.appendChild(tileEl);
     }
 
-    if (this.phase === 'end' && this.selected) {
-      const rightBtn = document.createElement('div');
-      rightBtn.className = 'end-select-btn end-right-btn';
-      rightBtn.title = 'Play on RIGHT end';
-      rightBtn.innerHTML = '<div class="end-btn-arrow">&#x2192;</div><div class="end-btn-label">PLAY RIGHT</div>';
-      rightBtn.onclick = () => this.playerSelectEnd('right');
-      chain.appendChild(rightBtn);
-    }
-
-    // Auto-scroll: if choosing an end, scroll to center so both buttons visible; otherwise scroll right
-    if (this.phase === 'end') {
-      chain.scrollLeft = (chain.scrollWidth - chain.clientWidth) / 2;
-    } else {
+    // Auto-scroll rightward so newest tile is always visible
+    requestAnimationFrame(() => {
       chain.scrollLeft = chain.scrollWidth;
-    }
+    });
   }
 
   renderHand() {
@@ -3321,8 +3557,11 @@ class Game {
     vfx.speechPop();
   }
 
-  setAction(text) {
-    document.getElementById('action-msg').textContent = text;
+  setAction(text, urgent = false) {
+    const el = document.getElementById('action-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('urgent', urgent || this.phase === 'end');
   }
 
   setTurnIndicator() {
