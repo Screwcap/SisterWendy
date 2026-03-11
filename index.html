@@ -1908,18 +1908,15 @@ const vfx = {
     setTimeout(() => wrap.classList.remove('screen-shake'), 500);
   },
   
-  // Wendy mood change
+  // Wendy mood change (CSS animation only — callers handle video separately)
   wendyMood(mood) {
     const avatar = document.getElementById('wendy-avatar');
     const halo = avatar?.querySelector('.halo');
     if (!avatar) return;
-    
+
     // Clear previous moods
     avatar.classList.remove('wendy-shake', 'wendy-smug', 'wendy-thinking', 'wendy-victory');
     halo?.classList.remove('halo-pulse');
-    
-    // Update video to match mood
-    wendyVideo.fromGameState(mood);
     
     switch(mood) {
       case 'angry':
@@ -2292,25 +2289,29 @@ class Board {
       return;
     }
     if (end === 'left') {
-      // The touching side must match leftEnd; the exposed side becomes the new leftEnd.
+      // Tile is prepended (unshifted). LEFT half is exposed (new leftEnd), RIGHT half touches chain.
       if (tile.b === this.leftEnd) {
-        // b touches the chain → a is exposed (new left end)
-        tile.flipped = true;   // display b on right half (inner), a on left half (outer)
+        // b goes on RIGHT (touches chain), a goes on LEFT (exposed)
+        // flipped=false → left=a, right=b  ✓
+        tile.flipped = false;
         this.leftEnd = tile.a;
       } else {
-        // a touches the chain → b is exposed (new left end)
-        tile.flipped = false;
+        // a goes on RIGHT (touches chain), b goes on LEFT (exposed)
+        // flipped=true → left=b, right=a  ✓
+        tile.flipped = true;
         this.leftEnd = tile.b;
       }
       this.chain.unshift(tile);
     } else { // 'right'
-      // The touching side must match rightEnd; the exposed side becomes the new rightEnd.
+      // Tile is appended (pushed). LEFT half touches chain (matches rightEnd), RIGHT half is exposed.
       if (tile.a === this.rightEnd) {
-        // a touches the chain → b is exposed (new right end)
+        // a goes on LEFT (touches chain), b goes on RIGHT (exposed)
+        // flipped=false → left=a, right=b  ✓
         tile.flipped = false;
         this.rightEnd = tile.b;
       } else {
-        // b touches the chain → a is exposed (new right end)
+        // b goes on LEFT (touches chain), a goes on RIGHT (exposed)
+        // flipped=true → left=b, right=a  ✓
         tile.flipped = true;
         this.rightEnd = tile.a;
       }
@@ -2358,9 +2359,10 @@ class Game {
     this.TARGET = 61;
     this.playerTotal = 0;
     this.wendyTotal  = 0;
-    this.maxDeficit = 0; // Track biggest deficit for comeback detection
-    this.isDaily = false; // Track if playing daily challenge
+    this.maxDeficit = 0;
+    this.isDaily = false;
     this.turnCount = 0;
+    this.wendyDrawCount = 0;
     this.newGame(true);
     this.updateMenuStreak();
     this.updateDailyBanner();
@@ -2644,6 +2646,12 @@ class Game {
     if (thinkingOverlayEl) thinkingOverlayEl.classList.add('show');
     this.setAction("Sister Wendy is thinking...");
 
+    // Small delay so thinking state is visible before AI acts
+    const thinkDelay = 600 + Math.random() * 800; // 0.6–1.4s
+    setTimeout(() => this._doWendyAct(), thinkDelay);
+  }
+
+  _doWendyAct() {
     const play = aiPickPlay(this.wendyHand, this.board);
 
     if (!play) {
