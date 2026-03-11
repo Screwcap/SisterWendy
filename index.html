@@ -207,17 +207,21 @@ body {
   position: absolute;
   bottom: 8px;
   display: flex;
-  gap: 20px;
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.4);
+  gap: 12px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  padding: 4px 14px;
 }
 .end-badge {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 4px;
-  padding: 2px 8px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
-.end-badge span { color: var(--highlight); font-weight: bold; }
+.end-badge span { color: var(--highlight); font-weight: bold; font-size: 1rem; }
 
 /* ── DOMINO TILES ── */
 .domino {
@@ -1293,6 +1297,39 @@ body {
   margin-top: 16px;
 }
 
+/* ── FLOATING SCORE POPUP ── */
+@keyframes floatUp {
+  0%   { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  60%  { transform: translateX(-50%) translateY(-44px) scale(1.15); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-70px) scale(0.9); opacity: 0; }
+}
+.score-popup {
+  position: fixed;
+  pointer-events: none;
+  z-index: 500;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+  font-size: 1.6rem;
+  color: var(--highlight);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(255,224,102,0.6);
+  animation: floatUp 1.1s ease-out forwards;
+  white-space: nowrap;
+}
+.score-popup.big {
+  font-size: 2.2rem;
+  color: #ffd700;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.9), 0 0 30px rgba(255,215,0,0.8);
+}
+
+/* ── PLAYER TURN PULSING BORDER ── */
+@keyframes playerTurnPulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(255,224,102,0); border-top-color: var(--gold); }
+  50% { box-shadow: inset 0 3px 16px rgba(255,224,102,0.25); border-top-color: var(--highlight); }
+}
+#player-panel.your-turn {
+  animation: playerTurnPulse 1.8s ease-in-out infinite;
+}
+
 /* ── ACHIEVEMENT TOAST ── */
 .achievement-toast {
   position: fixed;
@@ -2155,6 +2192,31 @@ function showToast(msg, duration = 2000) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
+// ── FLOATING SCORE POPUP ──
+function showScorePopup(points, anchorEl) {
+  const popup = document.createElement('div');
+  popup.className = 'score-popup' + (points >= 15 ? ' big' : '');
+  popup.textContent = `+${points}`;
+
+  // Position near the score display or board center
+  let x, y;
+  if (anchorEl) {
+    const r = anchorEl.getBoundingClientRect();
+    x = r.left + r.width / 2;
+    y = r.top;
+  } else {
+    const board = document.getElementById('board-area');
+    const r = board ? board.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0 };
+    x = r.left + r.width / 2;
+    y = r.top + 40;
+  }
+
+  popup.style.left = x + 'px';
+  popup.style.top  = y + 'px';
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1200);
+}
+
 // ── KEYBOARD HANDLER ──
 document.addEventListener('keydown', (e) => {
   const key = e.key.toLowerCase();
@@ -2225,14 +2287,9 @@ document.addEventListener('keydown', (e) => {
   // In-game shortcuts
   if (game.turn !== 'player') return;
   
-  // D to draw
+  // D to draw (playerDraw() enforces the must-play-first rule internally)
   if (key === 'd') {
-    if (game.boneyard.length > 0) {
-      game.playerDraw();
-    } else {
-      showToast('Boneyard is empty!');
-      audio.play('error');
-    }
+    game.playerDraw();
     return;
   }
   
@@ -2878,6 +2935,8 @@ class Game {
       }
       this.setAction(`+${scored} points! You score — play again!`);
       this.flashScore('player');
+      // Show floating score popup near score display
+      showScorePopup(scored, document.getElementById('player-score-val'));
       scored >= 15 ? audio.play('bigScore') : audio.play('score');
       vfx.celebrateScore('player', scored);
 
@@ -2936,6 +2995,14 @@ class Game {
     if (this.boneyard.length === 0) {
       this.setAction("Boneyard empty — use Pass button if you can't play.");
       audio.play('error');
+      return;
+    }
+    // Per Muggins rules: you must play a tile if you have a valid move; drawing is only allowed when stuck
+    const hasValidMove = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
+    if (hasValidMove) {
+      this.setAction("You have playable tiles — you must play before drawing!");
+      audio.play('error');
+      showToast("Must play first — drawing not allowed when you have valid moves!", 2500);
       return;
     }
     const drawn = this.boneyard.splice(0, 1)[0];
@@ -3107,6 +3174,8 @@ class Game {
       if (deficit > this.maxDeficit) this.maxDeficit = deficit;
       this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
       this.flashScore('wendy');
+      // Show floating score popup near Wendy's score display
+      showScorePopup(play.scoreGained, document.getElementById('wendy-score-val'));
       play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
       vfx.wendyMood('smug');
       vfx.celebrateScore('wendy', play.scoreGained);
@@ -3606,12 +3675,19 @@ class Game {
       setTimeout(() => this.animateHand = false, 600);
     }
 
-    // Draw button state
+    // Draw button state — per Muggins rules, you may only draw when you have no valid plays
     const drawBtn = document.getElementById('draw-btn');
     const hasAnyValidMove = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
     const canDraw = isPlayerTurn && this.boneyard.length > 0 && !hasAnyValidMove;
-    const canDrawAnyway = isPlayerTurn && this.boneyard.length > 0;
-    drawBtn.disabled = !canDrawAnyway;
+    drawBtn.disabled = !canDraw;
+    // Tooltip explaining why draw is blocked
+    if (isPlayerTurn && this.boneyard.length > 0 && hasAnyValidMove) {
+      drawBtn.title = 'You have valid plays — you must play before drawing';
+    } else if (this.boneyard.length === 0) {
+      drawBtn.title = 'Boneyard is empty';
+    } else {
+      drawBtn.title = '';
+    }
 
     // Pass button state — only when truly stuck
     const passBtn = document.getElementById('pass-btn');
@@ -3720,10 +3796,13 @@ class Game {
     const el = document.getElementById('turn-indicator');
     const banner = document.getElementById('turn-banner');
     const thinkingOverlay = document.getElementById('thinking-overlay');
+    const playerPanel = document.getElementById('player-panel');
 
     if (this.turn === 'player') {
       el.textContent = 'YOUR TURN';
       el.className = 'your-turn';
+      // Pulse the player panel border
+      if (playerPanel) playerPanel.classList.add('your-turn');
       // Flash the YOUR TURN banner
       if (banner) {
         banner.classList.remove('show');
@@ -3735,11 +3814,13 @@ class Game {
     } else if (this.turn === 'wendy-thinking') {
       el.textContent = "Wendy's Turn";
       el.className = '';
+      if (playerPanel) playerPanel.classList.remove('your-turn');
       if (thinkingOverlay) thinkingOverlay.classList.add('show');
       if (banner) banner.classList.remove('show');
     } else {
       el.textContent = "Wendy's Turn";
       el.className = '';
+      if (playerPanel) playerPanel.classList.remove('your-turn');
       if (thinkingOverlay) thinkingOverlay.classList.remove('show');
       if (banner) banner.classList.remove('show');
     }
