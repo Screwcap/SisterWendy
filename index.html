@@ -225,16 +225,18 @@ body {
   height: 44px;
   min-width: 88px;
 }
-.domino:hover { transform: translateY(-4px); box-shadow: 3px 7px 12px rgba(0,0,0,0.7); }
+.domino { transition: transform 0.15s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.15s ease, outline 0.1s ease; }
+.domino:hover { transform: translateY(-7px) scale(1.04); box-shadow: 3px 10px 18px rgba(0,0,0,0.75); }
 .domino.selected {
   outline: 3px solid var(--highlight);
-  transform: translateY(-8px);
-  box-shadow: 0 10px 20px rgba(255,224,102,0.5);
+  transform: translateY(-12px) scale(1.08);
+  box-shadow: 0 14px 28px rgba(255,224,102,0.6);
   z-index: 10;
 }
-.domino.playable { outline: 2px solid rgba(100,255,150,0.5); }
-.domino.unplayable { opacity: 0.45; cursor: not-allowed; }
-.domino.board-tile { cursor: default; }
+.domino.playable { outline: 2px solid rgba(100,255,150,0.7); cursor: pointer; }
+.domino.playable:hover { outline: 3px solid rgba(100,255,150,1); box-shadow: 0 0 14px rgba(100,255,150,0.5), 3px 10px 18px rgba(0,0,0,0.7); }
+.domino.unplayable { opacity: 0.38; cursor: not-allowed; filter: grayscale(40%); }
+.domino.board-tile { cursor: default; transition: none; }
 .domino.board-tile:hover { transform: none; }
 
 .pip-half {
@@ -270,6 +272,47 @@ body {
 /* end-select glow */
 .end-left { box-shadow: -4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
 .end-right { box-shadow: 4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
+
+/* ── END-SELECT BUTTONS — big, unmissable ── */
+@keyframes endBtnPulse {
+  0%,100% { box-shadow: 0 0 12px rgba(255,224,102,0.7), 0 0 24px rgba(255,224,102,0.3); transform: scale(1); }
+  50%      { box-shadow: 0 0 20px rgba(255,224,102,1),   0 0 40px rgba(255,224,102,0.5); transform: scale(1.06); }
+}
+.end-select-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 72px;
+  min-height: 56px;
+  padding: 6px 10px;
+  background: rgba(255,224,102,0.18);
+  border: 3px solid var(--highlight);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  animation: endBtnPulse 1.2s ease-in-out infinite;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.end-select-btn:hover, .end-select-btn:active {
+  background: rgba(255,224,102,0.45);
+  transform: scale(1.1) !important;
+}
+.end-btn-arrow {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--highlight);
+}
+.end-btn-label {
+  font-size: 0.55rem;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: var(--highlight);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
 /* ── PLAYER PANEL ── */
 #player-panel {
@@ -593,25 +636,41 @@ body {
 }
 .tile-bounce { animation: tileBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
-/* Smooth tile glide onto board */
+/* Smooth tile glide onto board — spring physics easing */
 @keyframes tileGlideLeft {
-  0% { transform: translateX(-80px) rotate(-8deg); opacity: 0; }
-  60% { transform: translateX(5px) rotate(1deg); opacity: 1; }
-  100% { transform: translateX(0) rotate(0deg); }
+  0%   { transform: translateX(-120px) rotate(-12deg) scale(0.85); opacity: 0; }
+  55%  { transform: translateX(8px) rotate(2deg) scale(1.05); opacity: 1; }
+  75%  { transform: translateX(-3px) rotate(-0.5deg) scale(0.98); }
+  100% { transform: translateX(0) rotate(0deg) scale(1); }
 }
 @keyframes tileGlideRight {
-  0% { transform: translateX(80px) rotate(8deg); opacity: 0; }
-  60% { transform: translateX(-5px) rotate(-1deg); opacity: 1; }
-  100% { transform: translateX(0) rotate(0deg); }
+  0%   { transform: translateX(120px) rotate(12deg) scale(0.85); opacity: 0; }
+  55%  { transform: translateX(-8px) rotate(-2deg) scale(1.05); opacity: 1; }
+  75%  { transform: translateX(3px) rotate(0.5deg) scale(0.98); }
+  100% { transform: translateX(0) rotate(0deg) scale(1); }
 }
 @keyframes tileGlideDown {
-  0% { transform: translateY(-60px) scale(0.8); opacity: 0; }
-  70% { transform: translateY(3px) scale(1.02); opacity: 1; }
-  100% { transform: translateY(0) scale(1); }
+  0%   { transform: translateY(-80px) scale(0.7) rotate(-5deg); opacity: 0; }
+  60%  { transform: translateY(6px) scale(1.08) rotate(1deg); opacity: 1; }
+  80%  { transform: translateY(-2px) scale(0.97) rotate(0deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
 }
-.tile-glide-left { animation: tileGlideLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-.tile-glide-right { animation: tileGlideRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-.tile-glide-down { animation: tileGlideDown 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.tile-glide-left  { animation: tileGlideLeft  0.55s cubic-bezier(0.34, 1.4, 0.64, 1); }
+.tile-glide-right { animation: tileGlideRight 0.55s cubic-bezier(0.34, 1.4, 0.64, 1); }
+.tile-glide-down  { animation: tileGlideDown  0.5s  cubic-bezier(0.34, 1.4, 0.64, 1); }
+
+/* FLIP flying tile — the clone that flies from hand to board */
+.tile-flip-fly {
+  position: fixed;
+  z-index: 999;
+  pointer-events: none;
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  transition: transform 0.45s cubic-bezier(0.34, 1.3, 0.64, 1),
+              left     0.45s cubic-bezier(0.34, 1.3, 0.64, 1),
+              top      0.45s cubic-bezier(0.34, 1.3, 0.64, 1),
+              opacity  0.45s ease;
+}
 
 /* Subtle idle float for board tiles */
 @keyframes tileIdleFloat {
@@ -860,6 +919,80 @@ body {
   margin-top: 16px;
   font-size: 0.8rem;
   color: rgba(255,255,255,0.5);
+}
+
+/* Invalid move shake */
+@keyframes shakeInvalid {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  15%  { transform: translateX(-8px) rotate(-3deg); }
+  30%  { transform: translateX(8px) rotate(3deg); }
+  45%  { transform: translateX(-6px) rotate(-2deg); }
+  60%  { transform: translateX(6px) rotate(2deg); }
+  75%  { transform: translateX(-3px); }
+  90%  { transform: translateX(3px); }
+}
+.shake-invalid {
+  animation: shakeInvalid 0.45s ease-out !important;
+  outline: 3px solid #c0392b !important;
+  box-shadow: 0 0 12px rgba(192,57,43,0.7) !important;
+}
+
+/* YOUR TURN banner */
+@keyframes yourTurnPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.8; transform: scale(1.03); }
+}
+#turn-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: linear-gradient(90deg, rgba(255,224,102,0.95) 0%, rgba(201,168,76,0.95) 100%);
+  color: #1a0a00;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  font-family: 'Georgia', serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 0;
+  z-index: 90;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease-out;
+  pointer-events: none;
+}
+#turn-banner.show {
+  transform: translateY(0);
+  animation: yourTurnPulse 1.5s ease-in-out 3;
+}
+
+/* Wendy thinking pulsing indicator */
+@keyframes thinkingDots {
+  0%, 20%  { content: 'Sister Wendy is thinking.'; }
+  40%, 60% { content: 'Sister Wendy is thinking..'; }
+  80%, 100%{ content: 'Sister Wendy is thinking...'; }
+}
+#thinking-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.75);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 12px 24px;
+  color: var(--gold);
+  font-style: italic;
+  font-size: 0.95rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 5;
+  white-space: nowrap;
+}
+#thinking-overlay.show { opacity: 1; }
+
+/* Valid end glow on board tiles */
+.board-end-glow {
+  box-shadow: 0 0 0 3px rgba(100,255,150,0.9), 0 0 16px rgba(100,255,150,0.6) !important;
+  transition: box-shadow 0.2s !important;
 }
 
 /* Toast notifications */
@@ -1270,6 +1403,8 @@ body {
 </head>
 <body>
 
+<div id="turn-banner">YOUR TURN</div>
+
 <div id="game-wrap">
   <!-- HEADER -->
   <div id="header">
@@ -1294,7 +1429,7 @@ body {
     <div id="wendy-avatar">
       <div class="halo"></div>
       <video id="wendy-video" autoplay loop muted playsinline>
-        <source src="assets/videos/smirk.mp4" type="video/mp4">
+        <source src="assets/videos/wendy-main.mp4" type="video/mp4">
       </video>
       <img id="wendy-img" src="assets/images/avatar.jpg" alt="Sister Wendy" style="display:none;">
     </div>
@@ -1307,6 +1442,7 @@ body {
     <div id="daily-mode-badge" class="daily-mode-badge" style="display:none;">📅 Daily Challenge</div>
     <div id="boneyard-badge">Boneyard: <span id="boneyard-count">14</span></div>
     <div id="turn-indicator">Your Turn</div>
+    <div id="thinking-overlay">Sister Wendy is thinking...</div>
     <div id="board-chain">
       <div id="board-empty-msg">First tile sets the table — lead with faith.</div>
     </div>
@@ -1670,37 +1806,53 @@ document.addEventListener('keydown', () => audio.init(), { once: true });
 
 // ── WENDY VIDEO SYSTEM ──
 const wendyVideo = {
-  current: 'smirk',
+  current: 'main',
   videos: {
-    smirk: 'assets/videos/smirk.mp4',
-    thinking: 'assets/videos/thinking.mp4',
-    victory: 'assets/videos/victory.mp4',
-    lose: 'assets/videos/lose.mp4',
-    frustration: 'assets/videos/frustration.mp4',
-    main: 'assets/videos/main.mp4'
+    smirk:       'assets/videos/wendy-smirk.mp4',
+    thinking:    'assets/videos/wendy-thinking.mp4',
+    victory:     'assets/videos/wendy-victory.mp4',
+    winning:     'assets/videos/wendy-winning.mp4',
+    lose:        'assets/videos/wendy-lose.mp4',
+    frustration: 'assets/videos/wendy-frustration.mp4',
+    main:        'assets/videos/wendy-main.mp4'
   },
   
-  set(mood) {
-    if (this.current === mood) return;
+  set(mood, oneShot) {
+    if (this.current === mood && !oneShot) return;
     const video = document.getElementById('wendy-video');
     const img = document.getElementById('wendy-img');
     if (!video) return;
-    
-    const src = this.videos[mood] || this.videos.smirk;
+
+    const src = this.videos[mood] || this.videos.main;
     this.current = mood;
-    
+
     // Show video, hide fallback image
     video.style.display = 'block';
     if (img) img.style.display = 'none';
-    
+
     // Change source and restart
     video.src = src;
     video.load();
-    video.play().catch(() => {
-      // If video fails, show static image
-      video.style.display = 'none';
-      if (img) img.style.display = 'block';
-    });
+    const playPromise = video.play();
+    if (playPromise) {
+      playPromise.catch(() => {
+        // If video fails, show static image
+        video.style.display = 'none';
+        if (img) img.style.display = 'block';
+      });
+    }
+
+    // One-shot: after video ends, return to main
+    if (oneShot) {
+      const returnToMain = () => {
+        video.removeEventListener('ended', returnToMain);
+        if (this.current === mood) {
+          this.current = 'main';
+          this.set('main');
+        }
+      };
+      video.addEventListener('ended', returnToMain);
+    }
   },
   
   // Map game states to video moods
@@ -1963,20 +2115,133 @@ const PIP = {
 
 // ── SISTER WENDY QUOTES ──
 const WENDY_QUOTES = {
-  gameStart:  ["Shuffle up and pray, child.", "Bless your heart. You'll need it.", "I've seen better hands at bingo night.", "Let us begin. May God have mercy on your tiles."],
-  herTurn:    ["Calculating divine strategy...", "The Lord is guiding my hand.", "I see your tiles from here, you know.", "Patience is a virtue. Mine is running out."],
-  herScores:  ["God rewards the devout — and my arithmetic!", "That's FIFTEEN. Count it, child.", "The Lord provides. In multiples of five.", "Ha! Did you see that? Did you SEE that?!"],
-  herBigScore:["Sweet Mary! That's a miracle!", "TWENTY-FIVE! I'm basically a prophet.", "The rosary pays off at last!"],
-  playerScores:["Hmph. Beginner's grace.", "Don't get used to that.", "Fine. Enjoy it. It won't last.", "Even a broken clock..."],
-  herCantPlay:["Drawing like rosary beads... give me strength.", "Lord, why hast thou forsaken my boneyard.", "I must draw. Do not laugh.", "This is humiliating."],
-  playerCantPlay:["Even your dominoes are hiding from you.", "The boneyard awaits, sinner.", "Draw. Draw. Draw. Like your strategy.", "God is testing you. You are failing."],
-  herDomino:  ["DOMINO! The Lord's work is done.", "Blessed are the swift, for they shall domino.", "And THAT is how a nun plays dominoes.", "In nomine Patris et Filii — DOMINO!"],
-  playerDomino:["Fine. You got lucky.", "I let you win. For your moral development.", "Enjoy this. It won't happen again.", "Well. I'll be saying extra prayers tonight."],
-  blocked:    ["This is what happens when nobody listened at Mass.", "We are ALL blocked. Like my sinuses. And your strategy.", "A draw. How very... Protestant of us."],
-  herDouble:  ["A divine double! Providence smiles.", "Double blessing!", "The Lord gives in pairs."],
-  playerDouble:["Even a broken clock...", "Don't celebrate. It's one double.", "Fine. Double. Very impressive."],
-  angry:      ["You think this is FUNNY?!", "Lord give me strength.", "I see how it is.", "This is NOT over."],
-  smug:       ["As I was saying...", "Mm-hmm. As expected.", "Naturally.", "Of course."],
+  gameStart: [
+    "Shuffle up and pray, child.",
+    "Bless your heart. You'll need it.",
+    "I've seen better hands at bingo night.",
+    "Let us begin. May God have mercy on your tiles.",
+    "I do hope you've been practising. I have.",
+    "Remember: pride goeth before a fall. Just saying.",
+    "The convent hasn't lost a game since 1987. Today will be no different.",
+  ],
+  herTurn: [
+    "Calculating divine strategy...",
+    "The Lord is guiding my hand.",
+    "I see your tiles from here, you know.",
+    "Patience is a virtue. Mine is running out.",
+    "Mm. Yes. Interesting.",
+    "Don't rush me. Holiness takes time.",
+    "I am deliberating. Prayerfully.",
+    "A moment of contemplation before I crush you.",
+  ],
+  herScores: [
+    "God rewards the devout — and my arithmetic!",
+    "That's FIFTEEN. Count it, child.",
+    "The Lord provides. In multiples of five.",
+    "Ha! Did you see that? Did you SEE that?!",
+    "Ten points for Sister Wendy. None for you.",
+    "I am SO good at this it frightens me.",
+    "Blessed are the scorers, for they shall have points.",
+    "Do try to keep up.",
+  ],
+  herBigScore: [
+    "Sweet Mary! That's a miracle!",
+    "TWENTY-FIVE! I'm basically a prophet.",
+    "The rosary pays off at last!",
+    "That. Was. GORGEOUS.",
+    "Lord, I am not worthy. But also, I totally am.",
+  ],
+  playerScores: [
+    "Hmph. Beginner's grace.",
+    "Don't get used to that.",
+    "Fine. Enjoy it. It won't last.",
+    "Even a broken clock...",
+    "Very well. I'm choosing to be magnanimous.",
+    "I'll allow it. Once.",
+    "I see you've been practising. Unfortunately.",
+  ],
+  herCantPlay: [
+    "Drawing like rosary beads... give me strength.",
+    "Lord, why hast thou forsaken my boneyard.",
+    "I must draw. Do not laugh.",
+    "This is humiliating.",
+    "These tiles are conspiring against me.",
+    "Not ideal. But I remain faithful.",
+    "A temporary setback. God is testing me.",
+  ],
+  playerCantPlay: [
+    "Even your dominoes are hiding from you.",
+    "The boneyard awaits, sinner.",
+    "Draw. Draw. Draw. Like your strategy.",
+    "God is testing you. You are failing.",
+    "Oh dear. Oh, dear dear dear.",
+    "Perhaps prayer would help. I wouldn't know.",
+    "You seem stuck. I am not stuck. Interesting contrast.",
+  ],
+  herDomino: [
+    "DOMINO! The Lord's work is done.",
+    "Blessed are the swift, for they shall domino.",
+    "And THAT is how a nun plays dominoes.",
+    "In nomine Patris et Filii — DOMINO!",
+    "I have been playing dominoes since before you were born. It shows.",
+    "Done. Simply done. Say your prayers.",
+  ],
+  playerDomino: [
+    "Fine. You got lucky.",
+    "I let you win. For your moral development.",
+    "Enjoy this. It won't happen again.",
+    "Well. I'll be saying extra prayers tonight.",
+    "I am not upset. I am disappointed. There is a difference.",
+    "A fluke. A statistical aberration. Nothing more.",
+  ],
+  blocked: [
+    "This is what happens when nobody listened at Mass.",
+    "We are ALL blocked. Like my sinuses. And your strategy.",
+    "A draw. How very... Protestant of us.",
+    "The tiles have spoken. Neither of us wins.",
+    "God, in His wisdom, has declared a tie. I remain suspicious.",
+  ],
+  herDouble: [
+    "A divine double! Providence smiles.",
+    "Double blessing!",
+    "The Lord gives in pairs.",
+    "A [6|6]? How delightful. For me.",
+    "Doubles are my speciality. Along with humility.",
+  ],
+  playerDouble: [
+    "Even a broken clock...",
+    "Don't celebrate. It's one double.",
+    "Fine. Double. Very impressive.",
+    "Enjoy your double. I have a plan.",
+  ],
+  angry: [
+    "You think this is FUNNY?!",
+    "Lord give me strength.",
+    "I see how it is.",
+    "This is NOT over.",
+    "I am vexed. The Lord sees my vexation.",
+    "Right. That's enough of that.",
+    "Oh, we're doing THIS, are we.",
+  ],
+  smug: [
+    "As I was saying...",
+    "Mm-hmm. As expected.",
+    "Naturally.",
+    "Of course.",
+    "I did mention this would happen.",
+    "The tiles never lie. Unlike some people.",
+    "Just as the scriptures predicted.",
+  ],
+  commentary: [
+    "The board is getting interesting.",
+    "I see what you're up to. Don't think I don't.",
+    "This is a fascinating position. For me.",
+    "The endgame approacheth.",
+    "Have you considered a different career?",
+    "I'm keeping score in more ways than one.",
+    "God sees all dominoes played.",
+    "The chain reveals the soul of the player.",
+  ],
 };
 
 function randQuote(key) {
@@ -2020,25 +2285,32 @@ class Board {
 
   play(tile, end) {
     if (this.isEmpty() || end === 'first') {
+      tile.flipped = false;
       this.chain.push(tile);
       this.leftEnd  = tile.a;
       this.rightEnd = tile.b;
       return;
     }
     if (end === 'left') {
+      // The touching side must match leftEnd; the exposed side becomes the new leftEnd.
       if (tile.b === this.leftEnd) {
-        tile.flipped = false;
+        // b touches the chain → a is exposed (new left end)
+        tile.flipped = true;   // display b on right half (inner), a on left half (outer)
         this.leftEnd = tile.a;
       } else {
-        tile.flipped = true;
+        // a touches the chain → b is exposed (new left end)
+        tile.flipped = false;
         this.leftEnd = tile.b;
       }
       this.chain.unshift(tile);
-    } else {
+    } else { // 'right'
+      // The touching side must match rightEnd; the exposed side becomes the new rightEnd.
       if (tile.a === this.rightEnd) {
+        // a touches the chain → b is exposed (new right end)
         tile.flipped = false;
         this.rightEnd = tile.b;
       } else {
+        // b touches the chain → a is exposed (new right end)
         tile.flipped = true;
         this.rightEnd = tile.a;
       }
@@ -2141,9 +2413,11 @@ class Game {
     this.wendyHand  = this.boneyard.splice(0, 7);
     this.selected   = null;
     this.phase      = 'select'; // select | end
+    this.wendyDrawCount = 0;
     this.turn       = this._firstPlayer();
     this.animateHand = true; // Trigger entrance animation
     this.lastPlacedTile = null;
+    wendyVideo.set('main'); // Reset to main idle video on new round
     audio.play('shuffle');
     this.renderAll();
     if (this.turn === 'wendy') {
@@ -2157,23 +2431,72 @@ class Game {
     }
   }
 
+  // ── FLIP: capture tile element rect before it leaves the hand ──
+  _captureTileRect(tile) {
+    const hand = document.getElementById('player-hand');
+    if (!hand) return null;
+    const tiles = hand.querySelectorAll('.domino');
+    for (const el of tiles) {
+      // match by data or text content pip counts
+      if (el.dataset && el.dataset.tileId === tile.id) return el.getBoundingClientRect();
+    }
+    return null;
+  }
+
+  _flyTileToBoard(fromRect) {
+    if (!fromRect) return;
+    const boardChain = document.getElementById('board-chain');
+    if (!boardChain) return;
+    const toRect = boardChain.getBoundingClientRect();
+
+    // Clone a domino-shaped div at the source position
+    const clone = document.createElement('div');
+    clone.className = 'tile-flip-fly';
+    clone.style.cssText = `
+      width:${fromRect.width}px; height:${fromRect.height}px;
+      left:${fromRect.left}px; top:${fromRect.top}px;
+      background:var(--ivory); border:2px solid #c8a060;
+    `;
+    document.body.appendChild(clone);
+
+    // Next frame: animate to board center
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        clone.style.left = (toRect.left + toRect.width / 2 - fromRect.width / 2) + 'px';
+        clone.style.top  = (toRect.top  + toRect.height / 2 - fromRect.height / 2) + 'px';
+        clone.style.transform = 'scale(0.7) rotate(4deg)';
+        clone.style.opacity = '0';
+        setTimeout(() => clone.remove(), 500);
+      });
+    });
+  }
+
   // ── PLAYER ACTIONS ──
   playerSelectTile(tile) {
     if (this.turn !== 'player' || this.phase === 'wendy-thinking') return;
     if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
       this.setAction("That tile doesn't fit. Try another.");
       audio.play('error');
+      // Shake the clicked tile
+      const hand = document.getElementById('player-hand');
+      if (hand) {
+        const tileEls = hand.querySelectorAll('.domino');
+        tileEls.forEach(el => { if (el.dataset.tileId === tile.id) { el.classList.add('wendy-shake'); setTimeout(() => el.classList.remove('wendy-shake'), 400); }});
+      }
       return;
     }
+    // Capture position before re-render removes it from hand
+    const fromRect = this._captureTileRect(tile);
     this.selected = tile;
     audio.play('select');
     const ends = this.board.validEnds(tile);
     if (ends.length === 1 || this.board.isEmpty()) {
+      this._flyTileToBoard(fromRect);
       this.playerPlayTile(tile, ends[0] || 'first');
     } else {
       // Both ends work — ask player to pick
       this.phase = 'end';
-      this.setAction("Choose which end to attach — left or right.");
+      this.setAction("✋ Both ends fit! Click the ← LEFT or RIGHT → button on the board to place your tile.");
       this.renderBoard();
     }
   }
@@ -2206,33 +2529,37 @@ class Game {
       this.setAction(`+${scored} points! You score — play again!`);
       this.flashScore('player');
       scored >= 15 ? audio.play('bigScore') : audio.play('score');
-      
-      // Visual celebrations
+
+      // Wendy is NOT happy
       vfx.wendyMood('angry');
+      wendyVideo.set('frustration', true);
       vfx.celebrateScore('player', scored);
-      
+
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
       if (this.playerHand.length === 0) { this.endRound('player'); return; }
-      // extra turn on score
+      // extra turn on score — 30% chance of commentary
+      if (Math.random() < 0.30) this.setSpeech(randQuote('playerScores'));
       return;
-    }
-
-    if (tile.isDouble() && scored === 0) {
-      // extra turn for playing a double (house rule variant — skip for simplicity, just continue)
     }
 
     this.renderAll();
     if (this.playerHand.length === 0) { this.endRound('player'); return; }
-    
-    // Hand off to Wendy - use wendy-pending to survive any state checks
+
+    // 30% chance of Wendy commentary on player non-scoring move
+    if (Math.random() < 0.30) {
+      const commentaryKey = ['commentary', 'smug', 'angry'][Math.floor(Math.random() * 3)];
+      this.setSpeech(randQuote(commentaryKey));
+    }
+
+    // Hand off to Wendy
     this.turn = 'wendy';
     this.setAction("Sister Wendy's turn...");
-    this.setSpeech(randQuote('herTurn'));
+    if (Math.random() >= 0.30) this.setSpeech(randQuote('herTurn')); // only override if no commentary
     this.setTurnIndicator();
-    this.renderHand(); // Update UI to show it's not player's turn
-    
+    this.renderHand();
+
     // Trigger Wendy's turn after delay
     setTimeout(() => {
       if (this.turn === 'wendy' || this.turn === 'wendy-pending') {
@@ -2270,18 +2597,29 @@ class Game {
     audio.play('draw');
     this.renderAll();
 
-    if (this.board.canPlay(drawn)) {
-      this.setAction(`Drew [${drawn.a}|${drawn.b}] — you can play it!`);
-      // Let player play the drawn tile - don't auto-pass
+    const pipLabel = `[${drawn.a}|${drawn.b}]`;
+    if (this.board.isEmpty() || this.board.canPlay(drawn)) {
+      this.setAction(`Drew ${pipLabel} — you can play it!`);
       this.renderHand();
       return;
     } else if (this.boneyard.length > 0) {
-      this.setAction(`Drew [${drawn.a}|${drawn.b}] — still no match. Draw again or pass.`);
+      this.setAction(`Drew ${pipLabel} — still no match. Draw again or pass.`);
     } else {
-      this.setAction("Boneyard empty. You must pass.");
-      this.setSpeech(randQuote('playerCantPlay'));
-      this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 900);
+      // Boneyard now empty — check if blocked game
+      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
+      const wendyCanPlay  = this.wendyHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
+      if (!playerCanPlay && !wendyCanPlay) {
+        this.endRound('blocked');
+        return;
+      }
+      if (!playerCanPlay) {
+        this.setAction("Boneyard empty. No moves — passing to Sister Wendy.");
+        this.setSpeech(randQuote('playerCantPlay'));
+        this.turn = 'wendy';
+        setTimeout(() => this.doWendyTurn(), 900);
+      } else {
+        this.setAction(`Drew ${pipLabel} — boneyard empty. Play a tile or pass.`);
+      }
     }
   }
 
@@ -2301,51 +2639,55 @@ class Game {
     
     // Show thinking animation
     vfx.wendyMood('thinking');
+    wendyVideo.set('thinking');
+    const thinkingOverlayEl = document.getElementById('thinking-overlay');
+    if (thinkingOverlayEl) thinkingOverlayEl.classList.add('show');
     this.setAction("Sister Wendy is thinking...");
 
     const play = aiPickPlay(this.wendyHand, this.board);
 
     if (!play) {
-      // can't play — draw
+      // can't play — draw from boneyard or pass
       if (this.boneyard.length > 0) {
-        // Only show "can't play" message on first draw attempt
-        if (!this.wendyDrawCount) {
-          this.wendyDrawCount = 0;
+        // Only show "can't play" speech on first draw attempt
+        if (!this.wendyDrawCount || this.wendyDrawCount === 0) {
           this.setSpeech(randQuote('herCantPlay'));
           audio.play('wendyAngry');
           vfx.wendyMood('angry');
+          wendyVideo.set('frustration', true);
+          this.setAction("Sister Wendy can't play — drawing...");
         }
+        if (!this.wendyDrawCount) this.wendyDrawCount = 0;
         this.wendyDrawCount++;
-        
+
         const drawn = this.boneyard.splice(0, 1)[0];
         this.wendyHand.push(drawn);
         audio.play('draw');
         this.renderAll();
-        
+
+        if (this.wendyDrawCount >= 2 && this.boneyard.length > 0) {
+          this.setAction(`Sister Wendy drawing... (${this.boneyard.length} left in boneyard)`);
+        }
+
         // Check if drawn tile can be played immediately
         if (this.board.canPlay(drawn)) {
-          // Reset draw counter and play the tile
           this.wendyDrawCount = 0;
-          this.turn = 'wendy'; // Reset turn state for next call
-          setTimeout(() => this.doWendyTurn(), 700);
+          this.turn = 'wendy';
+          setTimeout(() => this.doWendyTurn(), 800);
           return;
         }
-        
-        // Limit draws to prevent infinite feel - max 3 draws then show status
-        if (this.wendyDrawCount >= 3 && this.boneyard.length > 0) {
-          this.setAction(`Sister Wendy is drawing... (${this.boneyard.length} left)`);
-        }
-        
-        // Continue drawing with delay
-        this.turn = 'wendy'; // Reset turn state for next call
-        setTimeout(() => this.doWendyTurn(), 600);
+
+        // Continue drawing
+        this.turn = 'wendy';
+        setTimeout(() => this.doWendyTurn(), 700);
         return;
       } else {
-        // must pass - check for blocked game first
-        this.wendyDrawCount = 0; // Reset counter
+        // Boneyard empty — must pass
+        this.wendyDrawCount = 0;
         this.setSpeech(randQuote('herCantPlay'));
         audio.play('wendyAngry');
         vfx.wendyMood('angry');
+        wendyVideo.set('frustration', true);
         const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
         if (!playerCanPlay) {
           // Both stuck, boneyard empty = blocked game
@@ -2361,9 +2703,6 @@ class Game {
       }
     }
     
-    // Reset draw counter when successfully playing
-    this.wendyDrawCount = 0;
-
     // Reset draw counter on successful play
     this.wendyDrawCount = 0;
     
@@ -2371,13 +2710,15 @@ class Game {
     const idx = this.wendyHand.indexOf(play.tile);
     this.wendyHand.splice(idx, 1);
     this.board.play(play.tile, play.end);
-    this.lastPlacedTile = play.tile; // Track for glide animation
-    this.lastPlacedEnd = play.end; // Track which end for direction
+    this.lastPlacedTile = play.tile;
+    this.lastPlacedEnd = play.end;
+    this._hideThinking();
     audio.play('place');
 
     if (play.tile.isDouble()) {
       this.setSpeech(randQuote('herDouble'));
       audio.play('double');
+      wendyVideo.set('smirk', true);
     }
 
     if (play.scoreGained > 0) {
@@ -2397,15 +2738,22 @@ class Game {
       
       // Visual celebrations
       vfx.wendyMood('smug');
+      wendyVideo.set('smirk', true);
       vfx.celebrateScore('wendy', play.scoreGained);
-      
+
       this.updateScoreDisplay();
       this.renderAll();
       if (this.checkGameWin()) return;
       if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
-      this.turn = 'wendy'; // Reset for next turn
-      setTimeout(() => this.doWendyTurn(), 1100);
+      this.turn = 'wendy';
+      setTimeout(() => this.doWendyTurn(), 1200);
       return;
+    }
+
+    // 30% chance of witty commentary after a normal non-scoring play
+    if (Math.random() < 0.30) {
+      const commentaryKey = ['smug', 'herTurn', 'angry', 'commentary'][Math.floor(Math.random() * 4)];
+      this.setSpeech(randQuote(commentaryKey));
     }
 
     this.renderAll();
@@ -2424,17 +2772,20 @@ class Game {
     this.renderHand();
     audio.play('turn');
 
-    if (!this.playerHand.some(t => this.board.canPlay(t)) && this.boneyard.length === 0) {
-      // Check if Wendy can play - if not, it's a blocked game
+    // Check if player is immediately stuck
+    const playerHasMoves = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
+    if (!playerHasMoves && this.boneyard.length === 0) {
       const wendyStillCanPlay = this.wendyHand.some(t => this.board.canPlay(t));
       if (!wendyStillCanPlay) {
         this.endRound('blocked');
         return;
       }
       this.setSpeech(randQuote('playerCantPlay'));
-      this.setAction("No valid moves and boneyard empty. You must pass.");
+      vfx.wendyMood('smug');
+      wendyVideo.set('smirk', true);
+      this.setAction("No valid moves and boneyard is empty — Sister Wendy smiles...");
       this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 900);
+      setTimeout(() => this.doWendyTurn(), 1200);
     }
   }
 
@@ -2447,6 +2798,7 @@ class Game {
     let playerRoundPts = 0, wendyRoundPts = 0;
     let title, msg, emoji;
 
+    this._hideThinking();
     if (winner === 'player') {
       playerRoundPts = Math.floor(wendyLeftover / 5) * 5;
       title = "Domino!";
@@ -2454,6 +2806,7 @@ class Game {
       msg = randQuote('playerDomino');
       this.setSpeech(randQuote('playerDomino'));
       audio.play('roundEnd');
+      wendyVideo.set('lose', true);
     } else if (winner === 'wendy') {
       wendyRoundPts = Math.floor(playerLeftover / 5) * 5;
       title = "Sister Wendy Dominoes!";
@@ -2461,6 +2814,7 @@ class Game {
       msg = randQuote('herDomino');
       this.setSpeech(randQuote('herDomino'));
       audio.play('wendyScore');
+      wendyVideo.set('winning', true);
     } else {
       // blocked: lowest pip count wins
       if (playerLeftover <= wendyLeftover) {
@@ -2558,13 +2912,15 @@ class Game {
     
     document.getElementById('gameover-overlay').classList.remove('hidden');
     playerWon ? audio.play('playerWin') : audio.play('wendyWin');
-    
-    // Victory celebrations
+
+    // Victory celebrations + proper video
     if (playerWon) {
       vfx.confetti(80, 3000);
       vfx.wendyMood('angry');
+      wendyVideo.set('lose'); // Wendy loses — play lose video on loop
     } else {
       vfx.wendyMood('victory');
+      wendyVideo.set('victory'); // Wendy wins — play victory video on loop
       vfx.confetti(50, 2500);
       vfx.shake();
     }
@@ -2753,104 +3109,126 @@ class Game {
     // end-select mode — add left/right click zones
     if (this.phase === 'end' && this.selected) {
       const leftBtn = document.createElement('div');
-      leftBtn.className = 'domino horiz end-left tile-new';
-      leftBtn.title = 'Play left';
-      leftBtn.style.cursor = 'pointer';
-      leftBtn.style.background = 'rgba(255,224,102,0.2)';
-      leftBtn.style.border = '2px dashed var(--highlight)';
-      leftBtn.style.minWidth = '50px';
-      leftBtn.style.opacity = '0.7';
-      leftBtn.innerHTML = '<div style="width:100%;text-align:center;font-size:1.2rem;line-height:44px">&#x2190;</div>';
+      leftBtn.className = 'end-select-btn end-left-btn';
+      leftBtn.title = 'Play on LEFT end';
+      leftBtn.innerHTML = '<div class="end-btn-arrow">&#x2190;</div><div class="end-btn-label">PLAY LEFT</div>';
       leftBtn.onclick = () => this.playerSelectEnd('left');
       chain.appendChild(leftBtn);
     }
 
-    for (let i = 0; i < this.board.chain.length; i++) {
+    const chainLen = this.board.chain.length;
+    for (let i = 0; i < chainLen; i++) {
       const tile = this.board.chain[i];
       const tileEl = this.buildTileEl(tile, false, tile === this.selected);
-      
+
       // Set tile index for staggered idle animation
       tileEl.style.setProperty('--tile-index', i);
-      
+
       // Add glide animation to the most recently placed tile
       if (this.lastPlacedTile === tile) {
-        // Determine glide direction based on which end it was played
         if (this.lastPlacedEnd === 'left') {
           tileEl.classList.add('tile-glide-left');
         } else if (this.lastPlacedEnd === 'right') {
           tileEl.classList.add('tile-glide-right');
         } else {
-          // First tile glides down from above
           tileEl.classList.add('tile-glide-down');
         }
-        // Clear after animation
         setTimeout(() => {
           this.lastPlacedTile = null;
           this.lastPlacedEnd = null;
         }, 500);
       }
-      
+
+      // Glow the left/right end tiles when player has a tile selected (shows valid placement ends)
+      if (this.selected && this.turn === 'player' && this.phase !== 'end') {
+        const validEnds = this.board.validEnds(this.selected);
+        if (i === 0 && validEnds.includes('left')) {
+          tileEl.classList.add('board-end-glow');
+        }
+        if (i === chainLen - 1 && validEnds.includes('right')) {
+          tileEl.classList.add('board-end-glow');
+        }
+      }
+
       chain.appendChild(tileEl);
     }
 
     if (this.phase === 'end' && this.selected) {
       const rightBtn = document.createElement('div');
-      rightBtn.className = 'domino horiz end-right tile-new';
-      rightBtn.title = 'Play right';
-      rightBtn.style.cursor = 'pointer';
-      rightBtn.style.background = 'rgba(255,224,102,0.2)';
-      rightBtn.style.border = '2px dashed var(--highlight)';
-      rightBtn.style.minWidth = '50px';
-      rightBtn.style.opacity = '0.7';
-      rightBtn.innerHTML = '<div style="width:100%;text-align:center;font-size:1.2rem;line-height:44px">&#x2192;</div>';
+      rightBtn.className = 'end-select-btn end-right-btn';
+      rightBtn.title = 'Play on RIGHT end';
+      rightBtn.innerHTML = '<div class="end-btn-arrow">&#x2192;</div><div class="end-btn-label">PLAY RIGHT</div>';
       rightBtn.onclick = () => this.playerSelectEnd('right');
       chain.appendChild(rightBtn);
     }
 
-    // Auto-scroll to end
-    chain.scrollLeft = chain.scrollWidth;
+    // Auto-scroll: if choosing an end, scroll to center so both buttons visible; otherwise scroll right
+    if (this.phase === 'end') {
+      chain.scrollLeft = (chain.scrollWidth - chain.clientWidth) / 2;
+    } else {
+      chain.scrollLeft = chain.scrollWidth;
+    }
   }
 
   renderHand() {
     const el = document.getElementById('player-hand');
     el.innerHTML = '';
+    const isPlayerTurn = this.turn === 'player';
     for (let i = 0; i < this.playerHand.length; i++) {
       const tile = this.playerHand[i];
-      const canPlay = this.board.canPlay(tile) || this.board.isEmpty();
+      const canPlay = this.board.isEmpty() ? true : this.board.canPlay(tile);
       const isSelected = tile === this.selected;
       const div = this.buildTileEl(tile, true, isSelected, canPlay);
-      
+
       // Staggered entrance animation for new deals
       if (this.animateHand) {
         div.classList.add('hand-tile-enter');
         div.style.animationDelay = (i * 0.08) + 's';
       }
-      
-      if (this.turn === 'player' && canPlay) {
-        div.addEventListener('click', () => this.playerSelectTile(tile));
+
+      // Always attach click handler; playerSelectTile handles invalid moves with shake
+      if (isPlayerTurn) {
+        div.addEventListener('click', () => {
+          if (!canPlay && !this.board.isEmpty()) {
+            // Invalid move — shake the tile
+            div.classList.remove('shake-invalid');
+            void div.offsetWidth;
+            div.classList.add('shake-invalid');
+            audio.play('error');
+            this.setAction("That tile doesn't fit — numbers must match the open ends.");
+            setTimeout(() => div.classList.remove('shake-invalid'), 500);
+            return;
+          }
+          this.playerSelectTile(tile);
+        });
       }
       el.appendChild(div);
     }
-    
+
     // Clear animation flag after render
     if (this.animateHand) {
       setTimeout(() => this.animateHand = false, 600);
     }
-    
+
     // Draw button state
     const drawBtn = document.getElementById('draw-btn');
-    const canDraw = this.turn === 'player' && this.boneyard.length > 0;
-    drawBtn.disabled = !canDraw;
-    
-    // Pass button state - show only when stuck (no valid moves AND boneyard empty)
+    const hasAnyValidMove = this.playerHand.some(t => this.board.isEmpty() || this.board.canPlay(t));
+    const canDraw = isPlayerTurn && this.boneyard.length > 0 && !hasAnyValidMove;
+    const canDrawAnyway = isPlayerTurn && this.boneyard.length > 0;
+    drawBtn.disabled = !canDrawAnyway;
+
+    // Pass button state — only when truly stuck
     const passBtn = document.getElementById('pass-btn');
-    const hasValidMove = this.playerHand.some(t => this.board.canPlay(t) || this.board.isEmpty());
-    const mustPass = this.turn === 'player' && !hasValidMove && this.boneyard.length === 0;
+    const mustPass = isPlayerTurn && !hasAnyValidMove && this.boneyard.length === 0;
     passBtn.style.display = mustPass ? 'inline-block' : 'none';
-    
-    // Update action message if stuck
+
     if (mustPass) {
-      this.setAction("No valid moves! Click Pass to continue.");
+      this.setAction("No valid moves and boneyard is empty — click Pass.");
+    }
+
+    // Hint when stuck but boneyard available
+    if (isPlayerTurn && !hasAnyValidMove && this.boneyard.length > 0) {
+      this.setAction(`No playable tiles — draw from the boneyard (${this.boneyard.length} left).`);
     }
   }
 
@@ -2870,6 +3248,7 @@ class Game {
     const bVal = tile.flipped ? tile.a : tile.b;
     const horiz = !isVertical; // board tiles horizontal, hand tiles vertical
     div.className = `domino ${horiz ? 'horiz' : 'vert'}${isVertical ? '' : ' board-tile'}`;
+    div.dataset.tileId = tile.id; // for FLIP animation targeting
     if (isSelected) div.classList.add('selected');
     if (isVertical) {
       if (canPlay === true) {
@@ -2940,13 +3319,36 @@ class Game {
 
   setTurnIndicator() {
     const el = document.getElementById('turn-indicator');
+    const banner = document.getElementById('turn-banner');
+    const thinkingOverlay = document.getElementById('thinking-overlay');
+
     if (this.turn === 'player') {
-      el.textContent = 'Your Turn';
+      el.textContent = 'YOUR TURN';
       el.className = 'your-turn';
+      // Flash the YOUR TURN banner
+      if (banner) {
+        banner.classList.remove('show');
+        void banner.offsetWidth;
+        banner.classList.add('show');
+        setTimeout(() => banner.classList.remove('show'), 5000);
+      }
+      if (thinkingOverlay) thinkingOverlay.classList.remove('show');
+    } else if (this.turn === 'wendy-thinking') {
+      el.textContent = "Wendy's Turn";
+      el.className = '';
+      if (thinkingOverlay) thinkingOverlay.classList.add('show');
+      if (banner) banner.classList.remove('show');
     } else {
       el.textContent = "Wendy's Turn";
       el.className = '';
+      if (thinkingOverlay) thinkingOverlay.classList.remove('show');
+      if (banner) banner.classList.remove('show');
     }
+  }
+
+  _hideThinking() {
+    const thinkingOverlay = document.getElementById('thinking-overlay');
+    if (thinkingOverlay) thinkingOverlay.classList.remove('show');
   }
 
   hideAllOverlays() {
@@ -2973,15 +3375,29 @@ class Game {
   }
 
   _firstPlayer() {
-    // Simple coin toss - 50/50 chance
-    const coinFlip = Math.random() < 0.5;
-    const winner = coinFlip ? 'player' : 'wendy';
-    
-    // Show coin toss result
-    const coinResult = coinFlip ? '🪙 Heads! You go first.' : '🪙 Tails! Sister Wendy goes first.';
-    showToast(coinResult, 2500);
-    
-    return winner;
+    // Double-six rule: whoever holds the highest double goes first.
+    // Check for 6-6, then 5-5, etc.
+    for (let d = 6; d >= 0; d--) {
+      const playerHas = this.playerHand.some(t => t.isDouble() && t.a === d);
+      const wendyHas  = this.wendyHand.some(t => t.isDouble() && t.a === d);
+      if (playerHas) {
+        showToast(`You hold the [${d}|${d}] — you go first!`, 2500);
+        return 'player';
+      }
+      if (wendyHas) {
+        showToast(`Sister Wendy holds the [${d}|${d}] — she goes first.`, 2500);
+        return 'wendy';
+      }
+    }
+    // No doubles: highest pip count goes first
+    const playerMax = Math.max(...this.playerHand.map(t => t.pips()));
+    const wendyMax  = Math.max(...this.wendyHand.map(t => t.pips()));
+    if (playerMax >= wendyMax) {
+      showToast('No doubles drawn — highest pip wins. You go first!', 2500);
+      return 'player';
+    }
+    showToast('No doubles drawn — Sister Wendy goes first.', 2500);
+    return 'wendy';
   }
 }
 
