@@ -712,6 +712,29 @@ body {
   animation: helpPulse 2s ease-in-out infinite;
 }
 #help-btn:hover { background: #388e3c; transform: translateY(-4px); }
+#stuck-nudge {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #c8963c;
+  color: #1a0f00;
+  border: 2px solid #e0b050;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: 'Georgia', serif;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 500;
+  box-shadow: 0 4px 20px rgba(200,150,60,0.5);
+  animation: nudgePulse 1.5s ease-in-out infinite;
+  display: none;
+}
+#stuck-nudge.visible { display: block; }
+@keyframes nudgePulse {
+  0%,100% { transform: scale(1); box-shadow: 0 4px 20px rgba(200,150,60,0.4); }
+  50% { transform: scale(1.04); box-shadow: 0 4px 28px rgba(200,150,60,0.7); }
+}
 @keyframes helpPulse {
   0%, 100% { box-shadow: var(--tile-shadow), 0 0 0 rgba(76,175,80,0); }
   50% { box-shadow: var(--tile-shadow), 0 0 12px rgba(76,175,80,0.6); }
@@ -1809,13 +1832,14 @@ body {
       <!-- tiles inserted by JS -->
       <button id="draw-btn" onclick="game.playerDraw()" title="Draw from boneyard">🃏<br>Draw<br>(<span id="draw-count">14</span>)</button>
       <button id="pass-btn" onclick="game.playerPass()" style="display:none;" title="Pass your turn">🚫<br>Pass</button>
-      <button id="help-btn" onclick="game.helpMe()" title="Stuck? Auto-play best tile">🆘<br>Help</button>
+      <button id="help-btn" onclick="game.helpMe()" title="Auto-play the best available tile for you">🆘<br><span style="font-size:0.7rem;">BEST PLAY</span></button>
     </div>
     <div id="round-history"></div>
     <div id="player-controls" style="display:none;">
       <div id="player-label"></div>
     </div>
     <button id="audio-toggle" onclick="audio.toggle()" title="Toggle Sound (M)">🔊</button>
+    <button id="stuck-nudge" onclick="game.helpMe()" title="Auto-play best tile">🆘 STUCK? BEST PLAY</button>
   </div>
 </div>
 
@@ -2922,6 +2946,8 @@ class Game {
   startRound(isDailyMode = false) {
     if (isDailyMode || this.isDaily) this.isDaily = true;
 
+    clearTimeout(this._watchdogTimer);
+    this._watchdogTimer = null;
     this.hideAllOverlays();
     this.roundNum++;
     this.board = new Board();
@@ -2957,6 +2983,7 @@ class Game {
       this.setAction("Your turn — tap a tile to play it!");
       audio.play('turn');
       this.showFirstTurnHint();
+      this._resetInactivityTimer();
     }
   }
 
@@ -3017,6 +3044,7 @@ class Game {
     // ── 1. Validate ──
     const idx = this.playerHand.indexOf(tile);
     if (idx < 0) return;
+    clearTimeout(this._watchdogTimer);
 
     // Hide first-turn hint once they play
     this.hideFirstTurnHint();
@@ -3037,6 +3065,7 @@ class Game {
 
     // ── 4. Render IMMEDIATELY ──
     this.renderAll();
+    this._resetInactivityTimer();
     audio.play('place');
     if (scored > 0) {
       this.updateScoreDisplay();
@@ -3106,6 +3135,9 @@ class Game {
 
   // Emergency HELP button - auto-plays best tile or draws/passes
   helpMe() {
+    const nudge = document.getElementById('stuck-nudge');
+    if (nudge) nudge.classList.remove('visible');
+    clearTimeout(this._inactivityTimer);
     // Force turn to player if stuck
     if (this.turn !== 'player') {
       console.log('[HELP] Forcing turn to player, was:', this.turn);
@@ -3224,6 +3256,23 @@ class Game {
   doWendyTurn() {
     if (this.turn !== 'wendy') return;
 
+    // 3-second watchdog: if Wendy gets stuck, force hand back to player
+    clearTimeout(this._watchdogTimer);
+    this._watchdogTimer = setTimeout(() => {
+      if (this.turn === 'wendy-thinking' || this.turn === 'wendy') {
+        console.warn('[WATCHDOG] Wendy stuck — resetting to player');
+        this.turn = 'player';
+        this.phase = 'select';
+        this.selected = null;
+        this.wendyDrawCount = 0;
+        this.renderAll();
+        this.setAction("Your turn!");
+        this.setTurnIndicator();
+        showToast("🛡️ Your turn!", 1800);
+        audio.play('turn');
+      }
+    }, 3000);
+
     this.turn = 'wendy-thinking';
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
@@ -3259,10 +3308,10 @@ class Game {
         if (this.board.canPlay(drawn)) {
           this.wendyDrawCount = 0;
           this.turn = 'wendy';
-          this.doWendyTurn(); // INSTANT
+          setTimeout(() => this.doWendyTurn(), 0); // Non-blocking — yields to browser
         } else {
           this.turn = 'wendy';
-          this.doWendyTurn(); // INSTANT
+          setTimeout(() => this.doWendyTurn(), 0); // Non-blocking — yields to browser
         }
         return;
       }
@@ -3719,6 +3768,7 @@ class Game {
     this.setTurnIndicator();
     this.updateDailyBadge();
     this.updateRoundIndicator();
+    this._resetInactivityTimer();
   }
 
   updateDailyBadge() {
@@ -3764,8 +3814,9 @@ class Game {
 
       if (this.selected && this.turn === 'player' && this.phase !== 'end') {
         const validEnds = this.board.validEnds(this.selected);
-        if (i === 0 && validEnds.includes('left')) tileEl.classList.add('board-end-glow');
-        if (i === chainLen - 1 && validEnds.includes('right')) tileEl.classList.add('board-end-glow');
+        const showBothEnds = validEnds.includes('middle');
+        if (i === 0 && (validEnds.includes('left') || showBothEnds)) tileEl.classList.add('board-end-glow');
+        if (i === chainLen - 1 && (validEnds.includes('right') || showBothEnds)) tileEl.classList.add('board-end-glow');
       }
       chain.appendChild(tileEl);
     }
@@ -3955,6 +4006,21 @@ class Game {
     document.getElementById('menu-overlay').classList.add('hidden');
     document.getElementById('round-overlay').classList.add('hidden');
     document.getElementById('gameover-overlay').classList.add('hidden');
+  }
+
+  // Show/hide stuck nudge after inactivity
+  _resetInactivityTimer() {
+    clearTimeout(this._inactivityTimer);
+    const nudge = document.getElementById('stuck-nudge');
+    if (nudge) nudge.classList.remove('visible');
+    if (this.turn === 'player' && this.phase === 'select') {
+      this._inactivityTimer = setTimeout(() => {
+        if (this.turn === 'player') {
+          const nudgeEl = document.getElementById('stuck-nudge');
+          if (nudgeEl) nudgeEl.classList.add('visible');
+        }
+      }, 8000);
+    }
   }
 
   // ── HELPERS ──
