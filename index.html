@@ -2657,6 +2657,17 @@ class Board {
 
   validEnds(tile) {
     if (this.isEmpty()) return ['first'];
+    
+    // Check if both ends have the same value (e.g., single double on board, or both ends show same number)
+    // In this case, there's only ONE logical place to play - no left/right choice needed
+    if (this.leftEnd === this.rightEnd) {
+      if (tile.a === this.leftEnd || tile.b === this.leftEnd) {
+        return ['left']; // Just pick one - they're the same
+      }
+      return [];
+    }
+    
+    // Normal case: different values on each end
     const ends = [];
     if (tile.a === this.leftEnd || tile.b === this.leftEnd)  ends.push('left');
     if (tile.a === this.rightEnd || tile.b === this.rightEnd) ends.push('right');
