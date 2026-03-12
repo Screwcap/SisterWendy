@@ -223,6 +223,11 @@ body {
   transition: all 0.3s;
   scroll-behavior: smooth;
 }
+/* Dynamic tile scaling - larger when few tiles, smaller as board fills */
+#board-chain.tiles-few .domino.board-tile { transform: scale(1.2); }
+#board-chain.tiles-some .domino.board-tile { transform: scale(1.0); }
+#board-chain.tiles-many .domino.board-tile { transform: scale(0.85); }
+#board-chain.tiles-lots .domino.board-tile { transform: scale(0.7); }
 #board-empty-msg {
   color: rgba(255,255,255,0.25);
   font-size: 1rem;
@@ -363,6 +368,63 @@ body {
 @keyframes dropZonePulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
+}
+
+/* ── BOARD DROP ZONES - Persistent clickable areas ── */
+.board-drop-zone {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100px;
+  height: 120px;
+  border: 4px dashed var(--highlight);
+  border-radius: 12px;
+  background: rgba(255,224,102,0.25);
+  cursor: pointer;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: boardDropPulse 1.2s ease-in-out infinite;
+  transition: all 0.2s;
+}
+.board-drop-zone:hover {
+  background: rgba(100,255,150,0.4);
+  border-color: rgba(100,255,150,1);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 0 20px rgba(100,255,150,0.6);
+}
+.board-drop-zone:active {
+  transform: translateY(-50%) scale(0.95);
+}
+.board-drop-left {
+  left: 10px;
+}
+.board-drop-right {
+  right: 10px;
+}
+.drop-label {
+  text-align: center;
+  color: var(--highlight);
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.drop-value {
+  font-size: 1.4rem;
+  display: block;
+  margin-top: 4px;
+}
+@keyframes boardDropPulse {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(255,224,102,0.4);
+    opacity: 0.9;
+  }
+  50% { 
+    box-shadow: 0 0 25px rgba(255,224,102,0.8);
+    opacity: 1;
+  }
 }
 #drag-hint {
   position: fixed;
@@ -3027,14 +3089,56 @@ class Game {
       this._flyTileToBoard(fromRect);
     } else {
       // Truly different values on each end - player must choose
+      // Show persistent drop zones on the board
       this.phase = 'end';
-      this.setAction("Both ends fit — use the ← LEFT or RIGHT → buttons below.", true);
+      this.setAction("Tap LEFT or RIGHT on the board to place your tile.", true);
       this.renderBoard();
+      this.showBoardDropZones(tile, ends);
     }
+  }
+  
+  // Show clickable drop zones directly on the board
+  showBoardDropZones(tile, ends) {
+    this.hideBoardDropZones();
+    const chain = document.getElementById('board-chain');
+    if (!chain) return;
+    
+    const chainRect = chain.getBoundingClientRect();
+    const boardArea = document.getElementById('board-area');
+    if (!boardArea) return;
+    
+    // Left drop zone
+    if (ends.includes('left')) {
+      const zone = document.createElement('div');
+      zone.className = 'board-drop-zone board-drop-left';
+      zone.innerHTML = `<div class="drop-label">← PLAY LEFT<br><span class="drop-value">[${this.board.leftEnd}]</span></div>`;
+      zone.onclick = () => {
+        this.hideBoardDropZones();
+        this.playerSelectEnd('left');
+      };
+      boardArea.appendChild(zone);
+    }
+    
+    // Right drop zone
+    if (ends.includes('right')) {
+      const zone = document.createElement('div');
+      zone.className = 'board-drop-zone board-drop-right';
+      zone.innerHTML = `<div class="drop-label">PLAY RIGHT →<br><span class="drop-value">[${this.board.rightEnd}]</span></div>`;
+      zone.onclick = () => {
+        this.hideBoardDropZones();
+        this.playerSelectEnd('right');
+      };
+      boardArea.appendChild(zone);
+    }
+  }
+  
+  hideBoardDropZones() {
+    document.querySelectorAll('.board-drop-zone').forEach(z => z.remove());
   }
 
   playerSelectEnd(end) {
     if (this.phase !== 'end' || !this.selected) return;
+    this.hideBoardDropZones();
     const endOverlay = document.getElementById('end-select-overlay');
     if (endOverlay) endOverlay.classList.remove('visible');
     this.playerPlayTile(this.selected, end);
@@ -3046,8 +3150,9 @@ class Game {
     if (idx < 0) return;
     clearTimeout(this._watchdogTimer);
 
-    // Hide first-turn hint once they play
+    // Hide first-turn hint and drop zones
     this.hideFirstTurnHint();
+    this.hideBoardDropZones();
 
     // ── 2. Update state SYNCHRONOUSLY ──
     this.playerHand.splice(idx, 1);
@@ -3760,6 +3865,10 @@ class Game {
 
   // ── RENDER ──
   renderAll() {
+    // Clean up drop zones if not in end-selection phase
+    if (this.phase !== 'end') {
+      this.hideBoardDropZones();
+    }
     this.renderBoard();
     this.renderHand();
     this.renderWendyHand();
@@ -3779,8 +3888,9 @@ class Game {
   renderBoard() {
     const chain    = document.getElementById('board-chain');
     const emptyMsg = document.getElementById('board-empty-msg');
+    // OLD overlay disabled - we use on-board drop zones now
     const endOverlay = document.getElementById('end-select-overlay');
-    if (endOverlay) endOverlay.classList.toggle('visible', this.phase === 'end' && !!this.selected);
+    if (endOverlay) endOverlay.classList.remove('visible');
 
     if (this.board.isEmpty()) {
       chain.innerHTML = '';
@@ -3794,6 +3904,13 @@ class Game {
     chain.innerHTML = '';
 
     const chainLen = this.board.chain.length;
+    
+    // Dynamic scaling based on tile count
+    chain.classList.remove('tiles-few', 'tiles-some', 'tiles-many', 'tiles-lots');
+    if (chainLen <= 4) chain.classList.add('tiles-few');
+    else if (chainLen <= 8) chain.classList.add('tiles-some');
+    else if (chainLen <= 14) chain.classList.add('tiles-many');
+    else chain.classList.add('tiles-lots');
     for (let i = 0; i < chainLen; i++) {
       const tile = this.board.chain[i];
       const tileEl = this.buildTileEl(tile, false, tile === this.selected);
