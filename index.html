@@ -2922,7 +2922,7 @@ class Game {
     if (this.turn === 'wendy') {
       this.setAction("Sister Wendy goes first. God's will.");
       this.setSpeech(randQuote('gameStart'));
-      setTimeout(() => this.doWendyTurn(), 700);
+      this.doWendyTurn(); // INSTANT - no delay
     } else {
       this.setSpeech(randQuote('gameStart'));
       this.setAction("Your turn — tap a tile to play it!");
@@ -2952,13 +2952,25 @@ class Game {
     this.selected = tile;
     audio.play('select');
     const ends = this.board.validEnds(tile);
-    // Auto-play if: empty board, only one end fits, or 'middle' (both ends same value)
-    if (ends.length === 1 || this.board.isEmpty() || ends.includes('middle')) {
+    
+    // Auto-play conditions:
+    // 1. Empty board (first tile)
+    // 2. Only one end fits
+    // 3. 'middle' returned (both ends have same value - e.g., playing onto a double)
+    // 4. Both ends fit but have the same value (leftEnd === rightEnd)
+    const shouldAutoPlay = this.board.isEmpty() || 
+                           ends.length === 1 || 
+                           ends.includes('middle') ||
+                           (this.board.leftEnd === this.board.rightEnd);
+    
+    if (shouldAutoPlay) {
       // Cosmetic fly — purely visual, fires after state is already committed
       const fromRect = this._captureTileRect(tile);
-      this.playerPlayTile(tile, ends[0] || 'first');
+      const endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
+      this.playerPlayTile(tile, endToPlay);
       this._flyTileToBoard(fromRect);
     } else {
+      // Truly different values on each end - player must choose
       this.phase = 'end';
       this.setAction("Both ends fit — use the ← LEFT or RIGHT → buttons below.", true);
       this.renderBoard();
@@ -3049,7 +3061,7 @@ class Game {
       }
       // turn stays 'player', no timeout needed
     } else {
-      // No score — Wendy's turn
+      // No score and no double — Wendy's turn
       if (Math.random() < 0.30) {
         this.setSpeech(randQuote(['commentary', 'smug', 'angry'][Math.floor(Math.random() * 3)]));
       } else {
@@ -3059,7 +3071,7 @@ class Game {
       this.setAction("Sister Wendy's turn...");
       this.setTurnIndicator();
       this.renderHand(); // grey out tiles while Wendy plays
-      setTimeout(() => this.doWendyTurn(), 500);
+      this.doWendyTurn(); // INSTANT - no delay
     }
   }
 
@@ -3126,13 +3138,11 @@ class Game {
     this.turn = 'wendy-thinking';
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
-    const thinkEl = document.getElementById('thinking-overlay');
-    if (thinkEl) thinkEl.classList.add('show');
-    this.setAction("Sister Wendy is thinking...");
+    this.setAction("Sister Wendy plays...");
     this.setTurnIndicator();
 
-    const thinkDelay = 300 + Math.random() * 300;
-    setTimeout(() => this._doWendyAct(), thinkDelay);
+    // INSTANT - no delay for Wendy
+    this._doWendyAct();
   }
 
   _doWendyAct() {
@@ -3160,10 +3170,10 @@ class Game {
         if (this.board.canPlay(drawn)) {
           this.wendyDrawCount = 0;
           this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 400);
+          this.doWendyTurn(); // INSTANT
         } else {
           this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 400);
+          this.doWendyTurn(); // INSTANT
         }
         return;
       }
@@ -3180,6 +3190,8 @@ class Game {
       if (!playerCanPlay) { this.endRound('blocked'); return; }
 
       this.turn = 'player';
+      this.phase = 'select'; // Ensure player can select tiles
+      this.selected = null;
       this.renderAll();
       this.setAction("Sister Wendy passes — it's your turn!");
       this.setTurnIndicator();
@@ -3255,7 +3267,7 @@ class Game {
         this.setAction(`Sister Wendy plays a double! She plays again...`);
       }
       this.turn = 'wendy';
-      setTimeout(() => this.doWendyTurn(), 600);
+      this.doWendyTurn(); // INSTANT - no delay
     } else {
       // Commentary on non-scoring move
       const scoreGap = this.playerTotal - this.wendyTotal;
@@ -3270,11 +3282,14 @@ class Game {
         wendyVideo.set('smirk', true);
         this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
         this.turn = 'wendy';
-        setTimeout(() => this.doWendyTurn(), 600);
+        this.doWendyTurn(); // INSTANT - no delay
         return;
       }
 
+      // Hand off to player
       this.turn = 'player';
+      this.phase = 'select'; // Reset phase so player can select
+      this.selected = null;  // Clear any selection
       this.renderAll(); // re-render to update hand playability indicators
       this.setAction("Your turn — pick a tile.");
       this.setTurnIndicator();
