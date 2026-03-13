@@ -3417,24 +3417,17 @@ class Game {
 
   // ── WENDY AI TURN ──
   doWendyTurn() {
-    if (this.turn !== 'wendy') return;
+    if (this.turn !== 'wendy') {
+      console.log('[WENDY] Blocked - turn is:', this.turn);
+      return;
+    }
 
-    // 3-second watchdog: if Wendy gets stuck, force hand back to player
+    console.log('[WENDY] Starting turn');
+
+    // Clear any stale state
     clearTimeout(this._watchdogTimer);
-    this._watchdogTimer = setTimeout(() => {
-      if (this.turn === 'wendy-thinking' || this.turn === 'wendy') {
-        console.warn('[WATCHDOG] Wendy stuck — resetting to player');
-        this.turn = 'player';
-        this.phase = 'select';
-        this.selected = null;
-        this.wendyDrawCount = 0;
-        this.renderAll();
-        this.setAction("Your turn!");
-        this.setTurnIndicator();
-        showToast("🛡️ Your turn!", 1800);
-        audio.play('turn');
-      }
-    }, 3000);
+    this._placementLock = false;
+    this.hideBoardDropZones();
 
     this.turn = 'wendy-thinking';
     vfx.wendyMood('thinking');
@@ -3442,90 +3435,82 @@ class Game {
     this.setAction("Sister Wendy plays...");
     this.setTurnIndicator();
 
-    // INSTANT - no delay for Wendy
-    this._doWendyAct();
+    // INSTANT execution - no delays
+    this._executeWendyTurn();
   }
 
-  _doWendyAct() {
-    const play = aiPickPlay(this.wendyHand, this.board);
+  // Wendy executes her ENTIRE turn synchronously (with draws if needed)
+  _executeWendyTurn() {
+    let iterations = 0;
+    const maxIterations = 20; // Safety limit
 
-    if (!play) {
-      // Can't play — draw or pass
-      if (this.boneyard.length > 0) {
-        if (!this.wendyDrawCount) {
-          this.setSpeech(randQuote('herCantPlay'));
-          audio.play('wendyAngry');
-          vfx.wendyMood('angry');
-          wendyVideo.set('frustration', true);
-          this.setAction("Sister Wendy can't play — drawing...");
-        }
-        this.wendyDrawCount = (this.wendyDrawCount || 0) + 1;
+    while (iterations < maxIterations) {
+      iterations++;
+      const play = aiPickPlay(this.wendyHand, this.board);
 
-        // ── State update FIRST ──
-        const drawn = this.boneyard.splice(0, 1)[0];
-        this.wendyHand.push(drawn);
-        audio.play('draw');
-        // ── Render IMMEDIATELY ──
-        this.renderAll();
-
-        if (this.board.canPlay(drawn)) {
-          this.wendyDrawCount = 0;
-          this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 0); // Non-blocking — yields to browser
-        } else {
-          this.turn = 'wendy';
-          setTimeout(() => this.doWendyTurn(), 0); // Non-blocking — yields to browser
-        }
-        return;
+      if (play) {
+        // Found a play - execute it
+        console.log('[WENDY] Playing:', play.tile.id, 'to', play.end);
+        this._wendyPlayTile(play);
+        return; // _wendyPlayTile handles turn handoff
       }
 
-      // Boneyard empty — pass
-      this.wendyDrawCount = 0;
-      this.setSpeech(randQuote('herCantPlay'));
-      audio.play('wendyAngry');
-      vfx.wendyMood('angry');
-      wendyVideo.set('frustration', true);
-      this._hideThinking();
+      // Can't play - try to draw
+      if (this.boneyard.length > 0) {
+        const drawn = this.boneyard.splice(0, 1)[0];
+        this.wendyHand.push(drawn);
+        console.log('[WENDY] Drew:', drawn.id);
+        audio.play('draw');
+        
+        if (!this.wendyDrawCount) {
+          this.setSpeech(randQuote('herCantPlay'));
+          vfx.wendyMood('angry');
+          wendyVideo.set('frustration', true);
+        }
+        this.wendyDrawCount = (this.wendyDrawCount || 0) + 1;
+        this.renderAll();
+        
+        // Loop continues to check if drawn tile is playable
+        continue;
+      }
 
-      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
-      if (!playerCanPlay) { this.endRound('blocked'); return; }
-
-      this.turn = 'player';
-      this.phase = 'select'; // Ensure player can select tiles
-      this.selected = null;
-      this.renderAll();
-      this.setAction("Sister Wendy passes — it's your turn!");
-      this.setTurnIndicator();
-      audio.play('turn');
-      showToast("Your turn!", 2000);
+      // Can't play AND can't draw - must pass
+      console.log('[WENDY] Must pass - no plays, no draws');
+      this._wendyPass();
       return;
     }
 
-    // Has a play — execute it
+    // Safety: if we hit max iterations, force pass
+    console.warn('[WENDY] Hit max iterations, forcing pass');
+    this._wendyPass();
+  }
+
+  // Wendy plays a tile
+  _wendyPlayTile(play) {
     this.wendyDrawCount = 0;
     const playIdx = this.wendyHand.indexOf(play.tile);
 
-    // ── 1. Update state SYNCHRONOUSLY ──
+    // Update state
     this.wendyHand.splice(playIdx, 1);
     this.board.play(play.tile, play.end);
     this.lastPlacedTile = play.tile;
-    this.lastPlacedEnd  = play.end;
+    this.lastPlacedEnd = play.end;
 
-    // ── 2. Score ──
+    // Score
     const actualScore = this.board.scoreValue();
-    if (actualScore > 0) play.scoreGained = actualScore;
-    if (play.scoreGained > 0) {
-      this.wendyTotal += play.scoreGained;
+    if (actualScore > 0) {
+      play.scoreGained = actualScore;
+      this.wendyTotal += actualScore;
       const deficit = this.wendyTotal - this.playerTotal;
       if (deficit > this.maxDeficit) this.maxDeficit = deficit;
     }
 
-    // ── 3. Render IMMEDIATELY ──
+    // Render
     this._hideThinking();
     this.renderAll();
     audio.play('place');
 
-    // Cosmetic: speech + video based on what happened
+    // Cosmetics
     if (play.tile.isDouble()) {
       const dVal = play.tile.a;
       const quip = dVal === 6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
@@ -3543,61 +3528,84 @@ class Game {
       play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
       vfx.wendyMood('smug');
       vfx.celebrateScore('wendy', play.scoreGained);
-      const quote = play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores');
-      this.setSpeech(quote);
+      this.setSpeech(play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores'));
     }
 
-    // Cosmetic fly animation — pure eye candy, game already updated
+    // Fly animation (cosmetic only)
     this._flyWendyTileToBoard(playIdx, play.tile);
 
-    // ── 4. Check win / round end ──
+    // Check win/round end
     if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }
     if (this.checkGameWin()) return;
 
-    // ── 5. Hand off turn ──
-    // Bonus turn if: scored OR played a double
-    const wendyPlayedDouble = play.tile.isDouble();
-    const wendyGetsBonusTurn = play.scoreGained > 0 || wendyPlayedDouble;
+    // Bonus turn check
+    const getBonusTurn = play.scoreGained > 0 || play.tile.isDouble();
     
-    if (wendyGetsBonusTurn) {
-      if (play.scoreGained > 0 && wendyPlayedDouble) {
-        this.setAction(`Sister Wendy scores ${play.scoreGained} with a double! She plays again...`);
-      } else if (play.scoreGained > 0) {
-        this.setAction(`Sister Wendy scores ${play.scoreGained}! She plays again...`);
-      } else {
-        this.setAction(`Sister Wendy plays a double! She plays again...`);
-      }
+    if (getBonusTurn) {
+      this.setAction(`Sister Wendy ${play.scoreGained > 0 ? 'scores ' + play.scoreGained : 'plays a double'}! She plays again...`);
       this.turn = 'wendy';
-      this.doWendyTurn(); // INSTANT - no delay
+      // Use requestAnimationFrame to let UI update, then continue
+      requestAnimationFrame(() => this._executeWendyTurn());
     } else {
-      // Commentary on non-scoring move
-      const scoreGap = this.playerTotal - this.wendyTotal;
-      if (scoreGap >= 15 && Math.random() < 0.6) this.setSpeech(randQuote('wendyLosing'));
-      else if (Math.abs(scoreGap) <= 8 && this.playerTotal > 20 && Math.random() < 0.5) this.setSpeech(randQuote('closeScore'));
-      else if (Math.random() < 0.30) this.setSpeech(randQuote(['smug','herTurn','angry','commentary'][Math.floor(Math.random()*4)]));
-
-      const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
-      if (!playerCanPlay && this.boneyard.length === 0) {
-        this.setSpeech(randQuote('playerCantPlay'));
-        vfx.wendyMood('smug');
-        wendyVideo.set('smirk', true);
-        this.setAction("You have no moves and the boneyard is empty. Sister Wendy plays again...");
-        this.turn = 'wendy';
-        this.doWendyTurn(); // INSTANT - no delay
-        return;
-      }
-
-      // Hand off to player
-      this.turn = 'player';
-      this.phase = 'select'; // Reset phase so player can select
-      this.selected = null;  // Clear any selection
-      this.renderAll(); // re-render to update hand playability indicators
-      this.setAction("Your turn — pick a tile.");
-      this.setTurnIndicator();
-      audio.play('turn');
-      showToast("Your turn!", 1800);
+      // Hand to player
+      this._handToPlayer();
     }
   }
+
+  // Wendy passes turn
+  _wendyPass() {
+    this.wendyDrawCount = 0;
+    this.setSpeech(randQuote('herCantPlay'));
+    audio.play('wendyAngry');
+    vfx.wendyMood('angry');
+    wendyVideo.set('frustration', true);
+    this._hideThinking();
+
+    const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+    if (!playerCanPlay && this.boneyard.length === 0) {
+      // Check if game is blocked
+      this.endRound('blocked');
+      return;
+    }
+
+    this._handToPlayer();
+  }
+
+  // Clean handoff to player
+  _handToPlayer() {
+    console.log('[HANDOFF] Giving turn to player');
+    
+    // Reset ALL state for player
+    this.turn = 'player';
+    this.phase = 'select';
+    this.selected = null;
+    this._placementLock = false;
+    this.hideBoardDropZones();
+    
+    // Check if player can actually play
+    const playerCanPlay = this.playerHand.some(t => this.board.canPlay(t));
+    
+    if (!playerCanPlay && this.boneyard.length === 0) {
+      // Player has no moves and can't draw - Wendy plays again
+      this.setSpeech(randQuote('playerCantPlay'));
+      vfx.wendyMood('smug');
+      wendyVideo.set('smirk', true);
+      this.setAction("You have no moves! Sister Wendy plays again...");
+      this.turn = 'wendy';
+      requestAnimationFrame(() => this._executeWendyTurn());
+      return;
+    }
+    
+    // Normal handoff
+    this.renderAll();
+    this.setAction("Your turn — pick a tile.");
+    this.setTurnIndicator();
+    audio.play('turn');
+    showToast("Your turn!", 1800);
+    this._resetInactivityTimer();
+  }
+
+
 
   // ── COSMETIC ONLY: fly animation for player tile (no state changes) ──
   _captureTileRect(tile) {
