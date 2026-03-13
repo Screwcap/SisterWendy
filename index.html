@@ -3010,6 +3010,9 @@ class Game {
 
     clearTimeout(this._watchdogTimer);
     this._watchdogTimer = null;
+    this._placementLock = false; // Reset placement lock
+    this._activeDropZones = [];  // Reset drop zones tracking
+    this.hideBoardDropZones();   // Clean up any leftover zones
     this.hideAllOverlays();
     this.roundNum++;
     this.board = new Board();
@@ -3052,7 +3055,15 @@ class Game {
   // ── PLAYER ACTIONS ──
 
   playerSelectTile(tile) {
-    if (this.turn !== 'player') return;
+    // LOCK: Prevent multiple simultaneous selections
+    if (this._placementLock) {
+      console.log('[SELECT] Blocked - placement in progress');
+      return;
+    }
+    if (this.turn !== 'player') {
+      console.log('[SELECT] Blocked - not player turn');
+      return;
+    }
     if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
       this.setAction("That tile doesn't fit. Try another.");
       audio.play('error');
@@ -3067,9 +3078,14 @@ class Game {
       }
       return;
     }
+    
+    // Set placement lock
+    this._placementLock = true;
     this.selected = tile;
     audio.play('select');
+    
     const ends = this.board.validEnds(tile);
+    console.log('[SELECT] Tile:', tile.id, 'Valid ends:', ends);
     
     // Auto-play conditions:
     // 1. Empty board (first tile)
@@ -3082,17 +3098,20 @@ class Game {
                            (this.board.leftEnd === this.board.rightEnd);
     
     if (shouldAutoPlay) {
-      // Cosmetic fly — purely visual, fires after state is already committed
-      const fromRect = this._captureTileRect(tile);
       const endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
+      console.log('[SELECT] Auto-playing to:', endToPlay);
       this.playerPlayTile(tile, endToPlay);
-      this._flyTileToBoard(fromRect);
     } else {
       // Truly different values on each end - player must choose
-      // Show persistent drop zones on the board
+      console.log('[SELECT] Showing end choice UI');
       this.phase = 'end';
+      this._placementLock = false; // Unlock so player can click drop zones
       this.setAction("Tap LEFT or RIGHT on the board to place your tile.", true);
-      this.renderBoard();
+      
+      // Highlight selected tile in hand
+      this.renderHand();
+      
+      // Show persistent drop zones on the board (NOT calling renderBoard which clears them)
       this.showBoardDropZones(tile, ends);
     }
   }
@@ -3100,44 +3119,70 @@ class Game {
   // Show clickable drop zones directly on the board
   showBoardDropZones(tile, ends) {
     this.hideBoardDropZones();
-    const chain = document.getElementById('board-chain');
-    if (!chain) return;
-    
-    const chainRect = chain.getBoundingClientRect();
     const boardArea = document.getElementById('board-area');
-    if (!boardArea) return;
+    if (!boardArea) {
+      console.log('[DROPZONE] No board area found');
+      return;
+    }
+    
+    console.log('[DROPZONE] Showing zones for ends:', ends);
+    
+    // Store reference to zones so we can track them
+    this._activeDropZones = [];
     
     // Left drop zone
     if (ends.includes('left')) {
       const zone = document.createElement('div');
       zone.className = 'board-drop-zone board-drop-left';
+      zone.id = 'drop-zone-left';
       zone.innerHTML = `<div class="drop-label">← PLAY LEFT<br><span class="drop-value">[${this.board.leftEnd}]</span></div>`;
-      zone.onclick = () => {
-        this.hideBoardDropZones();
+      zone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('[DROPZONE] Left clicked');
         this.playerSelectEnd('left');
-      };
+      });
       boardArea.appendChild(zone);
+      this._activeDropZones.push(zone);
     }
     
     // Right drop zone
     if (ends.includes('right')) {
       const zone = document.createElement('div');
       zone.className = 'board-drop-zone board-drop-right';
+      zone.id = 'drop-zone-right';
       zone.innerHTML = `<div class="drop-label">PLAY RIGHT →<br><span class="drop-value">[${this.board.rightEnd}]</span></div>`;
-      zone.onclick = () => {
-        this.hideBoardDropZones();
+      zone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('[DROPZONE] Right clicked');
         this.playerSelectEnd('right');
-      };
+      });
       boardArea.appendChild(zone);
+      this._activeDropZones.push(zone);
     }
+    
+    console.log('[DROPZONE] Created', this._activeDropZones.length, 'zones');
   }
   
   hideBoardDropZones() {
+    // Remove tracked zones
+    if (this._activeDropZones) {
+      this._activeDropZones.forEach(z => {
+        if (z && z.parentNode) z.remove();
+      });
+      this._activeDropZones = [];
+    }
+    // Also clean up any orphaned zones
     document.querySelectorAll('.board-drop-zone').forEach(z => z.remove());
+    console.log('[DROPZONE] Zones hidden');
   }
 
   playerSelectEnd(end) {
-    if (this.phase !== 'end' || !this.selected) return;
+    if (this.phase !== 'end' || !this.selected) {
+      console.log('[END] Blocked - phase:', this.phase, 'selected:', this.selected?.id);
+      return;
+    }
+    console.log('[END] Playing to:', end);
+    this._placementLock = true; // Lock during placement
     this.hideBoardDropZones();
     const endOverlay = document.getElementById('end-select-overlay');
     if (endOverlay) endOverlay.classList.remove('visible');
@@ -3147,7 +3192,12 @@ class Game {
   playerPlayTile(tile, end) {
     // ── 1. Validate ──
     const idx = this.playerHand.indexOf(tile);
-    if (idx < 0) return;
+    if (idx < 0) {
+      console.log('[PLAY] Tile not in hand:', tile.id);
+      this._placementLock = false;
+      return;
+    }
+    console.log('[PLAY] Playing tile:', tile.id, 'to:', end);
     clearTimeout(this._watchdogTimer);
 
     // Hide first-turn hint and drop zones
@@ -3197,6 +3247,9 @@ class Game {
     const playedDouble = tile.isDouble();
     const getBonusTurn = scored > 0 || playedDouble;
     
+    // Release placement lock - player can select again
+    this._placementLock = false;
+    
     if (getBonusTurn) {
       // Reaction based on what happened
       if (scored >= 20) {
@@ -3243,6 +3296,11 @@ class Game {
     const nudge = document.getElementById('stuck-nudge');
     if (nudge) nudge.classList.remove('visible');
     clearTimeout(this._inactivityTimer);
+    
+    // Clear any stuck state
+    this._placementLock = false;
+    this.hideBoardDropZones();
+    
     // Force turn to player if stuck
     if (this.turn !== 'player') {
       console.log('[HELP] Forcing turn to player, was:', this.turn);
@@ -3877,7 +3935,11 @@ class Game {
     this.setTurnIndicator();
     this.updateDailyBadge();
     this.updateRoundIndicator();
-    this._resetInactivityTimer();
+    
+    // Only reset inactivity timer if not in middle of placement
+    if (!this._placementLock && this.phase !== 'end') {
+      this._resetInactivityTimer();
+    }
   }
 
   updateDailyBadge() {
