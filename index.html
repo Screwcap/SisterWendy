@@ -3373,7 +3373,7 @@ class Game {
     this.setAction("You pass. Sister Wendy's turn.");
     this.turn = 'wendy';
     this.renderHand();
-    setTimeout(() => this.doWendyTurn(), 500);
+    requestAnimationFrame(() => this.doWendyTurn());
   }
 
   playerDraw() {
@@ -3409,7 +3409,7 @@ class Game {
         this.setAction("Boneyard empty. No moves — passing to Sister Wendy.");
         this.setSpeech(randQuote('playerCantPlay'));
         this.turn = 'wendy';
-        setTimeout(() => this.doWendyTurn(), 500);
+        requestAnimationFrame(() => this.doWendyTurn());
       } else {
         this.setAction(`Drew ${pipLabel} — boneyard empty. Play a tile or pass.`);
       }
@@ -4605,214 +4605,247 @@ class StatsManager {
 const stats = new StatsManager();
 
 // ── DRAG & DROP SYSTEM ──
+// Improved: grab-offset tracking, drag threshold (no false drags on tap),
+// board-relative drop zones, ESC cancel, tap fallback on touch.
 class DragDropHandler {
   constructor() {
-    this.dragging = null;
-    this.dragTile = null;
-    this.dragClone = null;
-    this.startX = 0;
-    this.startY = 0;
-    this.dropZones = [];
-    
-    // Bind methods
+    this.dragging     = null;   // Original DOM element being dragged
+    this.dragTile     = null;   // Tile object
+    this.dragClone    = null;   // Fixed clone following pointer
+    this.dropZones    = [];     // [{el, end}]
+    this._pendingEl   = null;   // Awaiting threshold check
+    this._didDrag     = false;  // True once threshold crossed
+    this._startX      = 0;
+    this._startY      = 0;
+    this._grabOffsetX = 0;      // Pointer offset within tile rect
+    this._grabOffsetY = 0;
+    this._THRESHOLD   = 8;      // px before drag activates
+
     this.onTouchStart = this.onTouchStart.bind(this);
-    this.onTouchMove = this.onTouchMove.bind(this);
-    this.onTouchEnd = this.onTouchEnd.bind(this);
-    this.onMouseDown = this.onMouseDown.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseUp = this.onMouseUp.bind(this);
-    
+    this.onTouchMove  = this.onTouchMove.bind(this);
+    this.onTouchEnd   = this.onTouchEnd.bind(this);
+    this.onMouseDown  = this.onMouseDown.bind(this);
+    this.onMouseMove  = this.onMouseMove.bind(this);
+    this.onMouseUp    = this.onMouseUp.bind(this);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.dragging) this._reset();
+    });
+
     this.init();
   }
-  
+
   init() {
     const hand = document.getElementById('player-hand');
     if (!hand) return;
-    
-    // Touch events
     hand.addEventListener('touchstart', this.onTouchStart, { passive: false });
     document.addEventListener('touchmove', this.onTouchMove, { passive: false });
     document.addEventListener('touchend', this.onTouchEnd);
-    
-    // Mouse events
     hand.addEventListener('mousedown', this.onMouseDown);
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseup', this.onMouseUp);
   }
-  
+
+  // ── EVENT HANDLERS ──
+
   onTouchStart(e) {
-    const tile = e.target.closest('.domino:not(.board-tile)');
-    if (!tile || game.turn !== 'player') return;
-    
+    const tileEl = e.target.closest('.domino:not(.board-tile)');
+    if (!tileEl || game.turn !== 'player') return;
     const touch = e.touches[0];
-    this.startDrag(tile, touch.clientX, touch.clientY);
+    this._initTrack(tileEl, touch.clientX, touch.clientY);
     e.preventDefault();
   }
-  
+
   onMouseDown(e) {
-    const tile = e.target.closest('.domino:not(.board-tile)');
-    if (!tile || game.turn !== 'player') return;
-    
-    this.startDrag(tile, e.clientX, e.clientY);
+    if (e.button !== 0) return;
+    const tileEl = e.target.closest('.domino:not(.board-tile)');
+    if (!tileEl || game.turn !== 'player') return;
+    this._initTrack(tileEl, e.clientX, e.clientY);
   }
-  
-  startDrag(tileEl, x, y) {
+
+  onTouchMove(e) {
+    if (!this._pendingEl && !this.dragging) return;
+    const touch = e.touches[0];
+    this._handleMove(touch.clientX, touch.clientY);
+    if (this.dragging) e.preventDefault();
+  }
+
+  onMouseMove(e) {
+    if (!this._pendingEl && !this.dragging) return;
+    this._handleMove(e.clientX, e.clientY);
+  }
+
+  onTouchEnd(e) {
+    if (!this.dragging && !this._pendingEl) return;
+    const touch = e.changedTouches[0];
+    if (this._pendingEl && !this._didDrag) {
+      // Tap without drag — hand off to click-based flow
+      const tile = this.dragTile;
+      this._reset();
+      if (tile) game.playerSelectTile(tile);
+    } else {
+      this._endDrag(touch.clientX, touch.clientY);
+    }
+  }
+
+  onMouseUp(e) {
+    if (!this.dragging && !this._pendingEl) return;
+    if (this._pendingEl && !this._didDrag) {
+      // Released before threshold — let native click event fire normally
+      this._reset();
+      return;
+    }
+    this._endDrag(e.clientX, e.clientY);
+  }
+
+  // ── CORE LOGIC ──
+
+  _initTrack(tileEl, x, y) {
     const tileId = tileEl.dataset.tileId;
     this.dragTile = game.playerHand.find(t => t.id === tileId);
     if (!this.dragTile) return;
-    
-    // Check if tile is playable
+    this._pendingEl = tileEl;
+    this._startX    = x;
+    this._startY    = y;
+    this._didDrag   = false;
+  }
+
+  _handleMove(x, y) {
+    if (this.dragging) {
+      this._moveDrag(x, y);
+      return;
+    }
+    if (!this._pendingEl) return;
+    if (Math.hypot(x - this._startX, y - this._startY) > this._THRESHOLD) {
+      const pending = this._pendingEl;
+      this._pendingEl = null;
+      this._activateDrag(pending, x, y);
+    }
+  }
+
+  _activateDrag(tileEl, x, y) {
+    if (!this.dragTile) return;
     const canPlay = game.board.isEmpty() || game.board.canPlay(this.dragTile);
     if (!canPlay) {
       audio.play('error');
-      showToast("That tile doesn't fit!");
+      this._reset();
       return;
     }
-    
-    this.dragging = tileEl;
-    this.startX = x;
-    this.startY = y;
-    
-    // Create clone for dragging
+
     const rect = tileEl.getBoundingClientRect();
+    // Track where in the tile the user originally grabbed (using mousedown coords)
+    this._grabOffsetX = this._startX - rect.left;
+    this._grabOffsetY = this._startY - rect.top;
+    this.dragging  = tileEl;
+    this._didDrag  = true;
+
+    // Build dragging clone
     this.dragClone = tileEl.cloneNode(true);
-    this.dragClone.classList.add('dragging');
-    this.dragClone.style.width = rect.width + 'px';
-    this.dragClone.style.height = rect.height + 'px';
-    this.dragClone.style.left = rect.left + 'px';
-    this.dragClone.style.top = rect.top + 'px';
+    this.dragClone.style.cssText = [
+      'position:fixed',
+      `width:${rect.width}px`,
+      `height:${rect.height}px`,
+      `left:${x - this._grabOffsetX}px`,
+      `top:${y - this._grabOffsetY}px`,
+      'pointer-events:none',
+      'z-index:1000',
+      'transform:scale(1.1) rotate(3deg)',
+      'box-shadow:0 15px 40px rgba(0,0,0,0.65),0 0 18px rgba(255,224,102,0.35)',
+      'opacity:0.95',
+      'border-radius:7px',
+      'background:var(--ivory)',
+      'will-change:left,top',
+    ].join(';');
     document.body.appendChild(this.dragClone);
-    
-    // Fade original
-    tileEl.style.opacity = '0.3';
-    
-    // Show drop zones
-    this.showDropZones();
-    
+
+    tileEl.style.opacity = '0.25';
+    this._showDropZones();
     audio.play('select');
   }
-  
-  onTouchMove(e) {
-    if (!this.dragging) return;
-    const touch = e.touches[0];
-    this.moveDrag(touch.clientX, touch.clientY);
-    e.preventDefault();
-  }
-  
-  onMouseMove(e) {
-    if (!this.dragging) return;
-    this.moveDrag(e.clientX, e.clientY);
-  }
-  
-  moveDrag(x, y) {
+
+  _moveDrag(x, y) {
     if (!this.dragClone) return;
-    
-    const rect = this.dragging.getBoundingClientRect();
-    this.dragClone.style.left = (x - rect.width/2) + 'px';
-    this.dragClone.style.top = (y - rect.height/2) + 'px';
-    
-    // Check hover over drop zones
+    this.dragClone.style.left = (x - this._grabOffsetX) + 'px';
+    this.dragClone.style.top  = (y - this._grabOffsetY) + 'px';
     this.dropZones.forEach(zone => {
-      const zoneRect = zone.el.getBoundingClientRect();
-      const isOver = x >= zoneRect.left && x <= zoneRect.right && 
-                     y >= zoneRect.top && y <= zoneRect.bottom;
-      zone.el.classList.toggle('active', isOver);
+      const r    = zone.el.getBoundingClientRect();
+      const over = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      zone.el.classList.toggle('active', over);
     });
   }
-  
-  onTouchEnd(e) {
-    if (!this.dragging) return;
-    const touch = e.changedTouches[0];
-    this.endDrag(touch.clientX, touch.clientY);
-  }
-  
-  onMouseUp(e) {
-    if (!this.dragging) return;
-    this.endDrag(e.clientX, e.clientY);
-  }
-  
-  endDrag(x, y) {
-    // Check which drop zone we're over
+
+  _endDrag(x, y) {
     let playedEnd = null;
     this.dropZones.forEach(zone => {
-      const rect = zone.el.getBoundingClientRect();
-      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      const r = zone.el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
         playedEnd = zone.end;
       }
     });
-    
-    // Clean up
-    if (this.dragClone) {
-      this.dragClone.remove();
-      this.dragClone = null;
-    }
-    if (this.dragging) {
-      this.dragging.style.opacity = '';
-    }
-    this.hideDropZones();
-    
-    // Play the tile if dropped on valid zone
-    if (playedEnd && this.dragTile) {
-      game.playerPlayTile(this.dragTile, playedEnd);
-    }
-    
-    this.dragging = null;
-    this.dragTile = null;
+    const tile = this.dragTile;
+    this._reset();
+    if (playedEnd && tile) game.playerPlayTile(tile, playedEnd);
   }
-  
-  showDropZones() {
-    this.hideDropZones();
-    
+
+  _reset() {
+    if (this.dragClone)  { this.dragClone.remove();  this.dragClone = null; }
+    if (this.dragging)   { this.dragging.style.opacity = ''; this.dragging = null; }
+    this._hideDropZones();
+    this._pendingEl = null;
+    this.dragTile   = null;
+    this._didDrag   = false;
+  }
+
+  // ── DROP ZONES ──
+  // Zones are positioned inside the board-area so they're always on-screen.
+
+  _showDropZones() {
+    this._hideDropZones();
+    const boardArea = document.getElementById('board-area');
+    if (!boardArea) return;
+    const br = boardArea.getBoundingClientRect();
+
     if (game.board.isEmpty()) {
-      // First tile - show center drop zone
-      const board = document.getElementById('board-area');
-      const rect = board.getBoundingClientRect();
-      const zone = document.createElement('div');
-      zone.className = 'drop-zone';
-      zone.style.cssText = `left:${rect.left + rect.width/2 - 60}px;top:${rect.top + rect.height/2 - 50}px;width:120px;height:100px;`;
-      zone.innerHTML = '<div style="text-align:center;padding-top:35px;color:var(--highlight);font-weight:bold;">DROP HERE</div>';
-      document.body.appendChild(zone);
-      this.dropZones.push({ el: zone, end: 'first' });
+      this._addZone(br.left + br.width/2 - 70, br.top + br.height/2 - 55, 140, 110, 'first',
+        '↓ DROP HERE ↓');
       return;
     }
-    
+
     const ends = game.board.validEnds(this.dragTile);
-    const chain = document.getElementById('board-chain');
-    const chainRect = chain.getBoundingClientRect();
-    
-    // Handle 'middle' case (both ends same value)
+    if (!ends.length) return;
+
     if (ends.includes('middle')) {
-      const zone = document.createElement('div');
-      zone.className = 'drop-zone';
-      zone.style.cssText = `left:${chainRect.left + chainRect.width/2 - 60}px;top:${chainRect.top}px;width:120px;height:${chainRect.height}px;`;
-      zone.innerHTML = '<div style="text-align:center;padding-top:40px;color:var(--highlight);font-weight:bold;">PLAY HERE</div>';
-      document.body.appendChild(zone);
-      this.dropZones.push({ el: zone, end: 'middle' });
+      this._addZone(br.left + br.width * 0.2, br.top + br.height * 0.15,
+        br.width * 0.6, br.height * 0.7, 'middle', '↓ PLAY HERE ↓');
       return;
     }
-    
-    // Left drop zone
+
+    const zoneW = Math.min(130, br.width * 0.28);
+    const zoneH = Math.min(130, br.height * 0.65);
+    const yOff  = br.top + br.height / 2 - zoneH / 2;
+
     if (ends.includes('left')) {
-      const zone = document.createElement('div');
-      zone.className = 'drop-zone';
-      zone.style.cssText = `left:${chainRect.left - 70}px;top:${chainRect.top}px;width:80px;height:${chainRect.height}px;`;
-      zone.innerHTML = '<div style="text-align:center;padding-top:40px;color:var(--highlight);font-weight:bold;">← LEFT</div>';
-      document.body.appendChild(zone);
-      this.dropZones.push({ el: zone, end: 'left' });
+      this._addZone(br.left + 6, yOff, zoneW, zoneH, 'left',
+        `← LEFT<br><span style="font-size:1.4rem;margin-top:4px;display:block">[${game.board.leftEnd}]</span>`);
     }
-    
-    // Right drop zone
     if (ends.includes('right')) {
-      const zone = document.createElement('div');
-      zone.className = 'drop-zone';
-      zone.style.cssText = `left:${chainRect.right - 10}px;top:${chainRect.top}px;width:80px;height:${chainRect.height}px;`;
-      zone.innerHTML = '<div style="text-align:center;padding-top:40px;color:var(--highlight);font-weight:bold;">RIGHT →</div>';
-      document.body.appendChild(zone);
-      this.dropZones.push({ el: zone, end: 'right' });
+      this._addZone(br.right - zoneW - 6, yOff, zoneW, zoneH, 'right',
+        `RIGHT →<br><span style="font-size:1.4rem;margin-top:4px;display:block">[${game.board.rightEnd}]</span>`);
     }
   }
-  
-  hideDropZones() {
+
+  _addZone(x, y, w, h, end, label) {
+    const zone = document.createElement('div');
+    zone.className = 'drop-zone';
+    zone.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${w}px;height:${h}px;` +
+      'display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;';
+    zone.innerHTML = `<div style="color:var(--highlight);font-weight:bold;font-size:0.9rem;` +
+      `text-shadow:0 1px 3px rgba(0,0,0,0.9);line-height:1.3;">${label}</div>`;
+    document.body.appendChild(zone);
+    this.dropZones.push({ el: zone, end });
+  }
+
+  _hideDropZones() {
     this.dropZones.forEach(z => z.el.remove());
     this.dropZones = [];
   }
@@ -4829,4 +4862,4 @@ const game = new Game();
 </script>
 </body>
 </html>
-<!-- deploy trigger Thu Mar 12 01:05:59 PM CDT 2026 -->
+<!-- deploy trigger Thu Mar 12 11:38:20 PM CDT 2026 -->
