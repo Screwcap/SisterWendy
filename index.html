@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.1 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.2 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -2431,12 +2431,17 @@ const vfx = (() => {
   // ── Wendy tile flip reveal ──
   // A face-down tile from Wendy's hand flips over and flies to the board
   function wendyFlipReveal(tileA, tileB, srcIdx, onDone) {
+    // Safety: guarantee onDone fires within 2 seconds no matter what
+    let called = false;
+    const safeOnDone = () => { if (!called) { called = true; onDone?.(); } };
+    const safetyTimer = setTimeout(safeOnDone, 2000);
+    
     const handEl  = document.getElementById('wendy-hand-display');
     const boardEl = document.getElementById('board-chain');
-    if (!handEl || !boardEl) { onDone?.(); return; }
+    if (!handEl || !boardEl) { clearTimeout(safetyTimer); safeOnDone(); return; }
     const faceDowns = handEl.querySelectorAll('.face-down-tile');
     const srcEl = faceDowns[Math.min(srcIdx, faceDowns.length - 1)];
-    if (!srcEl) { onDone?.(); return; }
+    if (!srcEl) { clearTimeout(safetyTimer); safeOnDone(); return; }
 
     const fromR = srcEl.getBoundingClientRect();
     const toR   = boardEl.getBoundingClientRect();
@@ -2484,7 +2489,11 @@ const vfx = (() => {
         setTimeout(() => {
           wrap.style.opacity  = '0';
           label.style.opacity = '0';
-          setTimeout(() => { wrap.remove(); label.remove(); onDone?.(); }, 280);
+          setTimeout(() => { 
+            wrap.remove(); label.remove(); 
+            clearTimeout(safetyTimer); 
+            safeOnDone(); 
+          }, 280);
         }, 550);
       }, 480);
     }));
@@ -3394,6 +3403,16 @@ class Game {
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
     this._setAction("Sister Wendy plays...");
+    
+    // Watchdog: if Wendy's turn takes > 8 seconds, force handoff to player
+    clearTimeout(this._wendyWatchdog);
+    this._wendyWatchdog = setTimeout(() => {
+      if (this._busy && this.turn === 'wendy') {
+        console.warn('[WATCHDOG] Wendy turn stuck - forcing handoff');
+        this._handToPlayer();
+      }
+    }, 8000);
+    
     this._wendyLoop(0);
   }
 
@@ -3480,6 +3499,7 @@ class Game {
   }
 
   _handToPlayer() {
+    clearTimeout(this._wendyWatchdog);  // Clear watchdog - normal handoff
     this.turn         = 'player';
     this._busy        = false;
     this.awaitingEnd  = false;
@@ -3687,6 +3707,8 @@ class Game {
   //  END ROUND / GAME
   // ══════════════════════════════════════════════════════════
   _endRound(winner) {
+    clearTimeout(this._wendyWatchdog);  // Clear watchdog on round end
+    this._busy = false;  // Ensure busy flag is cleared
     const r5 = n => Math.round(n / 5) * 5;
     const pLeft = this.playerHand.reduce((s,t)=>s+t.pips(),0);
     const wLeft = this.wendyHand.reduce((s,t)=>s+t.pips(),0);
