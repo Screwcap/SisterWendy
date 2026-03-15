@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.3 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.2 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -3165,11 +3165,6 @@ class Game {
 
   handleTileClick(tile) {
     if (this._busy || this.turn !== 'player') return;
-    
-    // Guard against double-clicks / rapid taps
-    if (this._clickLock) return;
-    this._clickLock = true;
-    setTimeout(() => { this._clickLock = false; }, 150);
 
     // If already awaiting an end choice for a DIFFERENT tile → cancel old, select new
     if (this.awaitingEnd && this.selectedTile !== tile) {
@@ -3182,14 +3177,7 @@ class Game {
       return;
     }
 
-    // Validate tile is still in hand (prevents ghost plays)
-    if (!this.playerHand.includes(tile)) {
-      console.warn('[handleTileClick] Tile not in hand:', tile.id);
-      this._clearSelection();
-      return;
-    }
-
-    // Validate playability
+    // Validate
     if (!this.board.isEmpty() && !this.board.canPlay(tile)) {
       this._setAction("That tile doesn't fit here. Try another.");
       audio.play('error');
@@ -3228,19 +3216,7 @@ class Game {
 
   _playTile(tile, end) {
     const idx = this.playerHand.indexOf(tile);
-    if (idx < 0) {
-      console.warn('[_playTile] Tile not found in hand - aborting:', tile?.id);
-      this._clearSelection();
-      this._renderAll();
-      return;
-    }
-
-    // Lock to prevent double-execution
-    if (this._playingTile) {
-      console.warn('[_playTile] Already playing a tile - ignoring');
-      return;
-    }
-    this._playingTile = true;
+    if (idx < 0) return;
 
     this._hideFirstTurnHint();
     this._hideBoardEndZones();
@@ -3288,8 +3264,8 @@ class Game {
     }
 
     // ── Win / round end check ──
-    if (this.playerHand.length === 0) { this._playingTile = false; this._endRound('player'); return; }
-    if (this._checkGameWin()) { this._playingTile = false; return; }
+    if (this.playerHand.length === 0) { this._endRound('player'); return; }
+    if (this._checkGameWin()) return;
 
     // ── Bonus turn or hand to Wendy ──
     const bonus = scored > 0 || tile.isDouble();
@@ -3310,13 +3286,11 @@ class Game {
         this._setSpeech(randQ('playerDouble'));
         this._setAction("Double! Play again — still your turn.");
       }
-      // Turn STAYS with player — clear lock, wait for next click
-      this._playingTile = false;
+      // Turn STAYS with player — no lock needed, just wait for next click
       this._resetInactivity();
     } else {
       this.playerCombo = 0;
       this._clearUndoSnapshot();  // can't undo once Wendy plays
-      this._playingTile = false;
       if (Math.random() < 0.3) this._setSpeech(randQ(['commentary','smug','angry'][Math.floor(Math.random()*3)]));
       else                     this._setSpeech(randQ('herTurn'));
       this._setAction("Sister Wendy's turn...");
@@ -3472,49 +3446,48 @@ class Game {
       if (deficit > this.maxDeficit) this.maxDeficit = deficit;
     }
 
-    // SYNC VERSION: Update state immediately, animation is fire-and-forget
-    this._renderAll();
-    audio.play('place');
-    vfx.haptic([15]);
+    // Wendy tile-flip reveal animation, then render + audio
+    vfx.wendyFlipReveal(play.tile.a, play.tile.b, idx, () => {
+      this._renderAll();
+      audio.play('place');
+      vfx.haptic([15]);
 
-    // Fire animation but don't wait for it
-    vfx.wendyFlipReveal(play.tile.a, play.tile.b, idx, () => {});
+      if (play.tile.isDouble()) {
+        audio.play('double');
+        vfx.haptic([10, 8, 10]);
+        this._setSpeech(play.tile.a===6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
+          : play.tile.a===5 ? "A [5|5]! Fitting — five is the number of grace."
+          : randQ('herDouble'));
+        vfx.wendyMood('smug'); wendyVideo.set('smirk', true);
+      }
+      if (scored > 0) {
+        const prevW = this.wendyTotal - scored;
+        const scoreEl = document.getElementById('wendy-score-val');
+        vfx.animateScore(scoreEl, prevW, this.wendyTotal, 600);
+        this._updateScoreDisplay();
+        this._flashScore('wendy');
+        showScorePopup(scored, scoreEl);
+        scored >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
+        if (scored >= 15) vfx.haptic([30, 20, 30]);
+        vfx.wendyMood('smug');
+        vfx.celebrateScore('wendy', scored);
+        this._setSpeech(scored >= 20 ? randQ('herBigScore') : randQ('herScores'));
+      }
+      if (this.wendyHand.length <= 2 && this.wendyHand.length > 0) {
+        setTimeout(() => this._setSpeech(randQ('wendyPanic')), 400);
+      }
 
-    if (play.tile.isDouble()) {
-      audio.play('double');
-      vfx.haptic([10, 8, 10]);
-      this._setSpeech(play.tile.a===6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
-        : play.tile.a===5 ? "A [5|5]! Fitting — five is the number of grace."
-        : randQ('herDouble'));
-      vfx.wendyMood('smug'); wendyVideo.set('smirk', true);
-    }
-    if (scored > 0) {
-      const prevW = this.wendyTotal - scored;
-      const scoreEl = document.getElementById('wendy-score-val');
-      vfx.animateScore(scoreEl, prevW, this.wendyTotal, 600);
-      this._updateScoreDisplay();
-      this._flashScore('wendy');
-      showScorePopup(scored, scoreEl);
-      scored >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
-      if (scored >= 15) vfx.haptic([30, 20, 30]);
-      vfx.wendyMood('smug');
-      vfx.celebrateScore('wendy', scored);
-      this._setSpeech(scored >= 20 ? randQ('herBigScore') : randQ('herScores'));
-    }
-    if (this.wendyHand.length <= 2 && this.wendyHand.length > 0) {
-      this._setSpeech(randQ('wendyPanic'));
-    }
+      if (this.wendyHand.length === 0) { this._endRound('wendy'); return; }
+      if (this._checkGameWin()) return;
 
-    if (this.wendyHand.length === 0) { this._endRound('wendy'); return; }
-    if (this._checkGameWin()) return;
-
-    const bonus = scored > 0 || play.tile.isDouble();
-    if (bonus) {
-      this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
-      setTimeout(() => this._wendyLoop(0), this._wendySpeedMs || 250);
-    } else {
-      this._handToPlayer();
-    }
+      const bonus = scored > 0 || play.tile.isDouble();
+      if (bonus) {
+        this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
+        setTimeout(() => this._wendyLoop(0), this._wendySpeedMs || 350);
+      } else {
+        this._handToPlayer();
+      }
+    });
   }
 
   _wendyPass() {
