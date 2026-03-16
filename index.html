@@ -3322,6 +3322,7 @@ class Game {
       this._setAction("Sister Wendy's turn...");
       this._setTurnIndicator('wendy');
       this._renderHand(); // grey tiles
+      this.turn = 'wendy';  // ← FIX: Actually change turn state (was missing, caused freeze after first tile)
       this._busy = true;
       setTimeout(() => this._doWendyTurn(), this._wendySpeedMs || 350);
     }
