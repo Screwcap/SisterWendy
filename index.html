@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.3 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.4 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -3164,12 +3164,21 @@ class Game {
   // ══════════════════════════════════════════════════════════
 
   handleTileClick(tile) {
-    if (this._busy || this.turn !== 'player') return;
+    // === DEBUG LOGGING ===
+    console.log('[handleTileClick] tile:', tile?.id, 'turn:', this.turn, 'busy:', this._busy, 'playingTile:', this._playingTile);
     
-    // Guard against double-clicks / rapid taps
-    if (this._clickLock) return;
+    if (this._busy || this.turn !== 'player') {
+      console.log('[handleTileClick] BLOCKED - not player turn or busy');
+      return;
+    }
+    
+    // Guard against double-clicks / rapid taps - increased to 300ms
+    if (this._clickLock) {
+      console.log('[handleTileClick] BLOCKED - click lock active');
+      return;
+    }
     this._clickLock = true;
-    setTimeout(() => { this._clickLock = false; }, 150);
+    setTimeout(() => { this._clickLock = false; }, 300);
 
     // If already awaiting an end choice for a DIFFERENT tile → cancel old, select new
     if (this.awaitingEnd && this.selectedTile !== tile) {
@@ -3227,10 +3236,14 @@ class Game {
   }
 
   _playTile(tile, end) {
+    // === DEBUG LOGGING ===
+    console.log('[_playTile] START - tile:', tile?.id, 'end:', end, 'handSize:', this.playerHand.length);
+    
     const idx = this.playerHand.indexOf(tile);
     if (idx < 0) {
       console.warn('[_playTile] Tile not found in hand - aborting:', tile?.id);
       this._clearSelection();
+      this._playingTile = false;  // Clear lock on abort
       this._renderAll();
       return;
     }
@@ -3241,6 +3254,7 @@ class Game {
       return;
     }
     this._playingTile = true;
+    this._busy = true;  // Set busy during tile play to prevent any other actions
 
     this._hideFirstTurnHint();
     this._hideBoardEndZones();
@@ -3288,11 +3302,24 @@ class Game {
     }
 
     // ── Win / round end check ──
-    if (this.playerHand.length === 0) { this._playingTile = false; this._endRound('player'); return; }
-    if (this._checkGameWin()) { this._playingTile = false; return; }
+    if (this.playerHand.length === 0) { 
+      console.log('[_playTile] Player hand empty - ending round');
+      this._playingTile = false; 
+      this._busy = false;
+      this._endRound('player'); 
+      return; 
+    }
+    if (this._checkGameWin()) { 
+      console.log('[_playTile] Game won - ending');
+      this._playingTile = false; 
+      this._busy = false;
+      return; 
+    }
 
     // ── Bonus turn or hand to Wendy ──
     const bonus = scored > 0 || tile.isDouble();
+    console.log('[_playTile] bonus:', bonus, 'scored:', scored, 'isDouble:', tile.isDouble());
+    
     if (bonus) {
       if (scored > 0) {
         this.playerCombo++;
@@ -3310,10 +3337,14 @@ class Game {
         this._setSpeech(randQ('playerDouble'));
         this._setAction("Double! Play again — still your turn.");
       }
-      // Turn STAYS with player — clear lock, wait for next click
+      // Turn STAYS with player — clear locks, wait for next click
+      console.log('[_playTile] BONUS TURN - player continues');
       this._playingTile = false;
+      this._busy = false;  // Allow player to click again
       this._resetInactivity();
     } else {
+      // Hand off to Wendy
+      console.log('[_playTile] NO BONUS - handing to Wendy');
       this.playerCombo = 0;
       this._clearUndoSnapshot();  // can't undo once Wendy plays
       this._playingTile = false;
@@ -3322,9 +3353,12 @@ class Game {
       this._setAction("Sister Wendy's turn...");
       this._setTurnIndicator('wendy');
       this._renderHand(); // grey tiles
-      this.turn = 'wendy';  // ← FIX: Actually change turn state (was missing, caused freeze after first tile)
+      this.turn = 'wendy';
       this._busy = true;
-      setTimeout(() => this._doWendyTurn(), this._wendySpeedMs || 350);
+      // Use requestAnimationFrame to ensure render completes before Wendy starts
+      requestAnimationFrame(() => {
+        setTimeout(() => this._doWendyTurn(), this._wendySpeedMs || 100);
+      });
     }
   }
 
@@ -3424,7 +3458,13 @@ class Game {
   //  WENDY AI TURN
   // ══════════════════════════════════════════════════════════
   _doWendyTurn() {
-    if (this.turn !== 'wendy') { this._busy = false; return; }
+    console.log('[_doWendyTurn] START - turn:', this.turn, 'busy:', this._busy, 'wendyHand:', this.wendyHand.length);
+    
+    if (this.turn !== 'wendy') { 
+      console.warn('[_doWendyTurn] Not Wendy turn - aborting');
+      this._busy = false; 
+      return; 
+    }
     this._busy = true;
     this._setTurnIndicator('wendy-thinking');
     vfx.wendyMood('thinking');
@@ -3440,33 +3480,68 @@ class Game {
       }
     }, 8000);
     
-    this._wendyLoop(0);
+    // Small delay to let UI update before AI calculation
+    setTimeout(() => this._wendyLoop(0), 50);
   }
 
   _wendyLoop(iterations) {
-    if (iterations > 28) { this._wendyPass(); return; } // safety
+    console.log('[_wendyLoop] iteration:', iterations, 'wendyHand:', this.wendyHand.length, 'boneyard:', this.boneyard.length);
+    
+    // Safety check - make sure we're still in Wendy's turn
+    if (this.turn !== 'wendy') {
+      console.warn('[_wendyLoop] Turn changed - aborting');
+      this._busy = false;
+      return;
+    }
+    
+    if (iterations > 28) { 
+      console.warn('[_wendyLoop] Max iterations reached');
+      this._wendyPass(); 
+      return; 
+    }
+    
     const play = aiPickPlay(this.wendyHand, this.board, this.difficulty || 'normal');
-    if (play) { this._wendyPlayTile(play); return; }
+    console.log('[_wendyLoop] AI picked:', play ? `[${play.tile.a}|${play.tile.b}] to ${play.end}` : 'null');
+    
+    if (play) { 
+      this._wendyPlayTile(play); 
+      return; 
+    }
+    
     if (this.boneyard.length > 0) {
       const drawn = this.boneyard.splice(0, 1)[0];
       this.wendyHand.push(drawn);
       audio.play('draw');
+      console.log('[_wendyLoop] Wendy drew:', drawn.id);
       if (iterations === 0) { this._setSpeech(randQ('herCantPlay')); vfx.wendyMood('angry'); wendyVideo.set('frustration', true); }
       this._renderAll();
-      this._wendyLoop(iterations + 1);
+      // Use setTimeout to prevent stack overflow and allow UI to update
+      setTimeout(() => this._wendyLoop(iterations + 1), 100);
       return;
     }
+    
+    console.log('[_wendyLoop] No play, no boneyard - passing');
     this._wendyPass();
   }
 
   _wendyPlayTile(play) {
+    console.log('[_wendyPlayTile] START - tile:', play.tile.id, 'end:', play.end);
+    
     const idx = this.wendyHand.indexOf(play.tile);
+    if (idx < 0) {
+      console.error('[_wendyPlayTile] Tile not in hand!');
+      this._handToPlayer();
+      return;
+    }
+    
     this.wendyHand.splice(idx, 1);
     this._setLastGlideDir(play.end);
     this.board.play(play.tile, play.end);
     this.turnCount++;
 
     const scored = this.board.scoreValue();
+    console.log('[_wendyPlayTile] scored:', scored, 'isDouble:', play.tile.isDouble());
+    
     if (scored > 0) {
       this.wendyTotal += scored;
       const deficit = this.wendyTotal - this.playerTotal;
@@ -3506,14 +3581,35 @@ class Game {
       this._setSpeech(randQ('wendyPanic'));
     }
 
-    if (this.wendyHand.length === 0) { this._endRound('wendy'); return; }
-    if (this._checkGameWin()) return;
+    // Check for round/game end
+    if (this.wendyHand.length === 0) { 
+      console.log('[_wendyPlayTile] Wendy hand empty - ending round');
+      this._endRound('wendy'); 
+      return; 
+    }
+    if (this._checkGameWin()) {
+      console.log('[_wendyPlayTile] Game won');
+      return;
+    }
 
     const bonus = scored > 0 || play.tile.isDouble();
+    console.log('[_wendyPlayTile] bonus:', bonus);
+    
     if (bonus) {
       this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
-      setTimeout(() => this._wendyLoop(0), this._wendySpeedMs || 250);
+      // Use longer delay for bonus turn to let animations complete
+      const delay = Math.max(this._wendySpeedMs || 350, 200);
+      console.log('[_wendyPlayTile] BONUS - scheduling next loop in', delay, 'ms');
+      setTimeout(() => {
+        // Double-check we're still in Wendy's turn
+        if (this.turn === 'wendy') {
+          this._wendyLoop(0);
+        } else {
+          console.warn('[_wendyPlayTile] Turn changed during bonus delay');
+        }
+      }, delay);
     } else {
+      console.log('[_wendyPlayTile] NO BONUS - handing to player');
       this._handToPlayer();
     }
   }
