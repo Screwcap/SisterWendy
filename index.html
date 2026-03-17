@@ -3362,10 +3362,12 @@ class Game {
         this._setSpeech(randQ('playerDouble'));
         this._setAction("Double! Play again — still your turn.");
       }
-      // Turn STAYS with player — clear locks, wait for next click
+      // Turn STAYS with player — clear locks FIRST, then re-render hand to show playable tiles
       console.log('[_playTile] BONUS TURN - player continues');
       this._playingTile = false;
       this._busy = false;  // Allow player to click again
+      // FIX: Re-render hand NOW that _busy is false so playable tiles light up correctly
+      this._renderHand();
       this._resetInactivity();
     } else {
       // Hand off to Wendy
