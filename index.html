@@ -4077,7 +4077,9 @@ class Game {
     const hintBtn = document.getElementById('hint-btn');
     hand.innerHTML = '';
 
-    const isPlayerTurn = this.turn === 'player' && !this._busy;
+    // FIX: Don't use _busy for visual highlighting - _busy blocks clicks, not display
+    // Players should see which tiles are playable even during animations
+    const isPlayerTurn = this.turn === 'player';
 
     // Score preview tooltip — singleton, repositioned on hover
     let previewTip = document.getElementById('score-preview-singleton');
