@@ -32,11 +32,11 @@
 /* ── DESIGN TOKENS ── */
 :root {
   /* Palette */
-  --bg-void:      #060a0e;
-  --bg-deep:      #0a1018;
-  --felt:         #0d2818;
-  --felt-mid:     #112e1c;
-  --felt-light:   #164024;
+  --bg-void:      #0a1210;
+  --bg-deep:      #0e1a1c;
+  --felt:         #1a4530;
+  --felt-mid:     #1e5238;
+  --felt-light:   #247040;
   --wood:         #2a1506;
   --wood-edge:    #3d1f08;
 
@@ -471,11 +471,11 @@ body::before {
   position: relative;
   z-index: 3;
 }
-/* Dynamic tile scaling */
-#board-chain.tiles-few  .domino.board-tile { transform: scale(1.18); }
-#board-chain.tiles-some .domino.board-tile { transform: scale(1.0); }
-#board-chain.tiles-many .domino.board-tile { transform: scale(0.84); }
-#board-chain.tiles-lots .domino.board-tile { transform: scale(0.68); }
+/* Dynamic tile scaling - start zoomed in, zoom out as more tiles played */
+#board-chain.tiles-few  .domino.board-tile { transform: scale(1.35); }
+#board-chain.tiles-some .domino.board-tile { transform: scale(1.15); }
+#board-chain.tiles-many .domino.board-tile { transform: scale(0.95); }
+#board-chain.tiles-lots .domino.board-tile { transform: scale(0.78); }
 
 /* Empty board message */
 #board-empty-msg {
@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.4 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.5 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -2430,11 +2430,31 @@ const vfx = (() => {
 
   // ── Wendy tile flip reveal ──
   // A face-down tile from Wendy's hand flips over and flies to the board
+  // FIXED: Aggressive cleanup - elements ALWAYS removed within 1.5s max
   function wendyFlipReveal(tileA, tileB, srcIdx, onDone) {
-    // Safety: guarantee onDone fires within 2 seconds no matter what
+    // Safety: guarantee onDone fires AND elements removed within 1.5 seconds
     let called = false;
-    const safeOnDone = () => { if (!called) { called = true; onDone?.(); } };
-    const safetyTimer = setTimeout(safeOnDone, 2000);
+    let wrap = null;
+    let label = null;
+    
+    const cleanup = () => {
+      if (wrap) { wrap.remove(); wrap = null; }
+      if (label) { label.remove(); label = null; }
+    };
+    
+    const safeOnDone = () => { 
+      if (!called) { 
+        called = true; 
+        cleanup();
+        onDone?.(); 
+      } 
+    };
+    
+    // HARD LIMIT: clean up everything after 1.5s no matter what
+    const safetyTimer = setTimeout(() => {
+      console.log('[wendyFlipReveal] Safety timer fired - forcing cleanup');
+      safeOnDone();
+    }, 1500);
     
     const handEl  = document.getElementById('wendy-hand-display');
     const boardEl = document.getElementById('board-chain');
@@ -2448,7 +2468,7 @@ const vfx = (() => {
     const W = fromR.width, H = fromR.height;
 
     // Build wrapper
-    const wrap  = document.createElement('div');
+    wrap = document.createElement('div');
     wrap.className = 'wendy-flip-wrap';
     wrap.style.cssText = `width:${W}px;height:${H}px;left:${fromR.left}px;top:${fromR.top}px;`;
 
@@ -2468,17 +2488,21 @@ const vfx = (() => {
     document.body.appendChild(wrap);
 
     // Fly-in label
-    const label = document.createElement('div');
+    label = document.createElement('div');
     label.className = 'wendy-plays-label';
     label.textContent = `Sister Wendy plays [${tileA}|${tileB}]`;
     label.style.cssText = `left:${fromR.left - 20}px;top:${fromR.top - 30}px;`;
     document.body.appendChild(label);
 
     requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (called) return; // Already cleaned up by safety timer
+      
       // Phase 1: flip
       inner.classList.add('flipped');
       label.style.opacity = '1';
       setTimeout(() => {
+        if (called) return; // Already cleaned up
+        
         // Phase 2: fly to board
         const destX = toR.left + toR.width / 2 - W / 2;
         const destY = toR.top  + toR.height / 2 - H / 2;
@@ -2487,15 +2511,16 @@ const vfx = (() => {
         label.style.left = destX + 'px';
         label.style.top  = (destY - 30) + 'px';
         setTimeout(() => {
+          if (called) return; // Already cleaned up
+          
           wrap.style.opacity  = '0';
           label.style.opacity = '0';
           setTimeout(() => { 
-            wrap.remove(); label.remove(); 
             clearTimeout(safetyTimer); 
             safeOnDone(); 
-          }, 280);
-        }, 550);
-      }, 480);
+          }, 200);
+        }, 400);
+      }, 350);
     }));
   }
 
@@ -3597,6 +3622,17 @@ class Game {
     
     if (bonus) {
       this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
+      
+      // SAFETY CHECK: Can Wendy actually play again? If not, hand to player immediately
+      const canPlayAgain = this.wendyHand.some(t => this.board.canPlay(t));
+      const canDraw = this.boneyard.length > 0;
+      
+      if (!canPlayAgain && !canDraw) {
+        console.log('[_wendyPlayTile] BONUS but Wendy cannot play or draw - handing to player');
+        this._handToPlayer();
+        return;
+      }
+      
       // Use longer delay for bonus turn to let animations complete
       const delay = Math.max(this._wendySpeedMs || 350, 200);
       console.log('[_wendyPlayTile] BONUS - scheduling next loop in', delay, 'ms');
@@ -3606,6 +3642,11 @@ class Game {
           this._wendyLoop(0);
         } else {
           console.warn('[_wendyPlayTile] Turn changed during bonus delay');
+          // Force hand to player if turn state is corrupted
+          if (this._busy) {
+            console.warn('[_wendyPlayTile] Forcing handoff due to state corruption');
+            this._handToPlayer();
+          }
         }
       }, delay);
     } else {
@@ -3615,10 +3656,23 @@ class Game {
   }
 
   _wendyPass() {
+    console.log('[_wendyPass] Wendy passing turn');
+    clearTimeout(this._wendyWatchdog);  // Clear watchdog on pass
     this._setSpeech(randQ('herCantPlay'));
     audio.play('wendyAngry'); vfx.wendyMood('angry'); wendyVideo.set('frustration', true);
+    
     const pCan = this.playerHand.some(t => this.board.canPlay(t));
-    if (!pCan && this.boneyard.length === 0) { this._endRound('blocked'); return; }
+    const pCanDraw = this.boneyard.length > 0;
+    
+    // Check for blocked game
+    if (!pCan && !pCanDraw) { 
+      console.log('[_wendyPass] Game blocked - ending round');
+      this._endRound('blocked'); 
+      return; 
+    }
+    
+    // Always hand to player
+    console.log('[_wendyPass] Handing to player');
     this._handToPlayer();
   }
 
