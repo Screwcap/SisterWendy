@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.6 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.7 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -2951,14 +2951,31 @@ class DailyChallenge {
 // ── ACHIEVEMENTS ──
 const achievements = {
   defs: [
-    { id:'first_win',  icon:'✝️',  name:'First Victory',    desc:'Beat Sister Wendy once' },
-    { id:'streak3',    icon:'🔥',  name:'On Fire',          desc:'Win 3 in a row' },
-    { id:'streak5',    icon:'⚡',  name:'Unstoppable',      desc:'Win 5 in a row' },
-    { id:'big_score',  icon:'💎',  name:'Big Scorer',       desc:'Score 20+ in one play' },
-    { id:'comeback',   icon:'🏇',  name:'Horse Race',       desc:'Win after trailing by 15+' },
-    { id:'speed',      icon:'⏱️', name:'Speed Demon',      desc:'Win in under 20 turns' },
-    { id:'daily',      icon:'📅',  name:'Daily Devotion',   desc:'Complete a Daily Challenge' },
-    { id:'perfectionist', icon:'🎯',name:'Perfectionist',  desc:'Win without the Help button' },
+    // === VICTORY ACHIEVEMENTS ===
+    { id:'first_win',     icon:'✝️',  name:'First Victory',     desc:'Beat Sister Wendy once' },
+    { id:'wins_10',       icon:'🏆',  name:'Devoted Player',    desc:'Win 10 games total' },
+    { id:'wins_50',       icon:'👑',  name:'Domino Royalty',    desc:'Win 50 games total' },
+    
+    // === STREAK ACHIEVEMENTS ===
+    { id:'streak3',       icon:'🔥',  name:'On Fire',           desc:'Win 3 in a row' },
+    { id:'streak5',       icon:'⚡',  name:'Unstoppable',       desc:'Win 5 in a row' },
+    { id:'streak10',      icon:'💫',  name:'Divine Streak',     desc:'Win 10 in a row' },
+    
+    // === SCORING ACHIEVEMENTS ===
+    { id:'big_score',     icon:'💎',  name:'Big Scorer',        desc:'Score 20+ in one play' },
+    { id:'score_25',      icon:'🌟',  name:'Quarter Century',   desc:'Score exactly 25 in one play' },
+    { id:'combo3',        icon:'🎰',  name:'Triple Threat',     desc:'Score 3 times in a row' },
+    { id:'total_500',     icon:'💰',  name:'Point Hoarder',     desc:'Score 500+ total points across all games' },
+    
+    // === SKILL ACHIEVEMENTS ===
+    { id:'comeback',      icon:'🏇',  name:'Horse Race',        desc:'Win after trailing by 15+' },
+    { id:'speed',         icon:'⏱️', name:'Speed Demon',       desc:'Win in under 20 turns' },
+    { id:'perfectionist', icon:'🎯',  name:'Perfectionist',     desc:'Win without using Help' },
+    { id:'domino_out',    icon:'🎲',  name:'Clean Sweep',       desc:'Win by going out (domino) 5 times' },
+    
+    // === SPECIAL ACHIEVEMENTS ===
+    { id:'daily',         icon:'📅',  name:'Daily Devotion',    desc:'Complete a Daily Challenge' },
+    { id:'hard_win',      icon:'😈',  name:'Nun Slayer',        desc:'Beat Wendy on Hard difficulty' },
   ],
   get() { try{return JSON.parse(localStorage.getItem('sw_ach')||'[]');}catch{return[];} },
   unlock(id) {
@@ -3321,6 +3338,10 @@ class Game {
       vfx.celebrateScore('player', scored);   // includes particle burst
       if (scored >= 15) vfx.haptic([40,30,40]);
       else vfx.haptic([20,15,20]);
+      
+      // === SCORING ACHIEVEMENTS ===
+      if (scored >= 20) achievements.unlock('big_score');
+      if (scored === 25) achievements.unlock('score_25');
     }
     if (tile.isDouble()) {
       audio.play('double');
@@ -3355,6 +3376,8 @@ class Game {
           this._setSpeech(randQ('playerCombo'));
           audio.play('combo');
         }
+        // === COMBO ACHIEVEMENT ===
+        if (this.playerCombo >= 3) achievements.unlock('combo3');
         const gap = this.playerTotal - this.wendyTotal;
         if (scored >= 20)      { this._setSpeech(randQ('playerBigScore')); vfx.wendyMood('angry'); wendyVideo.set('frustration', true); }
         else if (gap > 15)     { this._setSpeech(randQ('wendyLosing')); vfx.wendyMood('angry'); wendyVideo.set('frustration', true); }
@@ -3959,13 +3982,34 @@ class Game {
     const comeback  = playerWon && this.maxDeficit >= 15 ? this.maxDeficit : 0;
     const res = this.stats.recordGameEnd(playerWon, this.playerTotal, this.wendyTotal, comeback, this.isDaily);
 
-    if (playerWon)  achievements.unlock('first_win');
+    // === VICTORY ACHIEVEMENTS ===
+    if (playerWon) achievements.unlock('first_win');
+    if (this.stats.stats.gamesWon >= 10) achievements.unlock('wins_10');
+    if (this.stats.stats.gamesWon >= 50) achievements.unlock('wins_50');
+    
+    // === STREAK ACHIEVEMENTS ===
     if (this.stats.stats.currentStreak >= 3) achievements.unlock('streak3');
     if (this.stats.stats.currentStreak >= 5) achievements.unlock('streak5');
-    if (comeback)   achievements.unlock('comeback');
+    if (this.stats.stats.currentStreak >= 10) achievements.unlock('streak10');
+    
+    // === SKILL ACHIEVEMENTS ===
+    if (comeback) achievements.unlock('comeback');
     if (this.turnCount < 20 && playerWon) achievements.unlock('speed');
-    if (this.isDaily) { achievements.unlock('daily'); this.daily.saveResult(playerWon, this.playerTotal, this.wendyTotal, this.turnCount); }
     if (playerWon && !this.usedHelp) achievements.unlock('perfectionist');
+    if (playerWon && (this.difficulty === 'hard')) achievements.unlock('hard_win');
+    
+    // === SPECIAL ACHIEVEMENTS ===
+    if (this.isDaily) { achievements.unlock('daily'); this.daily.saveResult(playerWon, this.playerTotal, this.wendyTotal, this.turnCount); }
+    
+    // === CUMULATIVE ACHIEVEMENTS ===
+    if ((this.stats.stats.totalPtsScored || 0) >= 500) achievements.unlock('total_500');
+    
+    // === DOMINO OUT TRACKING ===
+    if (playerWon && this.playerHand.length === 0) {
+      const dominoWins = (parseInt(localStorage.getItem('sw_domino_wins') || '0')) + 1;
+      localStorage.setItem('sw_domino_wins', dominoWins);
+      if (dominoWins >= 5) achievements.unlock('domino_out');
+    }
 
     const endAv = document.getElementById('end-avatar');
     if (endAv) endAv.src = playerWon ? 'assets/images/losing.jpeg' : 'assets/images/winning.jpeg';
@@ -4909,7 +4953,7 @@ if (document.readyState !== 'loading') new DragDrop();  // already ready
 </div>
 </body>
 </html>
-<!-- deploy trigger Thu Mar 12 11:38:20 PM CDT 2026 -->
+<!-- deploy trigger Mon Mar 17 04:05:00 AM CDT 2026 -->
 <div id="combo-display"></div>
 <div id="milestone-popup">
   <span class="milestone-icon" id="milestone-icon"></span>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's New — Sister Wendy's Dominoes</title>
+<link rel="icon" type="image/jpeg" href="assets/images/icon-512.jpeg">
+<link rel="apple-touch-icon" href="assets/images/icon-512.jpeg">
+<meta name="description" content="See what's new in Sister Wendy's Dominoes - version history, bug fixes, and new features.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+
+:root {
+  --bg-void: #0a1210;
+  --bg-deep: #0e1a1c;
+  --gold: #c9a84c;
+  --gold-bright: #e8c76a;
+  --gold-dim: #8a6e30;
+  --text-primary: #f0e6cc;
+  --text-muted: rgba(240,230,204,0.55);
+  --text-dim: rgba(240,230,204,0.3);
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--gold-dim) 0%, var(--gold-bright) 50%, var(--gold-dim) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 1.1rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--gold);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  padding: 8px 20px;
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.back-link:hover {
+  background: rgba(201,168,76,0.1);
+  border-color: var(--gold);
+}
+
+.version-card {
+  background: linear-gradient(160deg, rgba(12,18,14,0.95) 0%, rgba(8,10,8,0.95) 100%);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.version-card.latest {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(201,168,76,0.15);
+}
+
+.version-card.latest::before {
+  content: 'LATEST';
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  color: #0a0600;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.version-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.version-number {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.version-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.version-date {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.changes-list {
+  list-style: none;
+}
+
+.changes-list li {
+  padding: 8px 0;
+  padding-left: 28px;
+  position: relative;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.changes-list li:last-child {
+  border-bottom: none;
+}
+
+.changes-list li::before {
+  position: absolute;
+  left: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.changes-list li.new::before {
+  content: 'NEW';
+  background: rgba(100,255,150,0.2);
+  color: #64ff96;
+}
+
+.changes-list li.improved::before {
+  content: '✨';
+  background: none;
+  padding: 0;
+}
+
+.changes-list li.fix::before {
+  content: 'FIX';
+  background: rgba(255,200,100,0.2);
+  color: #ffc864;
+}
+
+.highlight-box {
+  background: rgba(201,168,76,0.08);
+  border-left: 3px solid var(--gold);
+  padding: 12px 16px;
+  margin-top: 16px;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.highlight-box strong {
+  color: var(--gold);
+  font-style: normal;
+}
+
+footer {
+  text-align: center;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+footer a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 1.5rem; }
+  .version-header { flex-direction: column; gap: 4px; }
+  .version-date { margin-left: 0; }
+  .container { padding: 24px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>📜 What's New</h1>
+    <p class="subtitle">"Even the Lord appreciates a good changelog." — Sister Wendy</p>
+    <a href="index.html" class="back-link">← Back to Game</a>
+  </header>
+
+  <main>
+    <!-- v0.9.6 -->
+    <article class="version-card latest">
+      <div class="version-header">
+        <span class="version-number">v0.9.6</span>
+        <span class="version-name">"The Exorcism Update"</span>
+        <span class="version-date">March 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="fix">Fixed tile highlighting after playing — tiles now stay lit when playable</li>
+        <li class="fix">Exorcised the ghost tile "[5|5] shadow" that haunted the board</li>
+        <li class="fix">Fixed Wendy's first-tile handoff — no more stuck states after bonus turns</li>
+        <li class="improved">Brighter lighting on the felt and board</li>
+        <li class="improved">Zoom now starts CLOSER and zooms OUT as tiles accumulate</li>
+        <li class="fix">Bonus turn now refreshes the entire UI properly</li>
+      </ul>
+      <div class="highlight-box">
+        <strong>Sister Wendy says:</strong> "The demons have been cast out. The tiles behave now. Mostly."
+      </div>
+    </article>
+
+    <!-- v0.9.5 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.5</span>
+        <span class="version-name">"The Polish Update"</span>
+        <span class="version-date">March 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Added "What's New" changelog system (you're reading it!)</li>
+        <li class="improved">Smoother animations during Wendy's turn</li>
+        <li class="improved">Better mobile touch responsiveness</li>
+        <li class="fix">Fixed rare stuck state when Wendy draws multiple tiles</li>
+      </ul>
+    </article>
+
+    <!-- v0.9.4 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.4</span>
+        <span class="version-name">"The Stability Update"</span>
+        <span class="version-date">March 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Added HELP button — auto-plays the best tile when you're stuck</li>
+        <li class="new">Added watchdog timer to prevent Wendy from getting stuck</li>
+        <li class="improved">Faster animations on Wendy's turn</li>
+        <li class="fix">Fixed click lock timing issues</li>
+        <li class="fix">Confirmed tiles ARE randomized each game (Fisher-Yates shuffle)</li>
+      </ul>
+    </article>
+
+    <!-- v0.9.3 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.3</span>
+        <span class="version-name">"Daily Devotion"</span>
+        <span class="version-date">March 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Daily Challenge mode — same tiles for everyone, one chance per day</li>
+        <li class="new">Streak tracking and win rate statistics</li>
+        <li class="new">Achievement system with 8 unlockable badges</li>
+        <li class="new">Share your results on social media</li>
+        <li class="improved">Score preview tooltip on tile hover</li>
+      </ul>
+      <div class="highlight-box">
+        <strong>Sister Wendy says:</strong> "Daily practice is next to godliness. Or something like that."
+      </div>
+    </article>
+
+    <!-- v0.9.2 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.2</span>
+        <span class="version-name">"The Sanctum Redesign"</span>
+        <span class="version-date">March 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Complete visual redesign — "Midnight Velvet Sanctum" theme</li>
+        <li class="new">Animated Sister Wendy avatar videos</li>
+        <li class="new">Particle effects and confetti celebrations</li>
+        <li class="new">Tile themes: Ivory, Ebony, Marble, Royal</li>
+        <li class="improved">3D ivory tile design with realistic pips</li>
+        <li class="improved">Gothic gold accents throughout</li>
+      </ul>
+    </article>
+
+    <!-- v0.9.1 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.1</span>
+        <span class="version-name">"Sound & Fury"</span>
+        <span class="version-date">February 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Web Audio synthesized sound effects</li>
+        <li class="new">Keyboard shortcuts (1-7 for tiles, D to draw, M to mute)</li>
+        <li class="new">PWA support — install as app, play offline</li>
+        <li class="new">Three difficulty levels: Easy, Normal, Hard</li>
+        <li class="improved">Sister Wendy AI with lookahead strategy on Hard</li>
+      </ul>
+    </article>
+
+    <!-- v0.9.0 -->
+    <article class="version-card">
+      <div class="version-header">
+        <span class="version-number">v0.9.0</span>
+        <span class="version-name">"Genesis"</span>
+        <span class="version-date">February 2026</span>
+      </div>
+      <ul class="changes-list">
+        <li class="new">Initial release of Sister Wendy's Dominoes</li>
+        <li class="new">Horse Race (All-Fives) scoring rules</li>
+        <li class="new">Sister Wendy AI opponent with snarky commentary</li>
+        <li class="new">Drag & drop tile placement</li>
+        <li class="new">First to 61 points wins</li>
+      </ul>
+      <div class="highlight-box">
+        <strong>Sister Wendy says:</strong> "In the beginning, there were dominoes. And it was good. Mostly."
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <p>Sister Wendy's Dominoes • Made with ✝️ and 🎲 by <a href="https://screwcap.productions">Screwcap Productions</a></p>
+    <p style="margin-top: 8px;">Current version: v0.9.6</p>
+  </footer>
+</div>
+
+</body>
+</html>
