@@ -1928,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.6 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.5 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -3140,8 +3140,6 @@ class Game {
     this._clearSelection();
     this._hideBoardEndZones();
     this._hideAllOverlays();
-    // Clean up any lingering ghost tiles from previous round
-    document.querySelectorAll('.wendy-flip-wrap, .wendy-plays-label').forEach(el => el.remove());
     this.roundNum++;
     this.board      = new Board();
     this._busy      = false;
@@ -3364,13 +3362,12 @@ class Game {
         this._setSpeech(randQ('playerDouble'));
         this._setAction("Double! Play again — still your turn.");
       }
-      // Turn STAYS with player — clear ALL locks FIRST
+      // Turn STAYS with player — clear locks FIRST, then re-render hand to show playable tiles
       console.log('[_playTile] BONUS TURN - player continues');
       this._playingTile = false;
       this._busy = false;  // Allow player to click again
-      this._clickLock = false;  // Clear click lock too
-      // FIX: Re-render ENTIRE UI now that locks are cleared - tiles will light up
-      this._renderAll();
+      // FIX: Re-render hand NOW that _busy is false so playable tiles light up correctly
+      this._renderHand();
       this._resetInactivity();
     } else {
       // Hand off to Wendy
@@ -3501,16 +3498,14 @@ class Game {
     wendyVideo.set('thinking');
     this._setAction("Sister Wendy plays...");
     
-    // Watchdog: if Wendy's turn takes > 3 seconds, force handoff to player
+    // Watchdog: if Wendy's turn takes > 8 seconds, force handoff to player
     clearTimeout(this._wendyWatchdog);
     this._wendyWatchdog = setTimeout(() => {
       if (this._busy && this.turn === 'wendy') {
-        console.warn('[WATCHDOG] Wendy turn stuck for 3s - forcing handoff');
-        // Clean up any ghost tiles before handoff
-        document.querySelectorAll('.wendy-flip-wrap, .wendy-plays-label').forEach(el => el.remove());
+        console.warn('[WATCHDOG] Wendy turn stuck - forcing handoff');
         this._handToPlayer();
       }
-    }, 3000);
+    }, 8000);
     
     // Small delay to let UI update before AI calculation
     setTimeout(() => this._wendyLoop(0), 50);
@@ -3643,24 +3638,12 @@ class Game {
       // Use longer delay for bonus turn to let animations complete
       const delay = Math.max(this._wendySpeedMs || 350, 200);
       console.log('[_wendyPlayTile] BONUS - scheduling next loop in', delay, 'ms');
-      
-      // Set a safety timeout - if _wendyLoop doesn't complete within 2s, force handoff
-      const bonusSafetyTimer = setTimeout(() => {
-        if (this._busy && this.turn === 'wendy') {
-          console.warn('[_wendyPlayTile] BONUS safety timer - forcing handoff');
-          document.querySelectorAll('.wendy-flip-wrap, .wendy-plays-label').forEach(el => el.remove());
-          this._handToPlayer();
-        }
-      }, 2000);
-      
       setTimeout(() => {
         // Double-check we're still in Wendy's turn
         if (this.turn === 'wendy') {
-          clearTimeout(bonusSafetyTimer);  // Clear safety timer - we're proceeding normally
           this._wendyLoop(0);
         } else {
           console.warn('[_wendyPlayTile] Turn changed during bonus delay');
-          clearTimeout(bonusSafetyTimer);
           // Force hand to player if turn state is corrupted
           if (this._busy) {
             console.warn('[_wendyPlayTile] Forcing handoff due to state corruption');
@@ -3696,15 +3679,7 @@ class Game {
   }
 
   _handToPlayer() {
-    console.log('[_handToPlayer] Handing control to player');
     clearTimeout(this._wendyWatchdog);  // Clear watchdog - normal handoff
-    
-    // AGGRESSIVE CLEANUP: Remove ANY lingering ghost tiles from Wendy animations
-    document.querySelectorAll('.wendy-flip-wrap, .wendy-plays-label').forEach(el => {
-      console.log('[_handToPlayer] Removing ghost element:', el.className);
-      el.remove();
-    });
-    
     this.turn         = 'player';
     this._busy        = false;
     this.awaitingEnd  = false;
@@ -3914,8 +3889,6 @@ class Game {
   _endRound(winner) {
     clearTimeout(this._wendyWatchdog);  // Clear watchdog on round end
     this._busy = false;  // Ensure busy flag is cleared
-    // Clean up any lingering ghost tiles
-    document.querySelectorAll('.wendy-flip-wrap, .wendy-plays-label').forEach(el => el.remove());
     const r5 = n => Math.round(n / 5) * 5;
     const pLeft = this.playerHand.reduce((s,t)=>s+t.pips(),0);
     const wLeft = this.wendyHand.reduce((s,t)=>s+t.pips(),0);
@@ -4104,9 +4077,8 @@ class Game {
     const hintBtn = document.getElementById('hint-btn');
     hand.innerHTML = '';
 
-    // FIX: Visual highlighting based ONLY on turn, not _busy flag
-    // _busy blocks clicks but shouldn't grey out the display
-    // Players should ALWAYS see which tiles are playable when it's their turn
+    // FIX: Don't use _busy for visual highlighting - _busy blocks clicks, not display
+    // Players should see which tiles are playable even during animations
     const isPlayerTurn = this.turn === 'player';
 
     // Score preview tooltip — singleton, repositioned on hover
