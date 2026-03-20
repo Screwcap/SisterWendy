@@ -1776,6 +1776,25 @@ body {
   background: rgba(255,255,255,0.1);
   border-color: var(--gold);
 }
+.diff-btn {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-light);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-family: 'Georgia', serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0.6;
+}
+.diff-btn:hover { background: rgba(255,255,255,0.1); opacity: 1; }
+.diff-btn.active {
+  background: rgba(201,168,76,0.2);
+  border-color: var(--gold);
+  color: var(--gold);
+  opacity: 1;
+}
 
 /* Stats modal */
 .stats-modal {
@@ -1924,8 +1943,17 @@ body {
     
     <div id="menu-streak"></div>
     
+    <div style="margin-bottom:12px">
+      <div style="font-size:0.7rem;letter-spacing:1.5px;color:#aaa;text-transform:uppercase;margin-bottom:8px">Wendy's Mood</div>
+      <div style="display:flex;gap:8px;justify-content:center" id="difficulty-btns">
+        <button class="diff-btn active" id="diff-easy"   onclick="game.setDifficulty('easy')"   title="Sister Wendy is feeling charitable">😇 Forgiving</button>
+        <button class="diff-btn"        id="diff-medium" onclick="game.setDifficulty('medium')" title="Sister Wendy is focused">😤 Focused</button>
+        <button class="diff-btn"        id="diff-hard"   onclick="game.setDifficulty('hard')"   title="Sister Wendy is in full nun mode">😈 Merciless</button>
+      </div>
+    </div>
+
     <div class="menu-buttons">
-      <button class="btn-primary" onclick="game.startRound()">🎲 Quick Game</button>
+      <button class="btn-primary" onclick="game.startRound()">🎲 Play</button>
       <div class="btn-row">
         <button class="btn-secondary" onclick="game.showHowToPlay()">📖 How to Play</button>
         <button class="btn-stats" onclick="game.showStats()">📊 Stats</button>
@@ -2931,7 +2959,7 @@ class Board {
 }
 
 // ── AI (Sister Wendy) ──
-function aiPickPlay(hand, board) {
+function aiPickPlay(hand, board, difficulty = 'hard') {
   const candidates = [];
   // Track number frequency on board for blocking strategy
   const numberFrequency = new Map();
@@ -2958,17 +2986,34 @@ function aiPickPlay(hand, board) {
 
   if (candidates.length === 0) return null;
 
+  // Easy: pure random — Sister Wendy is feeling charitable
+  if (difficulty === 'easy') {
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  // Medium: greedy scoring only, no strategy
+  if (difficulty === 'medium') {
+    candidates.sort((a, b) => {
+      if (b.scoreGained !== a.scoreGained) return b.scoreGained - a.scoreGained;
+      return b.tile.pips() - a.tile.pips();
+    });
+    return candidates[0];
+  }
+
+  // Hard: full strategy — blocking, end-game tactics, save doubles
+  const endGame = hand.length <= 3;
   candidates.sort((a, b) => {
     // 1. Prioritise immediate scoring
     if (b.scoreGained !== a.scoreGained) return b.scoreGained - a.scoreGained;
     // 2. Prefer blocking plays (numbers already seen = opponent less likely to have them)
     if (b.blockValue !== a.blockValue) return b.blockValue - a.blockValue;
-    // 3. Save doubles for last (harder to place later)
-    if (a.tile.isDouble() !== b.tile.isDouble()) return a.tile.isDouble() ? 1 : -1;
-    // 4. Shed highest pip tiles to reduce hand weight in case of blocked game
+    // 3. End-game: play doubles first (hard to place, must get rid of them)
+    if (endGame && a.tile.isDouble() !== b.tile.isDouble()) return a.tile.isDouble() ? -1 : 1;
+    // 4. Normal: save doubles for last
+    if (!endGame && a.tile.isDouble() !== b.tile.isDouble()) return a.tile.isDouble() ? 1 : -1;
+    // 5. Shed highest pip tiles to reduce hand weight in case of blocked game
     return b.tile.pips() - a.tile.pips();
   });
-
   return candidates[0];
 }
 
@@ -2976,6 +3021,7 @@ function aiPickPlay(hand, board) {
 class Game {
   constructor() {
     this.TARGET = 61;
+    this.difficulty = 'easy';
     this.playerTotal = 0;
     this.wendyTotal  = 0;
     this.maxDeficit  = 0;
@@ -3464,7 +3510,7 @@ class Game {
 
     while (iterations < maxIterations) {
       iterations++;
-      const play = aiPickPlay(this.wendyHand, this.board);
+      const play = aiPickPlay(this.wendyHand, this.board, this.difficulty);
 
       if (play) {
         // Found a play - execute it
@@ -3870,6 +3916,15 @@ class Game {
   hideFirstTurnHint() {
     const hint = document.getElementById('first-turn-hint');
     if (hint) hint.classList.remove('visible');
+  }
+
+  setDifficulty(level) {
+    this.difficulty = level;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('diff-' + level);
+    if (btn) btn.classList.add('active');
+    const labels = { easy: 'Forgiving 😇', medium: 'Focused 😤', hard: 'Merciless 😈' };
+    showToast(`Wendy is now ${labels[level]}`);
   }
 
   updateMenuStreak() {
