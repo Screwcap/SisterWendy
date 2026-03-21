@@ -4123,8 +4123,46 @@ class Game {
           setTimeout(() => div.classList.remove('shake-invalid'), 500);
           return;
         }
+        // If waiting for end-choice and player clicks a DIFFERENT tile, cancel and reselect
+        if (this.phase === 'end' && this.selected && this.selected !== tile) {
+          this.phase = 'select';
+          this.selected = null;
+          this._placementLock = false;
+          this.hideBoardDropZones();
+        }
         console.log('[CLICK] Playing tile:', tile.id);
         this.playerSelectTile(tile);
+      });
+
+      // Double-click: auto-play to best scoring end (skips left/right choice)
+      div.addEventListener('dblclick', () => {
+        if (this.turn !== 'player') return;
+        const canPlayNow = this.board.isEmpty() || this.board.canPlay(tile);
+        if (!canPlayNow) return;
+        // Reset any pending end selection
+        this.phase = 'select';
+        this.selected = null;
+        this._placementLock = false;
+        this.hideBoardDropZones();
+        // Pick best end by score, fallback to first valid end
+        const ends = this.board.validEnds(tile);
+        if (ends.length === 0) return;
+        let bestEnd = ends[0];
+        let bestScore = -1;
+        for (const end of ends) {
+          const sim = new Board();
+          sim.chain = [...this.board.chain];
+          sim.leftEnd = this.board.leftEnd;
+          sim.rightEnd = this.board.rightEnd;
+          sim.play(new Tile(tile.a, tile.b), end);
+          const s = sim.scoreValue();
+          if (s > bestScore) { bestScore = s; bestEnd = end; }
+        }
+        console.log('[DBLCLICK] Auto-playing', tile.id, 'to', bestEnd);
+        this._placementLock = true;
+        this.selected = tile;
+        audio.play('select');
+        this.playerPlayTile(tile, bestEnd);
       });
       el.insertBefore(div, drawBtn);
     }
