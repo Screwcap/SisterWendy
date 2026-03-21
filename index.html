@@ -3119,39 +3119,16 @@ class Game {
   // ── PLAYER ACTIONS ──
 
   playerSelectTile(tile) {
-    // LOCK: Prevent multiple simultaneous selections
-    if (this._placementLock) {
-      console.log('[SELECT] Blocked - placement in progress');
-      return;
-    }
-    if (this.turn !== 'player') {
-      console.log('[SELECT] Blocked - not player turn');
-      return;
-    }
-    if (!this.board.canPlay(tile) && !this.board.isEmpty()) {
-      this.setAction("That tile doesn't fit. Try another.");
-      audio.play('error');
-      const hand = document.getElementById('player-hand');
-      if (hand) {
-        hand.querySelectorAll('.domino').forEach(el => {
-          if (el.dataset.tileId === tile.id) {
-            el.classList.add('wendy-shake');
-            setTimeout(() => el.classList.remove('wendy-shake'), 400);
-          }
-        });
-      }
-      return;
-    }
-    
-    // Set placement lock
+    if (this._placementLock) return;
+    if (this.turn !== 'player') return;
+    if (!this.board.canPlay(tile) && !this.board.isEmpty()) return;
+
     this._placementLock = true;
     this.selected = tile;
     audio.play('select');
-    
-    const ends = this.board.validEnds(tile);
-    console.log('[SELECT] Tile:', tile.id, 'Valid ends:', ends);
 
-    // Always auto-play: pick the end that scores most (ties go to 'right')
+    // Pick the end that scores most; ties go to first valid end
+    const ends = this.board.validEnds(tile);
     let endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
     if (ends.length > 1 && !ends.includes('middle')) {
       let bestScore = -1;
@@ -3165,7 +3142,6 @@ class Game {
         if (s > bestScore) { bestScore = s; endToPlay = end; }
       }
     }
-    console.log('[SELECT] Auto-playing to:', endToPlay);
     this.playerPlayTile(tile, endToPlay);
   }
   
@@ -4097,11 +4073,8 @@ class Game {
       }
 
       div.addEventListener('click', () => {
-        // Check turn and canPlay LIVE (not captured value)
-        if (this.turn !== 'player') {
-          console.log('[CLICK] Blocked - not player turn, turn is:', this.turn);
-          return;
-        }
+        if (this.turn !== 'player') return;
+        if (this._placementLock) return;
         const canPlayNow = this.board.isEmpty() || this.board.canPlay(tile);
         if (!canPlayNow) {
           div.classList.remove('shake-invalid');
@@ -4112,46 +4085,7 @@ class Game {
           setTimeout(() => div.classList.remove('shake-invalid'), 500);
           return;
         }
-        // If waiting for end-choice and player clicks a DIFFERENT tile, cancel and reselect
-        if (this.phase === 'end' && this.selected && this.selected !== tile) {
-          this.phase = 'select';
-          this.selected = null;
-          this._placementLock = false;
-          this.hideBoardDropZones();
-        }
-        console.log('[CLICK] Playing tile:', tile.id);
         this.playerSelectTile(tile);
-      });
-
-      // Double-click: auto-play to best scoring end (skips left/right choice)
-      div.addEventListener('dblclick', () => {
-        if (this.turn !== 'player') return;
-        const canPlayNow = this.board.isEmpty() || this.board.canPlay(tile);
-        if (!canPlayNow) return;
-        // Reset any pending end selection
-        this.phase = 'select';
-        this.selected = null;
-        this._placementLock = false;
-        this.hideBoardDropZones();
-        // Pick best end by score, fallback to first valid end
-        const ends = this.board.validEnds(tile);
-        if (ends.length === 0) return;
-        let bestEnd = ends[0];
-        let bestScore = -1;
-        for (const end of ends) {
-          const sim = new Board();
-          sim.chain = [...this.board.chain];
-          sim.leftEnd = this.board.leftEnd;
-          sim.rightEnd = this.board.rightEnd;
-          sim.play(new Tile(tile.a, tile.b), end);
-          const s = sim.scoreValue();
-          if (s > bestScore) { bestScore = s; bestEnd = end; }
-        }
-        console.log('[DBLCLICK] Auto-playing', tile.id, 'to', bestEnd);
-        this._placementLock = true;
-        this.selected = tile;
-        audio.play('select');
-        this.playerPlayTile(tile, bestEnd);
       });
       el.insertBefore(div, drawBtn);
     }
