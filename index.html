@@ -3500,7 +3500,13 @@ class Game {
     this.setTurnIndicator();
 
     // INSTANT execution - no delays
-    this._executeWendyTurn();
+    try {
+      this._executeWendyTurn();
+    } catch(e) {
+      console.error('[WENDY] Turn crashed:', e);
+      this.turn = 'wendy';
+      this._wendyPass();
+    }
   }
 
   // Wendy executes her ENTIRE turn synchronously (with draws if needed)
