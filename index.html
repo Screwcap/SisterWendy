@@ -3150,34 +3150,23 @@ class Game {
     
     const ends = this.board.validEnds(tile);
     console.log('[SELECT] Tile:', tile.id, 'Valid ends:', ends);
-    
-    // Auto-play conditions:
-    // 1. Empty board (first tile)
-    // 2. Only one end fits
-    // 3. 'middle' returned (both ends have same value - e.g., playing onto a double)
-    // 4. Both ends fit but have the same value (leftEnd === rightEnd)
-    const shouldAutoPlay = this.board.isEmpty() || 
-                           ends.length === 1 || 
-                           ends.includes('middle') ||
-                           (this.board.leftEnd === this.board.rightEnd);
-    
-    if (shouldAutoPlay) {
-      const endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
-      console.log('[SELECT] Auto-playing to:', endToPlay);
-      this.playerPlayTile(tile, endToPlay);
-    } else {
-      // Truly different values on each end - player must choose
-      console.log('[SELECT] Showing end choice UI');
-      this.phase = 'end';
-      this._placementLock = false; // Unlock so player can click drop zones
-      this.setAction("Tap LEFT or RIGHT on the board to place your tile.", true);
-      
-      // Highlight selected tile in hand
-      this.renderHand();
-      
-      // Show persistent drop zones on the board (NOT calling renderBoard which clears them)
-      this.showBoardDropZones(tile, ends);
+
+    // Always auto-play: pick the end that scores most (ties go to 'right')
+    let endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
+    if (ends.length > 1 && !ends.includes('middle')) {
+      let bestScore = -1;
+      for (const end of ends) {
+        const sim = new Board();
+        sim.chain = [...this.board.chain];
+        sim.leftEnd = this.board.leftEnd;
+        sim.rightEnd = this.board.rightEnd;
+        sim.play(new Tile(tile.a, tile.b), end);
+        const s = sim.scoreValue();
+        if (s > bestScore) { bestScore = s; endToPlay = end; }
+      }
     }
+    console.log('[SELECT] Auto-playing to:', endToPlay);
+    this.playerPlayTile(tile, endToPlay);
   }
   
   // Show clickable drop zones directly on the board
