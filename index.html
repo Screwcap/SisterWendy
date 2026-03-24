@@ -3073,7 +3073,9 @@ class Game {
     if (isDailyMode || this.isDaily) this.isDaily = true;
 
     clearTimeout(this._watchdogTimer);
+    clearTimeout(this._lockWatchdog);
     this._watchdogTimer = null;
+    this._lockWatchdog = null;
     this._placementLock = false; // Reset placement lock
     this._activeDropZones = [];  // Reset drop zones tracking
     this.hideBoardDropZones();   // Clean up any leftover zones
@@ -3124,6 +3126,12 @@ class Game {
     if (!this.board.canPlay(tile) && !this.board.isEmpty()) return;
 
     this._placementLock = true;
+    // Failsafe: auto-release lock if playerPlayTile stalls (exception, RAF issue, etc.)
+    clearTimeout(this._lockWatchdog);
+    this._lockWatchdog = setTimeout(() => {
+      console.warn('[LOCK] Watchdog released stuck placement lock');
+      this._placementLock = false;
+    }, 3000);
     this.selected = tile;
     audio.play('select');
 
@@ -3224,10 +3232,12 @@ class Game {
     if (idx < 0) {
       console.log('[PLAY] Tile not in hand:', tile.id);
       this._placementLock = false;
+      clearTimeout(this._lockWatchdog);
       return;
     }
     console.log('[PLAY] Playing tile:', tile.id, 'to:', end);
     clearTimeout(this._watchdogTimer);
+    clearTimeout(this._lockWatchdog);
 
     // Hide first-turn hint and drop zones
     this.hideFirstTurnHint();
@@ -3458,6 +3468,12 @@ class Game {
     this._placementLock = false;
     this.hideBoardDropZones();
 
+    // Watchdog: if Wendy's turn doesn't resolve in 8s, force handoff
+    this._watchdogTimer = setTimeout(() => {
+      console.warn('[WATCHDOG] Wendy turn timed out — forcing handoff to player');
+      if (this.turn !== 'player') this._handToPlayer();
+    }, 8000);
+
     this.turn = 'wendy-thinking';
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
@@ -3579,6 +3595,12 @@ class Game {
     if (getBonusTurn) {
       this.setAction(`Sister Wendy ${play.scoreGained > 0 ? 'scores ' + play.scoreGained : 'plays a double'}! She plays again...`);
       this.turn = 'wendy';
+      // Reset watchdog for each bonus turn leg
+      clearTimeout(this._watchdogTimer);
+      this._watchdogTimer = setTimeout(() => {
+        console.warn('[WATCHDOG] Wendy bonus turn timed out — forcing handoff');
+        if (this.turn !== 'player') this._handToPlayer();
+      }, 5000);
       // Use requestAnimationFrame to let UI update, then continue
       requestAnimationFrame(() => this._executeWendyTurn());
     } else {
@@ -3609,7 +3631,13 @@ class Game {
   // Clean handoff to player
   _handToPlayer() {
     console.log('[HANDOFF] Giving turn to player');
-    
+
+    // Clear both watchdogs — turn is being handed off normally
+    clearTimeout(this._watchdogTimer);
+    clearTimeout(this._lockWatchdog);
+    this._watchdogTimer = null;
+    this._lockWatchdog = null;
+
     // Reset ALL state for player
     this.turn = 'player';
     this.phase = 'select';
