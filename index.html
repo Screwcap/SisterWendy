@@ -3227,17 +3227,20 @@ class Game {
   }
 
   playerPlayTile(tile, end) {
+    // ── SAFETY: Release lock immediately on entry ──
+    clearTimeout(this._watchdogTimer);
+    clearTimeout(this._lockWatchdog);
+    this._watchdogTimer = null;
+    this._lockWatchdog = null;
+    
     // ── 1. Validate ──
     const idx = this.playerHand.indexOf(tile);
     if (idx < 0) {
       console.log('[PLAY] Tile not in hand:', tile.id);
       this._placementLock = false;
-      clearTimeout(this._lockWatchdog);
       return;
     }
     console.log('[PLAY] Playing tile:', tile.id, 'to:', end);
-    clearTimeout(this._watchdogTimer);
-    clearTimeout(this._lockWatchdog);
 
     // Hide first-turn hint and drop zones
     this.hideFirstTurnHint();
@@ -3258,8 +3261,14 @@ class Game {
     if (scored > 0) this.playerTotal += scored;
 
     // ── 4. Render IMMEDIATELY ──
-    this.renderAll();
-    this._resetInactivityTimer();
+    try {
+      this.renderAll();
+    } catch(e) {
+      console.error('[PLAY] renderAll crashed:', e);
+      this._placementLock = false;
+      return;
+    }
+    
     audio.play('place');
     if (scored > 0) {
       this.updateScoreDisplay();
@@ -3278,15 +3287,22 @@ class Game {
     }
 
     // ── 5. Check win / round end ──
-    if (this.playerHand.length === 0) { this.endRound('player'); return; }
-    if (this.checkGameWin()) return;
+    if (this.playerHand.length === 0) { 
+      this._placementLock = false;
+      this.endRound('player'); 
+      return; 
+    }
+    if (this.checkGameWin()) {
+      this._placementLock = false;
+      return;
+    }
 
     // ── 6. Hand off turn ──
     // Bonus turn if: scored OR played a double
     const playedDouble = tile.isDouble();
     const getBonusTurn = scored > 0 || playedDouble;
     
-    // Release placement lock - player can select again
+    // CRITICAL: Release placement lock BEFORE any async operations
     this._placementLock = false;
     
     if (getBonusTurn) {
@@ -3315,6 +3331,7 @@ class Game {
         this.setAction(`Double played! Play again — still your turn.`);
       }
       // turn stays 'player', no timeout needed
+      this._resetInactivityTimer();
     } else {
       // No score and no double — Wendy's turn
       if (Math.random() < 0.30) {
@@ -4895,19 +4912,29 @@ class DragDropHandler {
   _showDropZones() {
     this._hideDropZones();
     const boardArea = document.getElementById('board-area');
-    if (!boardArea) return;
+    if (!boardArea) {
+      console.log('[DROPZONE] No board area found');
+      return;
+    }
     const br = boardArea.getBoundingClientRect();
+    console.log('[DROPZONE] Board rect:', { left: br.left, top: br.top, width: br.width, height: br.height });
 
     if (game.board.isEmpty()) {
+      console.log('[DROPZONE] Board empty - showing center zone');
       this._addZone(br.left + br.width/2 - 70, br.top + br.height/2 - 55, 140, 110, 'first',
         '↓ DROP HERE ↓');
       return;
     }
 
     const ends = game.board.validEnds(this.dragTile);
-    if (!ends.length) return;
+    console.log('[DROPZONE] Valid ends:', ends);
+    if (!ends.length) {
+      console.log('[DROPZONE] No valid ends - hiding zones');
+      return;
+    }
 
     if (ends.includes('middle')) {
+      console.log('[DROPZONE] Middle play - showing center zone');
       this._addZone(br.left + br.width * 0.2, br.top + br.height * 0.15,
         br.width * 0.6, br.height * 0.7, 'middle', '↓ PLAY HERE ↓');
       return;
@@ -4918,11 +4945,15 @@ class DragDropHandler {
     const yOff  = br.top + br.height / 2 - zoneH / 2;
 
     if (ends.includes('left')) {
-      this._addZone(br.left + 6, yOff, zoneW, zoneH, 'left',
+      const leftX = br.left + 6;
+      console.log('[DROPZONE] Left zone at:', { x: leftX, y: yOff, w: zoneW, h: zoneH });
+      this._addZone(leftX, yOff, zoneW, zoneH, 'left',
         `← LEFT<br><span style="font-size:1.4rem;margin-top:4px;display:block">[${game.board.leftEnd}]</span>`);
     }
     if (ends.includes('right')) {
-      this._addZone(br.right - zoneW - 6, yOff, zoneW, zoneH, 'right',
+      const rightX = br.right - zoneW - 6;
+      console.log('[DROPZONE] Right zone at:', { x: rightX, y: yOff, w: zoneW, h: zoneH });
+      this._addZone(rightX, yOff, zoneW, zoneH, 'right',
         `RIGHT →<br><span style="font-size:1.4rem;margin-top:4px;display:block">[${game.board.rightEnd}]</span>`);
     }
   }
@@ -4931,10 +4962,13 @@ class DragDropHandler {
     const zone = document.createElement('div');
     zone.className = 'drop-zone';
     zone.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${w}px;height:${h}px;` +
-      'display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;';
-    zone.innerHTML = `<div style="color:var(--highlight);font-weight:bold;font-size:0.9rem;` +
-      `text-shadow:0 1px 3px rgba(0,0,0,0.9);line-height:1.3;">${label}</div>`;
+      'display:flex;align-items:center;justify-content:center;text-align:center;flex-direction:column;' +
+      'border:3px dashed var(--highlight) !important;background:rgba(255,224,102,0.2) !important;' +
+      'box-shadow:0 0 20px rgba(255,224,102,0.4);';
+    zone.innerHTML = `<div style="color:var(--highlight);font-weight:bold;font-size:0.95rem;` +
+      `text-shadow:0 2px 4px rgba(0,0,0,0.9);line-height:1.4;">${label}</div>`;
     document.body.appendChild(zone);
+    console.log('[DROPZONE] Added zone for end:', end, '| Total zones:', this.dropZones.length + 1);
     this.dropZones.push({ el: zone, end });
   }
 
