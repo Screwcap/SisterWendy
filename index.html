@@ -403,6 +403,47 @@ body {
 .board-drop-right {
   right: 10px;
 }
+.board-drop-top {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 80px;
+}
+.board-drop-top:hover { transform: translateX(-50%) scale(1.05); }
+.board-drop-bottom {
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 80px;
+}
+.board-drop-bottom:hover { transform: translateX(-50%) scale(1.05); }
+.board-drop-zone.drag-over {
+  background: rgba(100,255,150,0.5);
+  border-color: rgba(100,255,150,1);
+  box-shadow: 0 0 24px rgba(100,255,150,0.8);
+}
+.board-drag-over {
+  outline: 3px dashed rgba(255,224,102,0.6);
+}
+/* Spinner arms */
+.spinner-arm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 0;
+}
+.spinner-open-slot {
+  color: rgba(255,255,255,0.35);
+  font-size: 0.72rem;
+  padding: 6px 12px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  border-radius: 8px;
+  text-align: center;
+  pointer-events: none;
+}
 .drop-label {
   text-align: center;
   color: var(--highlight);
@@ -2860,25 +2901,30 @@ class Board {
     this.chain = [];   // Tile[], left to right
     this.leftEnd  = null;
     this.rightEnd = null;
+    this.spinner  = null; // { pip, topArm:[], botArm:[], topEnd, botEnd } — first double played
   }
   isEmpty() { return this.chain.length === 0; }
 
   validEnds(tile) {
     if (this.isEmpty()) return ['first'];
-    
-    // Check if both ends have the same value (e.g., single double on board, or both ends show same number)
-    // In this case, there's only ONE logical place to play - no left/right choice needed
-    if (this.leftEnd === this.rightEnd) {
-      if (tile.a === this.leftEnd || tile.b === this.leftEnd) {
-        return ['middle']; // Special case: play onto the double/same-value ends
-      }
-      return [];
-    }
-    
-    // Normal case: different values on each end
+
     const ends = [];
-    if (tile.a === this.leftEnd || tile.b === this.leftEnd)  ends.push('left');
-    if (tile.a === this.rightEnd || tile.b === this.rightEnd) ends.push('right');
+    if (tile.matches(this.leftEnd))  ends.push('left');
+    if (tile.matches(this.rightEnd)) ends.push('right');
+
+    // No spinner: collapse left+right when both ends are same value (auto-play)
+    if (!this.spinner && this.leftEnd === this.rightEnd && ends.length === 2) {
+      return ['middle'];
+    }
+
+    // Spinner: also check perpendicular arms
+    if (this.spinner) {
+      const topEnd = this.spinner.topArm.length > 0 ? this.spinner.topEnd : this.spinner.pip;
+      const botEnd = this.spinner.botArm.length > 0 ? this.spinner.botEnd : this.spinner.pip;
+      if (tile.matches(topEnd)) ends.push('top');
+      if (tile.matches(botEnd)) ends.push('bottom');
+    }
+
     return [...new Set(ends)];
   }
 
@@ -2890,11 +2936,29 @@ class Board {
       this.chain = [tile];
       this.leftEnd  = tile.a;
       this.rightEnd = tile.b;
+      if (tile.isDouble() && !this.spinner) {
+        this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a };
+      }
       return;
     }
     // 'middle' means both ends are same value - treat as 'right' (adds to end of chain)
     if (end === 'middle') {
       end = 'right';
+    }
+    // Spinner arms: top / bottom
+    if (end === 'top' || end === 'bottom') {
+      const isTop = end === 'top';
+      const arm       = isTop ? this.spinner.topArm : this.spinner.botArm;
+      const curEnd    = arm.length > 0 ? (isTop ? this.spinner.topEnd : this.spinner.botEnd) : this.spinner.pip;
+      if (tile.a === curEnd) {
+        tile.flipped = false;
+        if (isTop) this.spinner.topEnd = tile.b; else this.spinner.botEnd = tile.b;
+      } else {
+        tile.flipped = true;
+        if (isTop) this.spinner.topEnd = tile.a; else this.spinner.botEnd = tile.a;
+      }
+      arm.push(tile);
+      return;
     }
     if (end === 'left') {
       if (tile.b === this.leftEnd) {
@@ -2915,6 +2979,10 @@ class Board {
       }
       this.chain.push(tile);
     }
+    // Any double played into the chain becomes the spinner (first one wins)
+    if (tile.isDouble() && !this.spinner) {
+      this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a };
+    }
   }
 
   // Horse Race / All-Fives scoring: sum of both open ends; award if multiple of 5
@@ -2927,15 +2995,18 @@ class Board {
     
     // Special case: only one tile on board
     if (this.chain.length === 1) {
-      if (leftTile.isDouble()) {
-        // Single double = both pips (e.g., [5|5] = 10)
-        const sum = leftTile.a * 2;
-        return sum % 5 === 0 ? sum : 0;
-      } else {
-        // Single non-double = both ends
-        const sum = leftTile.a + leftTile.b;
-        return sum % 5 === 0 ? sum : 0;
+      let sum = leftTile.isDouble() ? leftTile.a * 2 : leftTile.a + leftTile.b;
+      if (this.spinner) {
+        if (this.spinner.topArm.length > 0) {
+          const t = this.spinner.topArm[this.spinner.topArm.length - 1];
+          sum += t.isDouble() ? t.a * 2 : this.spinner.topEnd;
+        }
+        if (this.spinner.botArm.length > 0) {
+          const t = this.spinner.botArm[this.spinner.botArm.length - 1];
+          sum += t.isDouble() ? t.a * 2 : this.spinner.botEnd;
+        }
       }
+      return sum % 5 === 0 ? sum : 0;
     }
     
     // Multiple tiles: check each end
@@ -2955,6 +3026,18 @@ class Board {
       sum += this.rightEnd;
     }
     
+    // Spinner arms: add exposed end pips when arms have been played
+    if (this.spinner) {
+      if (this.spinner.topArm.length > 0) {
+        const topTile = this.spinner.topArm[this.spinner.topArm.length - 1];
+        sum += topTile.isDouble() ? topTile.a * 2 : this.spinner.topEnd;
+      }
+      if (this.spinner.botArm.length > 0) {
+        const botTile = this.spinner.botArm[this.spinner.botArm.length - 1];
+        sum += botTile.isDouble() ? botTile.a * 2 : this.spinner.botEnd;
+      }
+    }
+
     return sum % 5 === 0 ? sum : 0;
   }
 }
@@ -2976,6 +3059,15 @@ function aiPickPlay(hand, board, difficulty = 'hard') {
       sim.chain    = [...board.chain];
       sim.leftEnd  = board.leftEnd;
       sim.rightEnd = board.rightEnd;
+      if (board.spinner) {
+        sim.spinner = {
+          pip: board.spinner.pip,
+          topArm: [...board.spinner.topArm],
+          botArm: [...board.spinner.botArm],
+          topEnd: board.spinner.topEnd,
+          botEnd: board.spinner.botEnd,
+        };
+      }
       const simTile = new Tile(tile.a, tile.b);
       sim.play(simTile, end);
       const scoreGained = sim.scoreValue();
@@ -3031,6 +3123,8 @@ class Game {
     this.wendyDrawCount = 0;
     this.roundNum    = 0;
     this.roundHistory = [];
+    this._draggingTile = null;
+    this._boardDragListeners = null;
     this.newGame(true);
     this.updateMenuStreak();
     this.updateDailyBanner();
@@ -3169,36 +3263,31 @@ class Game {
     // Store reference to zones so we can track them
     this._activeDropZones = [];
     
-    // Left drop zone
-    if (ends.includes('left')) {
+    const addZone = (end, label, pipVal, cssClass) => {
       const zone = document.createElement('div');
-      zone.className = 'board-drop-zone board-drop-left';
-      zone.id = 'drop-zone-left';
-      zone.innerHTML = `<div class="drop-label">← PLAY LEFT<br><span class="drop-value">[${this.board.leftEnd}]</span></div>`;
-      zone.addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log('[DROPZONE] Left clicked');
-        this.playerSelectEnd('left');
-      });
+      zone.className = `board-drop-zone ${cssClass}`;
+      zone.id = `drop-zone-${end}`;
+      zone.innerHTML = `<div class="drop-label">${label}<br><span class="drop-value">[${pipVal}]</span></div>`;
+      const playEnd = () => { this.playerSelectEnd(end); };
+      zone.addEventListener('click', (e) => { e.stopPropagation(); playEnd(); });
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); if (this._draggingTile) playEnd(); });
       boardArea.appendChild(zone);
       this._activeDropZones.push(zone);
+    };
+
+    if (ends.includes('left'))   addZone('left',   '← PLAY LEFT',    this.board.leftEnd,  'board-drop-left');
+    if (ends.includes('right'))  addZone('right',  'PLAY RIGHT →',   this.board.rightEnd, 'board-drop-right');
+    if (ends.includes('top')) {
+      const topEnd = this.board.spinner.topArm.length > 0 ? this.board.spinner.topEnd : this.board.spinner.pip;
+      addZone('top', '↑ TOP', topEnd, 'board-drop-top');
     }
-    
-    // Right drop zone
-    if (ends.includes('right')) {
-      const zone = document.createElement('div');
-      zone.className = 'board-drop-zone board-drop-right';
-      zone.id = 'drop-zone-right';
-      zone.innerHTML = `<div class="drop-label">PLAY RIGHT →<br><span class="drop-value">[${this.board.rightEnd}]</span></div>`;
-      zone.addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log('[DROPZONE] Right clicked');
-        this.playerSelectEnd('right');
-      });
-      boardArea.appendChild(zone);
-      this._activeDropZones.push(zone);
+    if (ends.includes('bottom')) {
+      const botEnd = this.board.spinner.botArm.length > 0 ? this.board.spinner.botEnd : this.board.spinner.pip;
+      addZone('bottom', '↓ BOTTOM', botEnd, 'board-drop-bottom');
     }
-    
+
     console.log('[DROPZONE] Created', this._activeDropZones.length, 'zones');
   }
   
@@ -3618,14 +3707,15 @@ class Game {
     if (getBonusTurn) {
       this.setAction(`Sister Wendy ${play.scoreGained > 0 ? 'scores ' + play.scoreGained : 'plays a double'}! She plays again...`);
       this.turn = 'wendy';
-      // Reset watchdog for each bonus turn leg
+      // Reset watchdog for each bonus turn leg (allow for 1.5s thinking delay)
       clearTimeout(this._watchdogTimer);
       this._watchdogTimer = setTimeout(() => {
         console.warn('[WATCHDOG] Wendy bonus turn timed out — forcing handoff');
         if (this.turn !== 'player') this._handToPlayer();
-      }, 5000);
-      // Use requestAnimationFrame to let UI update, then continue
-      requestAnimationFrame(() => this._executeWendyTurn());
+      }, 10000);
+      // 1.5s pause so the player can see each tile before Wendy plays again
+      this._showThinking();
+      setTimeout(() => this._executeWendyTurn(), 1500);
     } else {
       // Hand to player
       this._handToPlayer();
@@ -4105,6 +4195,34 @@ class Game {
       chain.appendChild(tileEl);
     }
     requestAnimationFrame(() => { chain.scrollLeft = chain.scrollWidth; });
+
+    // ── Spinner arms (top / bottom) ──
+    const boardArea = document.getElementById('board-area');
+    boardArea.querySelectorAll('.spinner-arm').forEach(a => a.remove());
+    if (this.board.spinner) {
+      const makeArm = (armTiles, label, pip) => {
+        const arm = document.createElement('div');
+        arm.className = 'spinner-arm';
+        if (armTiles.length === 0) {
+          const slot = document.createElement('div');
+          slot.className = 'spinner-open-slot';
+          slot.textContent = `${label} [${pip}]`;
+          arm.appendChild(slot);
+        } else {
+          armTiles.forEach(t => {
+            const el = this.buildTileEl(t, false, false);
+            el.classList.add('double-spinner'); // vertical display
+            arm.appendChild(el);
+          });
+        }
+        return arm;
+      };
+      const sp = this.board.spinner;
+      const topArm = makeArm([...sp.topArm].reverse(), '↑', sp.pip);
+      const botArm = makeArm([...sp.botArm], '↓', sp.pip);
+      boardArea.insertBefore(topArm, chain);
+      chain.insertAdjacentElement('afterend', botArm);
+    }
   }
 
   renderHand() {
@@ -4140,6 +4258,67 @@ class Game {
         }
         this.playerSelectTile(tile);
       });
+
+      // ── Drag & drop ──
+      div.setAttribute('draggable', 'true');
+      div.addEventListener('dragstart', (e) => {
+        if (this.turn !== 'player' || this._placementLock) { e.preventDefault(); return; }
+        const canPlayNow = this.board.isEmpty() || this.board.canPlay(tile);
+        if (!canPlayNow) { e.preventDefault(); return; }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', tile.id);
+        this._draggingTile = tile;
+        this._placementLock = true;
+        this.selected = tile;
+        audio.play('select');
+        const ends = this.board.validEnds(tile);
+        if (ends.length <= 1 || ends.includes('middle')) {
+          // Single end — board itself is the drop target
+          const endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
+          const boardArea = document.getElementById('board-area');
+          const onOver = (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; boardArea.classList.add('board-drag-over'); };
+          const onDrop = (ev) => {
+            ev.preventDefault();
+            boardArea.classList.remove('board-drag-over');
+            boardArea.removeEventListener('dragover', onOver);
+            boardArea.removeEventListener('drop', onDrop);
+            this._boardDragListeners = null;
+            if (this._draggingTile) this.playerPlayTile(tile, endToPlay);
+          };
+          boardArea.addEventListener('dragover', onOver);
+          boardArea.addEventListener('drop', onDrop);
+          this._boardDragListeners = { el: boardArea, over: onOver, drop: onDrop };
+        } else {
+          // Multiple ends — show drop zones
+          this.phase = 'end';
+          this.showBoardDropZones(tile, ends);
+          clearTimeout(this._lockWatchdog);
+          this._lockWatchdog = setTimeout(() => {
+            if (this.phase === 'end') this.playerSelectEnd(ends[0]);
+          }, 12000);
+        }
+      });
+      div.addEventListener('dragend', () => {
+        const dragged = this._draggingTile;
+        this._draggingTile = null;
+        // Clean up board drag listeners if drop didn't happen
+        if (this._boardDragListeners) {
+          const { el, over: ov, drop: dr } = this._boardDragListeners;
+          el.classList.remove('board-drag-over');
+          el.removeEventListener('dragover', ov);
+          el.removeEventListener('drop', dr);
+          this._boardDragListeners = null;
+          if (this.selected === dragged) { this.selected = null; this._placementLock = false; }
+        }
+        // If drop zones still up (no drop occurred), reset
+        if (this.phase === 'end' && this.selected === dragged) {
+          this.phase = 'play';
+          this.selected = null;
+          this._placementLock = false;
+          this.hideBoardDropZones();
+        }
+      });
+
       el.insertBefore(div, drawBtn);
     }
 
@@ -4211,6 +4390,21 @@ class Game {
     if (!this.board.isEmpty()) {
       document.getElementById('left-end-val').textContent  = this.board.leftEnd;
       document.getElementById('right-end-val').textContent = this.board.rightEnd;
+      let spinnerBadge = document.getElementById('spinner-end-badge');
+      if (this.board.spinner) {
+        if (!spinnerBadge) {
+          spinnerBadge = document.createElement('div');
+          spinnerBadge.className = 'end-badge';
+          spinnerBadge.id = 'spinner-end-badge';
+          spinnerBadge.innerHTML = '↑↓ Spinner: <span id="spinner-top-val" style="color:var(--highlight);font-weight:bold">—</span> / <span id="spinner-bot-val" style="color:var(--highlight);font-weight:bold">—</span>';
+          document.getElementById('end-indicators').appendChild(spinnerBadge);
+        }
+        const sp = this.board.spinner;
+        document.getElementById('spinner-top-val').textContent = sp.topArm.length > 0 ? sp.topEnd : sp.pip;
+        document.getElementById('spinner-bot-val').textContent = sp.botArm.length > 0 ? sp.botEnd : sp.pip;
+      } else if (spinnerBadge) {
+        spinnerBadge.remove();
+      }
     }
   }
 
