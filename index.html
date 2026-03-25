@@ -223,11 +223,11 @@ body {
   transition: all 0.3s;
   scroll-behavior: smooth;
 }
-/* Dynamic tile scaling - larger when few tiles, smaller as board fills */
-#board-chain.tiles-few .domino.board-tile { transform: scale(1.2); }
-#board-chain.tiles-some .domino.board-tile { transform: scale(1.0); }
-#board-chain.tiles-many .domino.board-tile { transform: scale(0.85); }
-#board-chain.tiles-lots .domino.board-tile { transform: scale(0.7); }
+/* Dynamic tile scaling - set CSS variable on chain, used by idle float animation */
+#board-chain.tiles-few  { --tile-scale: 1.2; }
+#board-chain.tiles-some { --tile-scale: 1.0; }
+#board-chain.tiles-many { --tile-scale: 0.85; }
+#board-chain.tiles-lots { --tile-scale: 0.7; }
 #board-empty-msg {
   color: rgba(255,255,255,0.25);
   font-size: 1rem;
@@ -914,25 +914,27 @@ body {
 /* Smooth tile glide onto board — spring physics easing */
 @keyframes tileGlideLeft {
   0%   { transform: translateX(-120px) rotate(-12deg) scale(0.85); opacity: 0; }
-  55%  { transform: translateX(8px) rotate(2deg) scale(1.05); opacity: 1; }
-  75%  { transform: translateX(-3px) rotate(-0.5deg) scale(0.98); }
-  100% { transform: translateX(0) rotate(0deg) scale(1); }
+  55%  { transform: translateX(8px) rotate(2deg) scale(calc(var(--tile-scale,1)*1.08)); opacity: 1; }
+  75%  { transform: translateX(-3px) rotate(-0.5deg) scale(calc(var(--tile-scale,1)*0.98)); }
+  100% { transform: translateX(0) rotate(0deg) scale(var(--tile-scale,1)); }
 }
 @keyframes tileGlideRight {
   0%   { transform: translateX(120px) rotate(12deg) scale(0.85); opacity: 0; }
-  55%  { transform: translateX(-8px) rotate(-2deg) scale(1.05); opacity: 1; }
-  75%  { transform: translateX(3px) rotate(0.5deg) scale(0.98); }
-  100% { transform: translateX(0) rotate(0deg) scale(1); }
+  55%  { transform: translateX(-8px) rotate(-2deg) scale(calc(var(--tile-scale,1)*1.08)); opacity: 1; }
+  75%  { transform: translateX(3px) rotate(0.5deg) scale(calc(var(--tile-scale,1)*0.98)); }
+  100% { transform: translateX(0) rotate(0deg) scale(var(--tile-scale,1)); }
 }
 @keyframes tileGlideDown {
   0%   { transform: translateY(-80px) scale(0.7) rotate(-5deg); opacity: 0; }
-  60%  { transform: translateY(6px) scale(1.08) rotate(1deg); opacity: 1; }
-  80%  { transform: translateY(-2px) scale(0.97) rotate(0deg); }
-  100% { transform: translateY(0) scale(1) rotate(0deg); }
+  60%  { transform: translateY(6px) scale(calc(var(--tile-scale,1)*1.08)) rotate(1deg); opacity: 1; }
+  80%  { transform: translateY(-2px) scale(calc(var(--tile-scale,1)*0.98)) rotate(0deg); }
+  100% { transform: translateY(0) scale(var(--tile-scale,1)) rotate(0deg); }
 }
-.tile-glide-left  { animation: tileGlideLeft  0.55s cubic-bezier(0.34, 1.4, 0.64, 1); }
-.tile-glide-right { animation: tileGlideRight 0.55s cubic-bezier(0.34, 1.4, 0.64, 1); }
-.tile-glide-down  { animation: tileGlideDown  0.5s  cubic-bezier(0.34, 1.4, 0.64, 1); }
+/* Landing flash — applied alongside glide animation via inline style in JS */
+@keyframes tileLand {
+  0%   { filter: brightness(1.8) drop-shadow(0 0 8px rgba(255, 224, 102, 0.9)); }
+  100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
+}
 
 /* FLIP flying tile — the clone that flies from hand to board */
 .tile-flip-fly {
@@ -1016,10 +1018,10 @@ body {
   transition: opacity 0.2s;
 }
 
-/* Subtle idle float for board tiles */
+/* Subtle idle float for board tiles — incorporates per-density scale via CSS var */
 @keyframes tileIdleFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-1px); }
+  0%, 100% { transform: scale(var(--tile-scale, 1)) translateY(0); }
+  50%       { transform: scale(var(--tile-scale, 1)) translateY(-2px); }
 }
 .board-tile {
   animation: tileIdleFloat 4s ease-in-out infinite;
@@ -2507,23 +2509,23 @@ function showScorePopup(points, anchorEl) {
   popup.className = 'score-popup' + (points >= 15 ? ' big' : '');
   popup.textContent = `+${points}`;
 
-  // Position near the score display or board center
-  let x, y;
+  // Anchor to board center — contextually near where the tile landed
+  const board = document.getElementById('board-area');
+  const r = board ? board.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0 };
+  const x = r.left + r.width / 2 + (Math.random() * 60 - 30); // slight horizontal jitter
+  const y = r.top + r.height * 0.35;
+
+  // Also pulse the score display for secondary feedback
   if (anchorEl) {
-    const r = anchorEl.getBoundingClientRect();
-    x = r.left + r.width / 2;
-    y = r.top;
-  } else {
-    const board = document.getElementById('board-area');
-    const r = board ? board.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0 };
-    x = r.left + r.width / 2;
-    y = r.top + 40;
+    anchorEl.classList.remove('score-roll');
+    void anchorEl.offsetWidth;
+    anchorEl.classList.add('score-roll');
   }
 
   popup.style.left = x + 'px';
   popup.style.top  = y + 'px';
   document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 1200);
+  setTimeout(() => popup.remove(), 1400);
 }
 
 // ── KEYBOARD HANDLER ──
@@ -3494,17 +3496,21 @@ class Game {
     this.turn = 'wendy-thinking';
     vfx.wendyMood('thinking');
     wendyVideo.set('thinking');
-    this.setAction("Sister Wendy plays...");
+    this.setAction("Sister Wendy is thinking...");
     this.setTurnIndicator();
+    this._showThinking();
 
-    // INSTANT execution - no delays
-    try {
-      this._executeWendyTurn();
-    } catch(e) {
-      console.error('[WENDY] Turn crashed:', e);
-      this.turn = 'wendy';
-      this._wendyPass();
-    }
+    // Brief thinking pause — makes Wendy feel like a real opponent
+    const thinkMs = 600 + Math.floor(Math.random() * 500); // 600–1100ms
+    setTimeout(() => {
+      try {
+        this._executeWendyTurn();
+      } catch(e) {
+        console.error('[WENDY] Turn crashed:', e);
+        this.turn = 'wendy';
+        this._wendyPass();
+      }
+    }, thinkMs);
   }
 
   // Wendy executes her ENTIRE turn synchronously (with draws if needed)
@@ -4080,9 +4086,12 @@ class Game {
       }
 
       if (this.lastPlacedTile === tile) {
-        if (this.lastPlacedEnd === 'left') tileEl.classList.add('tile-glide-left');
-        else if (this.lastPlacedEnd === 'right') tileEl.classList.add('tile-glide-right');
-        else tileEl.classList.add('tile-glide-down');
+        // Inline style wins over all class rules — safely compose glide + land flash
+        const glideName = this.lastPlacedEnd === 'left'  ? 'tileGlideLeft'
+                        : this.lastPlacedEnd === 'right' ? 'tileGlideRight'
+                        :                                  'tileGlideDown';
+        const glideDur  = (this.lastPlacedEnd !== 'left' && this.lastPlacedEnd !== 'right') ? '0.5s' : '0.55s';
+        tileEl.style.animation = `${glideName} ${glideDur} cubic-bezier(0.34,1.4,0.64,1) forwards, tileLand 0.65s ease-out`;
         this.lastPlacedTile = null;
         this.lastPlacedEnd  = null;
       }
@@ -4266,6 +4275,11 @@ class Game {
       if (thinkingOverlay) thinkingOverlay.classList.remove('show');
       if (banner) banner.classList.remove('show');
     }
+  }
+
+  _showThinking() {
+    const el = document.getElementById('thinking-overlay');
+    if (el) el.classList.add('show');
   }
 
   _hideThinking() {
