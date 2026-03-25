@@ -30,7 +30,7 @@
   --gold: #c9a84c;
   --red: #8b1a1a;
   --white: #f8f4ec;
-  --tile-shadow: 3px 3px 8px rgba(0,0,0,0.6);
+  --tile-shadow: 2px 4px 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.55);
   --panel-bg: rgba(60,25,10,0.92);
   --text-light: #f0e6cc;
   --highlight: #ffe066;
@@ -190,20 +190,27 @@ body {
   flex: 1;
   background: var(--felt);
   background-image:
-    radial-gradient(ellipse at center, #1e5535 0%, #112e1c 100%),
+    radial-gradient(ellipse at 50% 40%, #225f3a 0%, #163d26 55%, #0d2418 100%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255,255,255,0.012) 3px,
+      rgba(255,255,255,0.012) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(255,255,255,0.012) 3px,
+      rgba(255,255,255,0.012) 4px
+    ),
     repeating-linear-gradient(
       45deg,
       transparent,
-      transparent 10px,
-      rgba(0,0,0,0.04) 10px,
-      rgba(0,0,0,0.04) 11px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 10px,
-      rgba(0,0,0,0.04) 10px,
-      rgba(0,0,0,0.04) 11px
+      transparent 6px,
+      rgba(0,0,0,0.06) 6px,
+      rgba(0,0,0,0.06) 7px
     );
   overflow: auto;
   position: relative;
@@ -216,7 +223,7 @@ body {
 #board-chain {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
   padding: 20px;
   min-height: 120px;
   flex-wrap: nowrap;
@@ -259,9 +266,11 @@ body {
 .domino {
   display: flex;
   align-items: stretch;
-  background: var(--ivory);
-  border: 2px solid #888;
-  border-radius: 7px;
+  background: linear-gradient(160deg, #faf6e8 0%, #f0ead4 60%, #e8e0c8 100%);
+  border: 1.5px solid #a09070;
+  border-bottom-color: #706040;
+  border-right-color: #706040;
+  border-radius: 10px;
   box-shadow: var(--tile-shadow);
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
@@ -279,7 +288,7 @@ body {
   min-width: 88px;
 }
 .domino { transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s ease, outline 0.1s ease; }
-.domino:hover { transform: translateY(-9px) scale(1.05); box-shadow: 4px 12px 22px rgba(0,0,0,0.8), 0 0 8px rgba(255,255,255,0.08); }
+.domino:hover { transform: translateY(-9px) scale(1.05); box-shadow: 4px 14px 24px rgba(0,0,0,0.75), 0 0 10px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.7); }
 .domino.selected {
   outline: 3px solid var(--highlight);
   transform: translateY(-12px) scale(1.08);
@@ -302,11 +311,11 @@ body {
 }
 .domino.horiz .pip-half { padding: 4px; }
 .pip-half + .pip-half {
-  border-top: 2px solid #999;
+  border-top: 1.5px solid #b0a088;
 }
 .domino.horiz .pip-half + .pip-half {
   border-top: none;
-  border-left: 2px solid #999;
+  border-left: 1.5px solid #b0a088;
 }
 .pip-cell {
   display: flex;
@@ -333,14 +342,14 @@ body {
   min-width: 44px !important;
   height: 88px !important;
   min-height: 88px !important;
-  margin: -22px 4px; /* Center vertically in the chain */
+  margin: 0; /* chain uses align-items:center so vertical centering is handled */
 }
 .domino.board-tile.double-spinner .pip-half {
   padding: 5px;
 }
 .domino.board-tile.double-spinner .pip-half + .pip-half {
   border-left: none !important;
-  border-top: 2px solid #999 !important;
+  border-top: 1.5px solid #b0a088 !important;
 }
 
 /* ── DRAG & DROP STYLES ── */
@@ -2167,6 +2176,7 @@ class AudioSystem {
     this.enabled = this.loadPref();
     this.volume = 0.5;
     this.initialized = false;
+    this.buffers = {};
   }
 
   init() {
@@ -2174,10 +2184,37 @@ class AudioSystem {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.initialized = true;
+      this._loadSounds();
     } catch (e) {
       console.warn('Web Audio not supported');
       this.enabled = false;
     }
+  }
+
+  _loadSounds() {
+    const load = (name, url) => {
+      fetch(url)
+        .then(r => r.arrayBuffer())
+        .then(buf => this.ctx.decodeAudioData(buf))
+        .then(decoded => { this.buffers[name] = decoded; })
+        .catch(() => {}); // silently fall back to synth if file missing
+    };
+    load('place', 'assets/audio/place.mp3');
+    load('score', 'assets/audio/score.mp3');
+  }
+
+  _playBuffer(name, volume = 1.0) {
+    const buf = this.buffers[name];
+    if (!buf || !this.ctx) return false;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const src = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    src.buffer = buf;
+    gain.gain.setValueAtTime(volume * this.volume, this.ctx.currentTime);
+    src.connect(gain);
+    gain.connect(this.ctx.destination);
+    src.start();
+    return true;
   }
 
   loadPref() {
@@ -2273,18 +2310,22 @@ class AudioSystem {
         this.tone(600, 0.08, 'sine', 0.25);
         break;
       case 'place':
-        // Satisfying domino clack
-        this.tone(150, 0.08, 'square', 0.4);
-        setTimeout(() => this.tone(100, 0.06, 'square', 0.3), 30);
+        if (!this._playBuffer('place', 0.9)) {
+          // Fallback synth
+          this.tone(150, 0.08, 'square', 0.4);
+          setTimeout(() => this.tone(100, 0.06, 'square', 0.3), 30);
+        }
         break;
       case 'score':
-        // Ascending choir-like sound
-        this.sequence([523, 659, 784], 0.12, 'sine', 0.35);
+        if (!this._playBuffer('score', 0.85)) {
+          this.sequence([523, 659, 784], 0.12, 'sine', 0.35);
+        }
         break;
       case 'bigScore':
-        // Church bell + choir
-        this.tone(220, 0.5, 'sine', 0.4);
-        this.sequence([523, 659, 784, 1047], 0.15, 'sine', 0.35);
+        if (!this._playBuffer('score', 1.0)) {
+          this.tone(220, 0.5, 'sine', 0.4);
+          this.sequence([523, 659, 784, 1047], 0.15, 'sine', 0.35);
+        }
         break;
       case 'draw':
         // Card draw sound
@@ -2307,8 +2348,9 @@ class AudioSystem {
         setTimeout(() => this.tone(150, 0.2, 'sawtooth', 0.2), 100);
         break;
       case 'wendyScore':
-        // Nun triumph
-        this.sequence([392, 494, 587], 0.12, 'triangle', 0.3);
+        if (!this._playBuffer('score', 0.7)) {
+          this.sequence([392, 494, 587], 0.12, 'triangle', 0.3);
+        }
         break;
       case 'playerWin':
         // Victory fanfare
@@ -3694,8 +3736,7 @@ class Game {
       this.setSpeech(play.scoreGained >= 20 ? randQuote('herBigScore') : randQuote('herScores'));
     }
 
-    // Fly animation (cosmetic only)
-    this._flyWendyTileToBoard(playIdx, play.tile);
+    // Fly animation removed — caused ghost tile overlap
 
     // Check win/round end
     if (this.wendyHand.length === 0) { this.endRound('wendy'); return; }

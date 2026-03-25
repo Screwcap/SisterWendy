@@ -54,8 +54,13 @@ Everything lives in `index.html` — one file, ~5000 lines. No framework, no bui
 | `['left']` | Only fits the left end |
 | `['right']` | Only fits the right end |
 | `['left', 'right']` | Fits both ends — player must choose |
-| `['middle']` | Both ends are the same value (e.g. left=5, right=5) — treat as right |
+| `['middle']` | Both ends same value, no spinner — auto-plays as right |
+| `['top']` / `['bottom']` | Fits a spinner arm |
 | `[]` | Can't play this tile |
+
+#### Spinner doubles
+
+The first double played becomes the **spinner**. It has four playable arms: left, right, top, bottom. Drop zones appear for each open arm. Once all four sides are covered that pip value is closed. Spinner arm end-pips count toward scoring once tiles are played there.
 
 ### Turn Flow
 
@@ -73,7 +78,7 @@ doWendyTurn()
   → _executeWendyTurn() [synchronous, all draws in-loop]
     → _wendyPlayTile(play)
       → score, render, check win
-      → if scored or double: requestAnimationFrame(_executeWendyTurn)
+      → if scored or double: setTimeout(_executeWendyTurn, 1500ms)
       → else: _handToPlayer()
 ```
 
@@ -130,6 +135,9 @@ Added null guards on `emptyMsg` throughout, and removed the `chain.appendChild(e
 sister-wendy/
 ├── index.html          # The entire game
 ├── assets/
+│   ├── audio/
+│   │   ├── place.mp3   # Tile-laid sound effect
+│   │   └── score.mp3   # Scoring point sound effect
 │   ├── images/
 │   │   └── avatar.jpg  # Sister Wendy portrait
 │   └── videos/         # Optional MP4s (wendy-main, wendy-frustration, etc.)
