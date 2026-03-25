@@ -1896,9 +1896,8 @@ body {
     <div id="boneyard-badge">Boneyard: <span id="boneyard-count">14</span></div>
     <div id="turn-indicator">Your Turn</div>
     <div id="thinking-overlay">Sister Wendy is thinking...</div>
-    <div id="board-chain">
-      <div id="board-empty-msg">First tile sets the table — lead with faith.</div>
-    </div>
+    <div id="board-empty-msg">First tile sets the table — lead with faith.</div>
+    <div id="board-chain"></div>
     <div id="end-indicators" class="hidden">
       <div class="end-badge">Left: <span id="left-end-val">—</span></div>
       <div class="end-badge">Right: <span id="right-end-val">—</span></div>
@@ -3135,22 +3134,23 @@ class Game {
     this.selected = tile;
     audio.play('select');
 
-    // Pick the end that scores most; ties go to first valid end
     const ends = this.board.validEnds(tile);
-    let endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
-    if (ends.length > 1 && !ends.includes('middle')) {
-      let bestScore = -1;
-      for (const end of ends) {
-        const sim = new Board();
-        sim.chain = [...this.board.chain];
-        sim.leftEnd = this.board.leftEnd;
-        sim.rightEnd = this.board.rightEnd;
-        sim.play(new Tile(tile.a, tile.b), end);
-        const s = sim.scoreValue();
-        if (s > bestScore) { bestScore = s; endToPlay = end; }
-      }
+    // Single valid end (or special 'middle') — play directly
+    if (ends.length <= 1 || ends.includes('middle')) {
+      const endToPlay = ends.includes('middle') ? 'middle' : (ends[0] || 'first');
+      this.playerPlayTile(tile, endToPlay);
+      return;
     }
-    this.playerPlayTile(tile, endToPlay);
+    // Multiple valid ends — show drop zones and wait for player choice
+    this.phase = 'end';
+    this.showBoardDropZones(tile, ends);
+    clearTimeout(this._lockWatchdog);
+    this._lockWatchdog = setTimeout(() => {
+      if (this.phase === 'end') {
+        console.warn('[LOCK] End-select watchdog — auto-playing first end');
+        this.playerSelectEnd(ends[0]);
+      }
+    }, 12000);
   }
   
   // Show clickable drop zones directly on the board
@@ -4052,15 +4052,14 @@ class Game {
     if (endOverlay) endOverlay.classList.remove('visible');
 
     if (this.board.isEmpty()) {
-      chain.innerHTML = '';
-      chain.appendChild(emptyMsg);
-      emptyMsg.style.display = '';
+      chain.querySelectorAll('.board-tile').forEach(t => t.remove());
+      if (emptyMsg) emptyMsg.style.display = '';
       document.getElementById('end-indicators').classList.add('hidden');
       return;
     }
-    emptyMsg.style.display = 'none';
+    if (emptyMsg) emptyMsg.style.display = 'none';
     document.getElementById('end-indicators').classList.remove('hidden');
-    chain.innerHTML = '';
+    chain.querySelectorAll('.board-tile').forEach(t => t.remove());
 
     const chainLen = this.board.chain.length;
     
