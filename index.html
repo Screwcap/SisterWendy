@@ -431,16 +431,15 @@ body::after {
   justify-content: center;
 }
 .pip-dot {
-  width: 7px; height: 7px;
+  width: 9px; height: 9px;
   border-radius: 50%;
-  /* Deep carved pip — dark center with subtle colour depth */
-  background: radial-gradient(circle at 35% 30%, #3a2010, #100808 65%);
+  background: radial-gradient(circle at 35% 35%, #5a3a1a, #1a0a04);
   box-shadow:
-    inset 0 2px 4px rgba(0,0,0,0.95),
-    inset 0 -1px 1px rgba(255,255,255,0.05),
-    0 1px 2px rgba(255,255,255,0.35);
+    0 2px 4px rgba(0,0,0,0.7),
+    0 1px 2px rgba(0,0,0,0.5),
+    inset 0 1px 1px rgba(255,255,255,0.18);
 }
-.domino.horiz .pip-dot { width: 6px; height: 6px; }
+.domino.horiz .pip-dot { width: 8px; height: 8px; }
 .pip-dot.empty { background: transparent; box-shadow: none; }
 /* Divider line — gold leaf tint */
 .pip-half + .pip-half {
@@ -466,23 +465,19 @@ body::after {
   animation: doublePulse 1.6s ease-in-out infinite;
 }
 
-/* ── SPINNER ARM GROUP LAYOUT — multiple spinners side by side ── */
-.spinner-top-group,
-.spinner-bot-group {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-}
-.spinner-top-group { align-items: flex-end; }
-.spinner-bot-group { align-items: flex-start; }
-.spinner-sub-arm {
+/* ── SPINNER WRAPPER — inline column with double tile ── */
+.spinner-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 2px 0;
+  gap: 4px;
+}
+.spinner-top-arm,
+.spinner-bot-arm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Arm tile sizing mirrors chain density — boardArea carries the class */
@@ -591,7 +586,7 @@ body::after {
 .board-drag-over {
   outline: 3px dashed rgba(255,224,102,0.6);
 }
-/* Spinner arms */
+/* Spinner arm (used inside .spinner-top-arm / .spinner-bot-arm) */
 .spinner-arm {
   display: flex;
   flex-direction: column;
@@ -756,8 +751,8 @@ body::after {
   
   /* Larger pips on mobile */
   .pip-dot {
-    width: 8px !important;
-    height: 8px !important;
+    width: 9px !important;
+    height: 9px !important;
   }
   
   /* Bigger touch target - invisible padding */
@@ -902,8 +897,8 @@ body::after {
   .domino.horiz { height: 36px; min-width: 72px; }
   .domino.vert  { width: 36px; min-height: 72px; }
   .domino.board-tile.double-spinner { width: 36px !important; min-width: 36px !important; height: 72px !important; min-height: 72px !important; }
-  .pip-dot { width: 5px; height: 5px; }
-  .domino.horiz .pip-dot { width: 5px; height: 5px; }
+  .pip-dot { width: 9px; height: 9px; }
+  .domino.horiz .pip-dot { width: 8px; height: 8px; }
   #draw-btn { height: 72px !important; }
 }
 @media (max-width: 380px) {
@@ -948,6 +943,8 @@ body::after {
 }
 #draw-btn:hover:not(:disabled) { background: var(--wood-light); transform: translateY(-4px); }
 #draw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.draw-label { font-size: 0.75rem; letter-spacing: 0.05em; }
+.draw-count-wrap { font-size: 0.9rem; font-weight: bold; color: var(--gold-bright); }
 #pass-btn {
   background: var(--red);
   color: var(--text-light);
@@ -2346,7 +2343,7 @@ body::after {
     <div id="action-msg">Select a tile to play.</div>
     <div id="player-hand">
       <!-- tiles inserted by JS -->
-      <button id="draw-btn" onclick="game.playerDraw()" title="Draw from boneyard">Draw Tile<br>(<span id="draw-count">14</span>)</button>
+      <button id="draw-btn" onclick="game.playerDraw()" title="Draw from boneyard"><span class="draw-label">Draw</span><span class="draw-count-wrap">(<span id="draw-count">14</span>)</span></button>
       <button id="pass-btn" onclick="game.playerPass()" style="display:none;" title="Pass your turn">🚫<br>Pass</button>
       <button id="help-btn" onclick="game.helpMe()" title="Auto-play the best available tile for you">🆘<br><span style="font-size:0.7rem;">BEST PLAY</span></button>
     </div>
@@ -2622,6 +2619,7 @@ class AudioSystem {
     };
     load('place', 'assets/audio/place.mp3');
     load('score', 'assets/audio/score.mp3');
+    load('clear', 'assets/audio/clear.mp3');
   }
 
   _playBuffer(name, volume = 1.0) {
@@ -4433,8 +4431,9 @@ class Game {
         document.getElementById('round-overlay').classList.remove('hidden');
       }
     };
-    const boardTiles = document.querySelectorAll('.board-tile, .spinner-arm .domino');
+    const boardTiles = document.querySelectorAll('.board-tile, .spinner-wrapper .domino');
     if (boardTiles.length > 0) {
+      audio.play('clear');
       boardTiles.forEach((el, i) => {
         el.style.animationDelay = `${i * 18}ms`;
         el.classList.add('tile-sweep');
@@ -4738,14 +4737,14 @@ class Game {
     if (endOverlay) endOverlay.classList.remove('visible');
 
     if (this.board.isEmpty()) {
-      chain.querySelectorAll('.board-tile').forEach(t => t.remove());
+      chain.querySelectorAll('.board-tile, .spinner-wrapper').forEach(t => t.remove());
       if (emptyMsg) emptyMsg.style.display = '';
       document.getElementById('end-indicators').classList.add('hidden');
       return;
     }
     if (emptyMsg) emptyMsg.style.display = 'none';
     document.getElementById('end-indicators').classList.remove('hidden');
-    chain.querySelectorAll('.board-tile').forEach(t => t.remove());
+    chain.querySelectorAll('.board-tile, .spinner-wrapper').forEach(t => t.remove());
 
     const chainLen = this.board.chain.length;
 
@@ -4755,41 +4754,6 @@ class Game {
     chain.classList.add(densityClass);
     boardArea.classList.remove('tiles-few', 'tiles-some', 'tiles-many', 'tiles-lots');
     boardArea.classList.add(densityClass);
-    for (let i = 0; i < chainLen; i++) {
-      const tile = this.board.chain[i];
-      const tileEl = this.buildTileEl(tile, false, tile === this.selected);
-      tileEl.style.setProperty('--tile-index', i);
-      
-      // Doubles are displayed perpendicular (spinners)
-      if (tile.isDouble()) {
-        tileEl.classList.add('double-spinner');
-      }
-
-      if (this.lastPlacedTile === tile) {
-        // Just a quick brightness flash on land — no sliding/gliding
-        tileEl.style.animation = 'tileLand 0.5s ease-out';
-        this.lastPlacedTile = null;
-        this.lastPlacedEnd  = null;
-      }
-
-      if (this.selected && this.turn === 'player' && this.phase !== 'end') {
-        const validEnds = this.board.validEnds(this.selected);
-        const showBothEnds = validEnds.includes('middle');
-        if (i === 0 && (validEnds.includes('left') || showBothEnds)) tileEl.classList.add('board-end-glow');
-        if (i === chainLen - 1 && (validEnds.includes('right') || showBothEnds)) tileEl.classList.add('board-end-glow');
-      }
-      chain.appendChild(tileEl);
-    }
-    // Auto-center on the latest tile
-    requestAnimationFrame(() => {
-      const latest = chain.querySelector('.board-tile:last-of-type') || chain.lastElementChild;
-      if (latest && scrollWrap) {
-        latest.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
-    });
-
-    // ── Spinner arms (top / bottom) — all covered spinners ──
-    boardArea.querySelectorAll('.spinner-arm').forEach(a => a.remove());
 
     const makeArm = (armTiles, label, pip) => {
       const arm = document.createElement('div');
@@ -4810,25 +4774,58 @@ class Game {
       return arm;
     };
 
-    const coveredSpinners = this.board.spinners.filter(sp => {
-      const { left, right } = this.board._covered(sp);
-      return left && right;
-    });
+    this.board.chain.forEach((tile, i) => {
+      const spinnerData = this.board.spinners.find(s => s.tile === tile);
+      const isCovered = spinnerData && (() => { const c = this.board._covered(spinnerData); return c.left && c.right; })();
 
-    if (coveredSpinners.length > 0) {
-      const topGroup = document.createElement('div');
-      topGroup.className = 'spinner-arm spinner-top-group';
-      const botGroup = document.createElement('div');
-      botGroup.className = 'spinner-arm spinner-bot-group';
+      const tileEl = this.buildTileEl(tile, false, tile === this.selected);
+      tileEl.style.setProperty('--tile-index', i);
+      tileEl.classList.add('board-tile');
 
-      for (const sp of coveredSpinners) {
-        topGroup.appendChild(makeArm([...sp.topArm].reverse(), '↑', sp.tile.a));
-        botGroup.appendChild(makeArm([...sp.botArm], '↓', sp.tile.a));
+      // Doubles are displayed perpendicular (spinners)
+      if (tile.isDouble()) {
+        tileEl.classList.add('double-spinner');
       }
 
-      boardArea.insertBefore(topGroup, scrollWrap || chain);
-      (scrollWrap || chain).insertAdjacentElement('afterend', botGroup);
-    }
+      if (this.lastPlacedTile === tile) {
+        // Just a quick brightness flash on land — no sliding/gliding
+        tileEl.style.animation = 'tileLand 0.5s ease-out';
+        this.lastPlacedTile = null;
+        this.lastPlacedEnd  = null;
+      }
+
+      if (this.selected && this.turn === 'player' && this.phase !== 'end') {
+        const validEnds = this.board.validEnds(this.selected);
+        const showBothEnds = validEnds.includes('middle');
+        if (i === 0 && (validEnds.includes('left') || showBothEnds)) tileEl.classList.add('board-end-glow');
+        if (i === chainLen - 1 && (validEnds.includes('right') || showBothEnds)) tileEl.classList.add('board-end-glow');
+      }
+
+      if (isCovered) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'spinner-wrapper';
+
+        const topArm = makeArm([...spinnerData.topArm].reverse(), '↑', spinnerData.tile.a);
+        topArm.classList.add('spinner-top-arm');
+        const botArm = makeArm([...spinnerData.botArm], '↓', spinnerData.tile.a);
+        botArm.classList.add('spinner-bot-arm');
+
+        wrapper.appendChild(topArm);
+        wrapper.appendChild(tileEl);
+        wrapper.appendChild(botArm);
+        chain.appendChild(wrapper);
+      } else {
+        chain.appendChild(tileEl);
+      }
+    });
+    // Auto-center on the latest tile
+    requestAnimationFrame(() => {
+      const latest = chain.querySelector('.board-tile:last-of-type') || chain.lastElementChild;
+      if (latest && scrollWrap) {
+        latest.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    });
+
   }
 
   renderHand() {
