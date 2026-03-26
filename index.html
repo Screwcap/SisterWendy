@@ -325,8 +325,11 @@ body {
 .pip-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: var(--pip);
-  box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+  background: radial-gradient(circle at 38% 32%, #2a1a0a, #080404 70%);
+  box-shadow:
+    inset 0 2px 3px rgba(0,0,0,0.9),
+    inset 0 -1px 1px rgba(255,255,255,0.06),
+    0 1px 1px rgba(255,255,255,0.3);
 }
 .domino.horiz .pip-dot { width: 6px; height: 6px; }
 .pip-dot.empty { background: transparent; box-shadow: none; }
@@ -4064,6 +4067,7 @@ class Game {
     this.maxDeficit  = 0;
     this.roundNum    = 0;
     this.roundHistory = [];
+    this.isDaily = false; // fresh random shuffle, not the same daily seed
     this.updateScoreDisplay();
     this.updateRoundIndicator();
     this.updateRoundHistory();
