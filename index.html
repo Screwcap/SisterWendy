@@ -3708,8 +3708,20 @@ class Game {
     clearTimeout(this._lockWatchdog);
     this._lockWatchdog = setTimeout(() => {
       if (this.phase === 'end') {
-        console.warn('[LOCK] End-select watchdog — auto-playing first end');
-        this.playerSelectEnd(ends[0]);
+        // Auto-pick best scoring end — kind default
+        let bestEnd = ends[0], bestScore = -1;
+        for (const e of ends) {
+          const sim = new Board();
+          sim.chain    = [...this.board.chain];
+          sim.leftEnd  = this.board.leftEnd;
+          sim.rightEnd = this.board.rightEnd;
+          sim.spinners = this.board.spinners.map(s => ({ tile: s.tile, topArm: [...s.topArm], botArm: [...s.botArm], topEnd: s.topEnd, botEnd: s.botEnd }));
+          const simTile = new Tile(tile.a, tile.b);
+          sim.play(simTile, e);
+          const sc = sim.scoreValue();
+          if (sc > bestScore) { bestScore = sc; bestEnd = e; }
+        }
+        this.playerSelectEnd(bestEnd);
       }
     }, 12000);
   }
