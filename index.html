@@ -223,7 +223,7 @@ body {
 #board-chain {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   padding: 20px;
   min-height: 120px;
   flex-wrap: nowrap;
@@ -708,7 +708,7 @@ body {
   
   #board-chain {
     padding: 12px;
-    gap: 4px;
+    gap: 2px;
   }
   
   /* Overlay buttons bigger on mobile */
@@ -740,6 +740,21 @@ body {
     opacity: 0.35;
     filter: grayscale(30%);
   }
+}
+/* Small screens: shrink tiles so they fit without horizontal overflow */
+@media (max-width: 480px) {
+  .domino.horiz { height: 36px; min-width: 72px; }
+  .domino.vert  { width: 36px; min-height: 72px; }
+  .domino.board-tile.double-spinner { width: 36px !important; min-width: 36px !important; height: 72px !important; min-height: 72px !important; }
+  .pip-dot { width: 5px; height: 5px; }
+  .domino.horiz .pip-dot { width: 5px; height: 5px; }
+  #draw-btn { height: 72px !important; }
+}
+@media (max-width: 380px) {
+  .domino.horiz { height: 30px; min-width: 60px; }
+  .domino.vert  { width: 30px; min-height: 60px; }
+  .domino.board-tile.double-spinner { width: 30px !important; min-width: 30px !important; height: 60px !important; min-height: 60px !important; }
+  #draw-btn { height: 60px !important; }
 }
 #player-controls {
   display: flex;
@@ -1068,10 +1083,10 @@ body {
   transition: opacity 0.2s;
 }
 
-/* Subtle idle float for board tiles — incorporates per-density scale via CSS var */
+/* Subtle idle float for board tiles — no scale so tiles don't visually overlap */
 @keyframes tileIdleFloat {
-  0%, 100% { transform: scale(var(--tile-scale, 1)) translateY(0); }
-  50%       { transform: scale(var(--tile-scale, 1)) translateY(-2px); }
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-2px); }
 }
 .board-tile {
   animation: tileIdleFloat 4s ease-in-out infinite;
@@ -1083,6 +1098,14 @@ body {
   transition: box-shadow 0.3s ease;
 }
 
+/* Board sweep when round ends */
+@keyframes tileSweepLeft {
+  0%   { transform: translateX(0) translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-120vw) translateY(20px) rotate(-8deg); opacity: 0; }
+}
+.tile-sweep {
+  animation: tileSweepLeft 0.5s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
 /* Screen shake for big moments */
 @keyframes screenShake {
   0%, 100% { transform: translateX(0); }
@@ -1962,7 +1985,7 @@ body {
     <div id="action-msg">Select a tile to play.</div>
     <div id="player-hand">
       <!-- tiles inserted by JS -->
-      <button id="draw-btn" onclick="game.playerDraw()" title="Draw from boneyard">🃏<br>Draw<br>(<span id="draw-count">14</span>)</button>
+      <button id="draw-btn" onclick="game.playerDraw()" title="Draw from boneyard">Draw Tile<br>(<span id="draw-count">14</span>)</button>
       <button id="pass-btn" onclick="game.playerPass()" style="display:none;" title="Pass your turn">🚫<br>Pass</button>
       <button id="help-btn" onclick="game.helpMe()" title="Auto-play the best available tile for you">🆘<br><span style="font-size:0.7rem;">BEST PLAY</span></button>
     </div>
@@ -2988,15 +3011,18 @@ class Board {
       end = 'right';
     }
     // Spinner arms: top / bottom
+    // Arm tiles render vertically: aVal = TOP pip, bVal = BOTTOM pip
+    // Top arm: connecting pip (matching curEnd) must be at BOTTOM → use flipped=true when tile.a===curEnd
+    // Bot arm: connecting pip must be at TOP (toward spinner) → use flipped=false when tile.a===curEnd
     if (end === 'top' || end === 'bottom') {
       const isTop = end === 'top';
-      const arm       = isTop ? this.spinner.topArm : this.spinner.botArm;
-      const curEnd    = arm.length > 0 ? (isTop ? this.spinner.topEnd : this.spinner.botEnd) : this.spinner.pip;
+      const arm    = isTop ? this.spinner.topArm : this.spinner.botArm;
+      const curEnd = arm.length > 0 ? (isTop ? this.spinner.topEnd : this.spinner.botEnd) : this.spinner.pip;
       if (tile.a === curEnd) {
-        tile.flipped = false;
+        tile.flipped = isTop;  // top: a goes to bottom (flipped=true); bot: a stays at top (flipped=false)
         if (isTop) this.spinner.topEnd = tile.b; else this.spinner.botEnd = tile.b;
       } else {
-        tile.flipped = true;
+        tile.flipped = !isTop; // top: b stays at bottom (flipped=false); bot: b goes to top (flipped=true)
         if (isTop) this.spinner.topEnd = tile.a; else this.spinner.botEnd = tile.a;
       }
       arm.push(tile);
@@ -3969,10 +3995,23 @@ class Game {
     document.getElementById('round-wendy-pts').textContent  = `+${wendyRoundPts}`;
     document.getElementById('round-totals').textContent = `Game totals — You: ${this.playerTotal} | Sister Wendy: ${this.wendyTotal} / ${this.TARGET}`;
 
-    if (this.playerTotal >= this.TARGET || this.wendyTotal >= this.TARGET) {
-      this.showGameEnd();
+    // Sweep all board tiles off before showing result
+    const showResult = () => {
+      if (this.playerTotal >= this.TARGET || this.wendyTotal >= this.TARGET) {
+        this.showGameEnd();
+      } else {
+        document.getElementById('round-overlay').classList.remove('hidden');
+      }
+    };
+    const boardTiles = document.querySelectorAll('.board-tile, .spinner-arm .domino');
+    if (boardTiles.length > 0) {
+      boardTiles.forEach((el, i) => {
+        el.style.animationDelay = `${i * 18}ms`;
+        el.classList.add('tile-sweep');
+      });
+      setTimeout(showResult, 520 + boardTiles.length * 18);
     } else {
-      document.getElementById('round-overlay').classList.remove('hidden');
+      showResult();
     }
   }
 
@@ -4251,8 +4290,10 @@ class Game {
           arm.appendChild(slot);
         } else {
           armTiles.forEach(t => {
-            const el = this.buildTileEl(t, false, false);
-            el.classList.add('double-spinner'); // vertical display
+            // Build as horizontal board-tile, then switch to vertical display
+            const el = this.buildTileEl(t, false, false); // gets 'board-tile horiz'
+            el.classList.remove('horiz');
+            el.classList.add('vert'); // vertical: aVal on TOP, bVal on BOTTOM
             arm.appendChild(el);
           });
         }
