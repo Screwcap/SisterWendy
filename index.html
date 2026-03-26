@@ -230,11 +230,19 @@ body {
   transition: all 0.3s;
   scroll-behavior: smooth;
 }
-/* Dynamic tile scaling - set CSS variable on chain, used by idle float animation */
-#board-chain.tiles-few  { --tile-scale: 1.2; }
-#board-chain.tiles-some { --tile-scale: 1.0; }
-#board-chain.tiles-many { --tile-scale: 0.85; }
-#board-chain.tiles-lots { --tile-scale: 0.7; }
+/* Dynamic tile sizing by density — shrinks tiles so full board stays visible */
+#board-chain.tiles-few  .domino.board-tile.horiz { height: 44px; min-width: 88px; }
+#board-chain.tiles-some .domino.board-tile.horiz { height: 40px; min-width: 80px; }
+#board-chain.tiles-many .domino.board-tile.horiz { height: 34px; min-width: 68px; }
+#board-chain.tiles-lots .domino.board-tile.horiz { height: 28px; min-width: 56px; }
+#board-chain.tiles-few  .domino.board-tile.vert  { width: 44px; min-height: 88px; }
+#board-chain.tiles-some .domino.board-tile.vert  { width: 40px; min-height: 80px; }
+#board-chain.tiles-many .domino.board-tile.vert  { width: 34px; min-height: 68px; }
+#board-chain.tiles-lots .domino.board-tile.vert  { width: 28px; min-height: 56px; }
+/* double-spinner tracks vert sizing */
+#board-chain.tiles-some .domino.board-tile.double-spinner { width: 40px !important; min-width: 40px !important; height: 80px !important; min-height: 80px !important; }
+#board-chain.tiles-many .domino.board-tile.double-spinner { width: 34px !important; min-width: 34px !important; height: 68px !important; min-height: 68px !important; }
+#board-chain.tiles-lots .domino.board-tile.double-spinner { width: 28px !important; min-width: 28px !important; height: 56px !important; min-height: 56px !important; }
 #board-empty-msg {
   color: rgba(255,255,255,0.25);
   font-size: 1rem;
@@ -2969,7 +2977,7 @@ class Board {
     this.chain = [];   // Tile[], left to right
     this.leftEnd  = null;
     this.rightEnd = null;
-    this.spinner  = null; // { pip, topArm:[], botArm:[], topEnd, botEnd } — first double played
+    this.spinner  = null; // { pip, topArm:[], botArm:[], topEnd, botEnd, leftCovered, rightCovered }
   }
   isEmpty() { return this.chain.length === 0; }
 
@@ -2985,8 +2993,8 @@ class Board {
       return ['middle'];
     }
 
-    // Spinner: also check perpendicular arms
-    if (this.spinner) {
+    // Spinner: top/bottom only available after BOTH left and right chain sides are covered
+    if (this.spinner && this.spinner.leftCovered && this.spinner.rightCovered) {
       const topEnd = this.spinner.topArm.length > 0 ? this.spinner.topEnd : this.spinner.pip;
       const botEnd = this.spinner.botArm.length > 0 ? this.spinner.botEnd : this.spinner.pip;
       if (tile.matches(topEnd)) ends.push('top');
@@ -3005,7 +3013,8 @@ class Board {
       this.leftEnd  = tile.a;
       this.rightEnd = tile.b;
       if (tile.isDouble() && !this.spinner) {
-        this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a };
+        // First tile: neither side covered yet
+        this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a, leftCovered: false, rightCovered: false };
       }
       return;
     }
@@ -3040,6 +3049,7 @@ class Board {
         this.leftEnd = tile.b;
       }
       this.chain.unshift(tile);
+      if (this.spinner) this.spinner.leftCovered = true;
     } else { // 'right'
       if (tile.a === this.rightEnd) {
         tile.flipped = false;   // left=a matches chain, right=b exposed
@@ -3049,10 +3059,16 @@ class Board {
         this.rightEnd = tile.a;
       }
       this.chain.push(tile);
+      if (this.spinner) this.spinner.rightCovered = true;
     }
     // Any double played into the chain becomes the spinner (first one wins)
     if (tile.isDouble() && !this.spinner) {
-      this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a };
+      // Tiles already exist on the side we just played FROM
+      this.spinner = {
+        pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a,
+        leftCovered: (end === 'right'),  // played to right → existing chain is to its left
+        rightCovered: (end === 'left'),  // played to left → existing chain is to its right
+      };
     }
   }
 
@@ -3137,6 +3153,8 @@ function aiPickPlay(hand, board, difficulty = 'hard') {
           botArm: [...board.spinner.botArm],
           topEnd: board.spinner.topEnd,
           botEnd: board.spinner.botEnd,
+          leftCovered: board.spinner.leftCovered,
+          rightCovered: board.spinner.rightCovered,
         };
       }
       const simTile = new Tile(tile.a, tile.b);
@@ -4083,8 +4101,24 @@ class Game {
     let text;
     if (todayResult && todayResult.date === dailyChallenge.today) {
       text = dailyChallenge.getShareText(todayResult.won, todayResult.playerScore, todayResult.wendyScore);
+    } else if (playerWon) {
+      const winTaunts = [
+        `Sure, go ahead — tell them. Sister Wendy is not impressed, but you are welcome to gloat.`,
+        `I won, technically. Sister Wendy would like it noted that she was having an off day.`,
+        `Yes, I beat a nun at dominoes. Spiritually, I may not recover.`,
+        `Sister Wendy: ${this.wendyTotal}. Me: ${this.playerTotal}. She'll be praying for a rematch.`,
+        `I beat the nun. 📿 ${this.playerTotal}–${this.wendyTotal}. The Lord works in mysterious ways.`,
+      ];
+      text = `Sister Wendy's Dominoes${streakText}\n✝️ ${winTaunts[Math.floor(Math.random()*winTaunts.length)]}\n\nCan you beat her?\nhttps://sister-wendy.vercel.app`;
     } else {
-      text = `Sister Wendy's Dominoes${streakText}\n${result}\nYou: ${this.playerTotal} | Wendy: ${this.wendyTotal}\n\nCan you beat the nun?\nhttps://sister-wendy.vercel.app`;
+      const lossTaunts = [
+        `She beat me. Convincingly. I'm choosing to believe the tiles were blessed.`,
+        `Sister Wendy: ${this.wendyTotal}. Me: ${this.playerTotal}. Apparently God is on her side. Rude.`,
+        `I lost to a nun. In dominoes. Please pray for me.`,
+        `Sister Wendy won again. She did not look surprised.`,
+        `The nun remains undefeated in my household. Someone please help.`,
+      ];
+      text = `Sister Wendy's Dominoes\n😈 ${lossTaunts[Math.floor(Math.random()*lossTaunts.length)]}\n\nThink you can do better?\nhttps://sister-wendy.vercel.app`;
     }
     if (navigator.share) {
       navigator.share({ text }).catch(() => this.copyToClipboard(text));
