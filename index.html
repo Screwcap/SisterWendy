@@ -11,6 +11,9 @@
 <meta property="og:image" content="assets/images/social-card.jpeg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DK6P0HB2MB"></script>
 <script>
@@ -22,26 +25,58 @@
 <style>
 :root {
   --felt: #1a4a2e;
-  --felt-dark: #112e1c;
+  --felt-dark: #0e1c12;
   --wood: #5c3317;
   --wood-light: #7a4520;
-  --ivory: #f5f0e0;
+  --ivory: #f5f1e2;
+  --parchment: #ede0c4;
   --pip: #1a1010;
   --gold: #c9a84c;
+  --gold-leaf: #d4af37;
+  --gold-bright: #f5d060;
+  --burgundy: #3d0c1e;
+  --burgundy-dark: #1e0810;
+  --candle: #f5a030;
   --red: #8b1a1a;
   --white: #f8f4ec;
-  --tile-shadow: 2px 4px 6px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.55);
-  --panel-bg: rgba(60,25,10,0.92);
+  --tile-shadow: 3px 6px 14px rgba(0,0,0,0.72), 0 2px 4px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.65), inset -1px -1px 0 rgba(0,0,0,0.18);
+  --panel-bg: rgba(22,7,14,0.96);
   --text-light: #f0e6cc;
   --highlight: #ffe066;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Georgia', serif;
-  background: var(--felt-dark);
+  font-family: 'Playfair Display', 'Georgia', serif;
+  background: var(--burgundy-dark);
   color: var(--text-light);
   min-height: 100vh;
   overflow-x: hidden;
+}
+/* ── LUXURY BODY BACKGROUND — candlelit abbey ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, rgba(90,20,30,0.7) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% 100%, rgba(60,12,24,0.8) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(60,12,24,0.8) 0%, transparent 55%),
+    linear-gradient(180deg, #1e0810 0%, #150610 40%, #0e0808 100%);
+  pointer-events: none;
+}
+/* Stained-glass pattern overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    repeating-linear-gradient(0deg,   transparent, transparent 59px, rgba(180,120,30,0.04) 59px, rgba(180,120,30,0.04) 60px),
+    repeating-linear-gradient(90deg,  transparent, transparent 59px, rgba(180,120,30,0.04) 59px, rgba(180,120,30,0.04) 60px),
+    repeating-linear-gradient(45deg,  transparent, transparent 29px, rgba(120,40,60,0.025) 29px, rgba(120,40,60,0.025) 30px),
+    repeating-linear-gradient(-45deg, transparent, transparent 29px, rgba(120,40,60,0.025) 29px, rgba(120,40,60,0.025) 30px);
+  pointer-events: none;
 }
 
 /* ── LAYOUT ── */
@@ -55,18 +90,30 @@ body {
 
 /* ── HEADER ── */
 #header {
-  background: var(--panel-bg);
-  border-bottom: 3px solid var(--gold);
+  background: linear-gradient(180deg, rgba(22,7,14,0.98) 0%, rgba(30,10,18,0.96) 100%);
+  border-bottom: 2px solid var(--gold-leaf);
+  box-shadow: 0 2px 20px rgba(212,175,55,0.2), 0 4px 8px rgba(0,0,0,0.5);
   padding: 4px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  position: relative;
+}
+/* Gold leaf top edge */
+#header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-leaf) 20%, var(--gold-bright) 50%, var(--gold-leaf) 80%, transparent 100%);
+  opacity: 0.7;
 }
 #header h1 {
-  font-size: 1.4rem;
-  color: var(--gold);
-  text-shadow: 0 0 10px rgba(201,168,76,0.5);
+  font-family: 'IM Fell English', 'Georgia', serif;
+  font-size: 1.35rem;
+  color: var(--gold-leaf);
+  text-shadow: 0 0 12px rgba(212,175,55,0.6), 0 1px 2px rgba(0,0,0,0.8);
   letter-spacing: 1px;
 }
 #header h1 span { color: var(--white); font-size: 1rem; }
@@ -110,8 +157,8 @@ body {
 
 /* ── WENDY PANEL ── */
 #wendy-panel {
-  background: var(--panel-bg);
-  border-bottom: 2px solid var(--wood);
+  background: linear-gradient(180deg, rgba(18,6,12,0.97) 0%, rgba(24,8,16,0.96) 100%);
+  border-bottom: 1px solid rgba(212,175,55,0.25);
   padding: 4px 12px;
   display: flex;
   align-items: center;
@@ -188,47 +235,83 @@ body {
 /* ── BOARD ── */
 #board-area {
   flex: 1;
-  background: var(--felt);
-  background-image:
-    radial-gradient(ellipse at 50% 40%, #225f3a 0%, #163d26 55%, #0d2418 100%),
+  background:
+    radial-gradient(ellipse at 50% 45%, #1f5435 0%, #133522 55%, #0a2016 100%),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 3px,
-      rgba(255,255,255,0.012) 3px,
-      rgba(255,255,255,0.012) 4px
+      rgba(255,255,255,0.008) 3px,
+      rgba(255,255,255,0.008) 4px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
       transparent 3px,
-      rgba(255,255,255,0.012) 3px,
-      rgba(255,255,255,0.012) 4px
+      rgba(255,255,255,0.008) 3px,
+      rgba(255,255,255,0.008) 4px
     ),
     repeating-linear-gradient(
       45deg,
       transparent,
-      transparent 6px,
-      rgba(0,0,0,0.06) 6px,
-      rgba(0,0,0,0.06) 7px
+      transparent 8px,
+      rgba(0,0,0,0.04) 8px,
+      rgba(0,0,0,0.04) 9px
     );
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  scroll-behavior: smooth;
+  /* warm candlelit vignette */
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.5), inset 0 0 30px rgba(245,160,48,0.04);
+}
+/* Board scroll wrapper — horizontal scroll with fade edges */
+#board-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212,175,55,0.3) transparent;
+}
+#board-scroll-wrap::-webkit-scrollbar {
+  height: 4px;
+}
+#board-scroll-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+#board-scroll-wrap::-webkit-scrollbar-thumb {
+  background: rgba(212,175,55,0.3);
+  border-radius: 2px;
+}
+/* Fade gradient masks on left/right */
+#board-scroll-wrap::before,
+#board-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  z-index: 10;
+}
+#board-scroll-wrap::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(15,40,22,0.9), transparent);
+}
+#board-scroll-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(15,40,22,0.9), transparent);
 }
 #board-chain {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 20px;
+  padding: 20px 48px;
   min-height: 120px;
   flex-wrap: nowrap;
   transition: all 0.3s;
-  scroll-behavior: smooth;
 }
 /* Dynamic tile sizing by density — shrinks tiles so full board stays visible */
 #board-chain.tiles-few  .domino.board-tile.horiz { height: 44px; min-width: 88px; }
@@ -270,18 +353,24 @@ body {
 }
 .end-badge span { color: var(--highlight); font-weight: bold; font-size: 1rem; }
 
-/* ── DOMINO TILES ── */
+/* ── DOMINO TILES — Luxury Ecclesiastical Edition ── */
 .domino {
   display: flex;
   align-items: stretch;
-  background: linear-gradient(160deg, #faf6e8 0%, #f0ead4 60%, #e8e0c8 100%);
-  border: 1.5px solid #a09070;
-  border-bottom-color: #706040;
-  border-right-color: #706040;
-  border-radius: 10px;
+  /* Ivory parchment with subtle marble veining via multiple gradients */
+  background:
+    linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.18) 35.5%, transparent 36%),
+    linear-gradient(72deg,  transparent 55%, rgba(255,255,255,0.10) 55.5%, transparent 56%),
+    linear-gradient(160deg, #faf7ec 0%, #f2ebd6 45%, #e9e0c8 80%, #dfd5b8 100%);
+  border: 1px solid #b8a070;
+  border-bottom-color: #7a6040;
+  border-right-color: #7a6040;
+  border-top-color: #d8c898;
+  border-left-color: #d8c898;
+  border-radius: 9px;
   box-shadow: var(--tile-shadow);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s ease, outline 0.1s ease;
   position: relative;
   flex-shrink: 0;
 }
@@ -295,17 +384,32 @@ body {
   height: 44px;
   min-width: 88px;
 }
-.domino { transition: transform 0.18s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.18s ease, outline 0.1s ease; }
-.domino:hover { transform: translateY(-9px) scale(1.05); box-shadow: 4px 14px 24px rgba(0,0,0,0.75), 0 0 10px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.7); }
+.domino:hover {
+  transform: translateY(-8px) rotate(-1deg) scale(1.04);
+  box-shadow: 4px 16px 28px rgba(0,0,0,0.78), 0 0 14px rgba(245,208,96,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
+}
 .domino.selected {
-  outline: 3px solid var(--highlight);
-  transform: translateY(-12px) scale(1.08);
-  box-shadow: 0 14px 28px rgba(255,224,102,0.6);
+  outline: 3px solid var(--gold-bright);
+  transform: translateY(-14px) rotate(-0.8deg) scale(1.08);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.75), 0 0 24px rgba(245,208,96,0.55), inset 0 1px 0 rgba(255,255,255,0.8);
   z-index: 10;
 }
-.domino.playable { outline: 2px solid rgba(100,255,150,0.7); cursor: pointer; }
-.domino.playable:hover { outline: 3px solid rgba(100,255,150,1); box-shadow: 0 0 14px rgba(100,255,150,0.5), 3px 10px 18px rgba(0,0,0,0.7); }
-.domino.unplayable { opacity: 0.38; cursor: not-allowed; filter: grayscale(40%); }
+/* Playable = warm candlelit gold halo instead of green */
+.domino.playable {
+  outline: 2px solid rgba(212,175,55,0.8);
+  box-shadow: var(--tile-shadow), 0 0 10px rgba(212,175,55,0.35);
+  cursor: pointer;
+  animation: playableGlow 1.8s ease-in-out infinite;
+}
+.domino.playable:hover {
+  outline: 3px solid var(--gold-bright);
+  box-shadow: 0 0 20px rgba(212,175,55,0.65), 3px 12px 22px rgba(0,0,0,0.75);
+}
+@keyframes playableGlow {
+  0%, 100% { box-shadow: var(--tile-shadow), 0 0 8px rgba(212,175,55,0.3); }
+  50%       { box-shadow: var(--tile-shadow), 0 0 18px rgba(245,208,96,0.6); }
+}
+.domino.unplayable { opacity: 0.35; cursor: not-allowed; filter: grayscale(50%) brightness(0.85); }
 .domino.board-tile { cursor: default; transition: none; }
 .domino.board-tile:hover { transform: none; }
 
@@ -318,13 +422,6 @@ body {
   gap: 1px;
 }
 .domino.horiz .pip-half { padding: 4px; }
-.pip-half + .pip-half {
-  border-top: 1.5px solid #b0a088;
-}
-.domino.horiz .pip-half + .pip-half {
-  border-top: none;
-  border-left: 1.5px solid #b0a088;
-}
 .pip-cell {
   display: flex;
   align-items: center;
@@ -333,18 +430,38 @@ body {
 .pip-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #2a1a0a, #080404 70%);
+  /* Deep carved pip — dark center with subtle colour depth */
+  background: radial-gradient(circle at 35% 30%, #3a2010, #100808 65%);
   box-shadow:
-    inset 0 2px 3px rgba(0,0,0,0.9),
-    inset 0 -1px 1px rgba(255,255,255,0.06),
-    0 1px 1px rgba(255,255,255,0.3);
+    inset 0 2px 4px rgba(0,0,0,0.95),
+    inset 0 -1px 1px rgba(255,255,255,0.05),
+    0 1px 2px rgba(255,255,255,0.35);
 }
 .domino.horiz .pip-dot { width: 6px; height: 6px; }
 .pip-dot.empty { background: transparent; box-shadow: none; }
+/* Divider line — gold leaf tint */
+.pip-half + .pip-half {
+  border-top: 1.5px solid rgba(168,130,60,0.8);
+}
+.domino.horiz .pip-half + .pip-half {
+  border-top: none;
+  border-left: 1.5px solid rgba(168,130,60,0.8);
+}
 
 /* end-select glow */
-.end-left { box-shadow: -4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
-.end-right { box-shadow: 4px 0 10px rgba(255,224,102,0.8), var(--tile-shadow); }
+.end-left { box-shadow: -4px 0 12px rgba(212,175,55,0.9), var(--tile-shadow); }
+.end-right { box-shadow: 4px 0 12px rgba(212,175,55,0.9), var(--tile-shadow); }
+
+/* ── LUXURY DOUBLES — ornate gold border + halo ── */
+.domino.board-tile.double-spinner {
+  border: 1.5px solid var(--gold-leaf) !important;
+  box-shadow: var(--tile-shadow), 0 0 8px rgba(212,175,55,0.4) !important;
+}
+.domino.playable[data-double="true"],
+.domino.hand-double-playable {
+  border-color: var(--gold-bright) !important;
+  animation: doublePulse 1.6s ease-in-out infinite;
+}
 
 /* ── PERPENDICULAR DOUBLES (spinners) ── */
 .domino.board-tile.double-spinner {
@@ -360,7 +477,7 @@ body {
 }
 .domino.board-tile.double-spinner .pip-half + .pip-half {
   border-left: none !important;
-  border-top: 1.5px solid #b0a088 !important;
+  border-top: 1.5px solid rgba(168,130,60,0.8) !important;
 }
 
 /* ── DRAG & DROP STYLES ── */
@@ -575,8 +692,9 @@ body {
 
 /* ── PLAYER PANEL ── */
 #player-panel {
-  background: var(--panel-bg);
-  border-top: 3px solid var(--gold);
+  background: linear-gradient(0deg, rgba(18,6,12,0.98) 0%, rgba(26,9,18,0.96) 100%);
+  border-top: 2px solid var(--gold-leaf);
+  box-shadow: 0 -2px 20px rgba(0,0,0,0.5);
   padding: 6px 12px 8px;
   flex-shrink: 0;
 }
@@ -630,15 +748,15 @@ body {
     box-shadow: 0 12px 24px rgba(255,224,102,0.6);
   }
   
-  /* Playable tiles pulse on mobile */
+  /* Playable tiles pulse on mobile — gold halo */
   .domino.playable {
-    outline: 3px solid rgba(100,255,150,0.7);
+    outline: 3px solid rgba(212,175,55,0.8);
     animation: mobilePulse 1.5s ease-in-out infinite;
   }
-  
+
   @keyframes mobilePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(100,255,150,0.4); }
-    50% { box-shadow: 0 0 12px 4px rgba(100,255,150,0.6); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.3); }
+    50% { box-shadow: 0 0 14px 4px rgba(212,175,55,0.55); }
   }
   
   /* Larger end-select buttons on mobile */
@@ -1452,9 +1570,9 @@ body {
 }
 #thinking-overlay.show { opacity: 1; }
 
-/* Valid end glow on board tiles */
+/* Valid end glow on board tiles — gold instead of green */
 .board-end-glow {
-  box-shadow: 0 0 0 3px rgba(100,255,150,0.9), 0 0 16px rgba(100,255,150,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.95), 0 0 18px rgba(212,175,55,0.7) !important;
   transition: box-shadow 0.2s !important;
 }
 
@@ -1882,6 +2000,214 @@ body {
   opacity: 1;
 }
 
+/* ── LUXURY MOOD SELECTOR CARDS ── */
+.mood-card {
+  flex: 1;
+  min-width: 80px;
+  padding: 10px 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(200,160,60,0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  transition: all 0.25s;
+  opacity: 0.65;
+  position: relative;
+  overflow: hidden;
+}
+.mood-card:hover { opacity: 0.9; transform: translateY(-2px); }
+.mood-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.mood-card.active {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+/* Forgiving — soft warm glow */
+.mood-card.forgiving.active {
+  border-color: rgba(180,210,180,0.7);
+  box-shadow: 0 0 14px rgba(120,220,120,0.25), inset 0 0 10px rgba(100,200,100,0.08);
+  background: rgba(80,160,80,0.12);
+}
+/* Focused — amber intensity */
+.mood-card.focused.active {
+  border-color: rgba(212,175,55,0.9);
+  box-shadow: 0 0 18px rgba(212,175,55,0.4), inset 0 0 12px rgba(212,175,55,0.1);
+  background: rgba(140,110,20,0.15);
+}
+/* Merciless — fiery red-gold edges */
+.mood-card.merciless.active {
+  border-color: rgba(200,60,40,0.8);
+  box-shadow: 0 0 20px rgba(200,60,40,0.5), 0 0 40px rgba(220,80,30,0.2), inset 0 0 14px rgba(200,60,40,0.12);
+  background: rgba(120,20,10,0.18);
+  animation: mercilessPulse 2s ease-in-out infinite;
+}
+@keyframes mercilessPulse {
+  0%,100% { box-shadow: 0 0 16px rgba(200,60,40,0.4), inset 0 0 10px rgba(200,60,40,0.1); }
+  50%     { box-shadow: 0 0 28px rgba(220,80,30,0.6), inset 0 0 18px rgba(200,60,40,0.18); }
+}
+.mood-card .mood-icon { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+.mood-card .mood-label { font-size: 0.72rem; letter-spacing: 0.5px; }
+/* Current mood banner */
+#mood-banner {
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+
+/* ── SCORE PARTICLE BURST ── */
+.score-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 600;
+  font-size: 0.85rem;
+  color: var(--gold-bright);
+  animation: particleBurst var(--dur, 0.9s) cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+  text-shadow: 0 0 6px rgba(245,208,96,0.8);
+  will-change: transform, opacity;
+}
+@keyframes particleBurst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  60%  { opacity: 0.8; }
+  100% { transform: translate(var(--tx, 0px), var(--ty, -60px)) scale(0.4); opacity: 0; }
+}
+
+/* ── TUTORIAL OVERLAY ── */
+#tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,4,8,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+#tutorial-overlay.hidden { display: none; }
+#tutorial-box {
+  background: linear-gradient(160deg, rgba(35,12,20,0.98) 0%, rgba(22,7,14,0.98) 100%);
+  border: 2px solid var(--gold-leaf);
+  border-radius: 16px;
+  padding: 32px 36px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 0 60px rgba(212,175,55,0.25), 0 0 120px rgba(212,175,55,0.1);
+  position: relative;
+}
+#tutorial-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold-bright) 30%, var(--gold-leaf) 50%, var(--gold-bright) 70%, transparent);
+  border-radius: 16px 16px 0 0;
+}
+#tutorial-box h2 {
+  font-family: 'IM Fell English', 'Georgia', serif;
+  color: var(--gold-leaf);
+  font-size: 1.6rem;
+  text-align: center;
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(212,175,55,0.4);
+}
+#tutorial-box .tut-subtitle {
+  text-align: center;
+  font-style: italic;
+  color: rgba(240,230,204,0.7);
+  font-size: 0.9rem;
+  margin-bottom: 24px;
+}
+.tut-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  background: rgba(212,175,55,0.06);
+  border: 1px solid rgba(212,175,55,0.18);
+  border-radius: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.tut-step.visible { opacity: 1; transform: translateY(0); }
+.tut-step-num {
+  font-family: 'IM Fell English', serif;
+  color: var(--gold-leaf);
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+.tut-step-text strong { color: var(--gold-bright); }
+.tut-step-text { font-size: 0.88rem; line-height: 1.5; color: var(--text-light); }
+#tutorial-dismiss {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--gold-leaf) 0%, #a08030 100%);
+  color: #1a0800;
+  border: none;
+  border-radius: 10px;
+  font-family: 'IM Fell English', 'Georgia', serif;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(212,175,55,0.4);
+}
+#tutorial-dismiss:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(212,175,55,0.6); }
+
+/* ── UNDO BUTTON ── */
+#undo-btn {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(10,5,8,0.88);
+  border: 1.5px dashed rgba(200,160,60,0.6);
+  color: rgba(212,175,55,0.85);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  letter-spacing: 0.5px;
+}
+#undo-btn.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+#undo-btn:hover {
+  background: rgba(40,18,10,0.95);
+  border-color: var(--gold-leaf);
+  color: var(--gold-bright);
+}
+@media (max-width: 768px) {
+  #undo-btn { bottom: 160px; font-size: 0.95rem; padding: 10px 24px; }
+}
+
 /* Stats modal */
 .stats-modal {
   position: fixed;
@@ -1944,7 +2270,7 @@ body {
 <div id="game-wrap">
   <!-- HEADER -->
   <div id="header">
-    <h1>Sister Wendy's Dominoes <span class="rules-link" onclick="game.showHowToPlay()">— Horse Race Rules 📖</span></h1>
+    <h1>&#x2767; Sister Wendy's Dominoes <span class="rules-link" onclick="game.showHowToPlay()">— Horse Race Rules 📖</span></h1>
     <div id="scores-display">
       <div class="score-block">
         <div class="score-label">You</div>
@@ -1983,7 +2309,9 @@ body {
     <div id="turn-indicator">Your Turn</div>
     <div id="thinking-overlay">Sister Wendy is thinking...</div>
     <div id="board-empty-msg">First tile sets the table — lead with faith.</div>
-    <div id="board-chain"></div>
+    <div id="board-scroll-wrap">
+      <div id="board-chain"></div>
+    </div>
     <div id="end-indicators" class="hidden">
       <div class="end-badge">Left: <span id="left-end-val">—</span></div>
       <div class="end-badge">Right: <span id="right-end-val">—</span></div>
@@ -2029,11 +2357,20 @@ body {
     <div id="menu-streak"></div>
     
     <div style="margin-bottom:12px">
-      <div style="font-size:0.7rem;letter-spacing:1.5px;color:#aaa;text-transform:uppercase;margin-bottom:8px">Wendy's Mood</div>
+      <div id="mood-banner">Wendy's Disposition</div>
       <div style="display:flex;gap:8px;justify-content:center" id="difficulty-btns">
-        <button class="diff-btn active" id="diff-easy"   onclick="game.setDifficulty('easy')"   title="Sister Wendy is feeling charitable">😇 Forgiving</button>
-        <button class="diff-btn"        id="diff-medium" onclick="game.setDifficulty('medium')" title="Sister Wendy is focused">😤 Focused</button>
-        <button class="diff-btn"        id="diff-hard"   onclick="game.setDifficulty('hard')"   title="Sister Wendy is in full nun mode">😈 Merciless</button>
+        <button class="mood-card forgiving active" id="diff-easy" onclick="game.setDifficulty('easy')" title="Sister Wendy is feeling charitable">
+          <span class="mood-icon">😇</span>
+          <span class="mood-label">Forgiving</span>
+        </button>
+        <button class="mood-card focused" id="diff-medium" onclick="game.setDifficulty('medium')" title="Sister Wendy is focused">
+          <span class="mood-icon">😤</span>
+          <span class="mood-label">Focused</span>
+        </button>
+        <button class="mood-card merciless" id="diff-hard" onclick="game.setDifficulty('hard')" title="Sister Wendy is in full nun mode">
+          <span class="mood-icon">😈</span>
+          <span class="mood-label">Merciless</span>
+        </button>
       </div>
     </div>
 
@@ -2187,6 +2524,34 @@ body {
     <div class="end-btn-label">Play Right</div>
   </div>
 </div>
+
+<!-- TUTORIAL OVERLAY (first-time only) -->
+<div id="tutorial-overlay" class="hidden">
+  <div id="tutorial-box">
+    <h2>Sister Wendy's Dominoes</h2>
+    <p class="tut-subtitle">"A brief catechism before we begin, child."</p>
+    <div class="tut-step" id="tut-1">
+      <div class="tut-step-num">I</div>
+      <div class="tut-step-text"><strong>Tap a tile</strong> in your hand to select it — green glow means playable. Numbers must match the open ends of the chain.</div>
+    </div>
+    <div class="tut-step" id="tut-2">
+      <div class="tut-step-num">II</div>
+      <div class="tut-step-text"><strong>Score when open ends add to a multiple of 5</strong> (5, 10, 15, 20…). Doubles count both sides — a [5|5] on the end = 10 pts!</div>
+    </div>
+    <div class="tut-step" id="tut-3">
+      <div class="tut-step-num">III</div>
+      <div class="tut-step-text"><strong>Bonus turns</strong> — play a double or score and you play again. Sister Wendy will be watching.</div>
+    </div>
+    <div class="tut-step" id="tut-4">
+      <div class="tut-step-num">IV</div>
+      <div class="tut-step-text"><strong>First to 61 points</strong> wins the match. Empty your hand to win the round and claim opponent's leftover pips.</div>
+    </div>
+    <button id="tutorial-dismiss" onclick="game.dismissTutorial()">Got it, child ✝</button>
+  </div>
+</div>
+
+<!-- UNDO BUTTON -->
+<button id="undo-btn" onclick="game.undoLastPlay()">↩ Undo</button>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -2536,6 +2901,36 @@ const vfx = {
     }
   },
   
+  // Gold particle burst on score (cross/halo symbols radiate outward)
+  scoreParticles(anchorEl, pts) {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const count = pts >= 15 ? 14 : pts >= 10 ? 10 : 7;
+    const symbols = ['✦', '✧', '✝', '✶', '◆', '❖', '☩'];
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'score-particle';
+      p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      const angle = (360 / count) * i + (Math.random() * 30 - 15);
+      const rad = angle * Math.PI / 180;
+      const dist = 40 + Math.random() * 50;
+      const tx = Math.cos(rad) * dist;
+      const ty = Math.sin(rad) * dist - 20;
+      const dur = 0.7 + Math.random() * 0.4;
+      p.style.setProperty('--tx', tx + 'px');
+      p.style.setProperty('--ty', ty + 'px');
+      p.style.setProperty('--dur', dur + 's');
+      p.style.left = (cx + (Math.random() * 20 - 10)) + 'px';
+      p.style.top  = (cy + (Math.random() * 14 - 7))  + 'px';
+      p.style.fontSize = (0.7 + Math.random() * 0.5) + 'rem';
+      p.style.animationDelay = (Math.random() * 0.12) + 's';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), (dur + 0.15) * 1000);
+    }
+  },
+
   // Screen shake effect
   shake(intensity = 'normal') {
     const wrap = document.getElementById('game-wrap');
@@ -3422,6 +3817,17 @@ class Game {
     }
     console.log('[PLAY] Playing tile:', tile.id, 'to:', end);
 
+    // Snapshot state for undo BEFORE we mutate anything
+    this._undoSnapshot = {
+      hand: [...this.playerHand],
+      chain: [...this.board.chain],
+      leftEnd: this.board.leftEnd,
+      rightEnd: this.board.rightEnd,
+      spinner: this.board.spinner ? { ...this.board.spinner, topArm: [...this.board.spinner.topArm], botArm: [...this.board.spinner.botArm] } : null,
+      playerTotal: this.playerTotal,
+      boneyard: [...this.boneyard],
+    };
+
     // Hide first-turn hint and drop zones
     this.hideFirstTurnHint();
     this.hideBoardDropZones();
@@ -3453,10 +3859,14 @@ class Game {
     if (scored > 0) {
       this.updateScoreDisplay();
       this.flashScore('player');
-      showScorePopup(scored, document.getElementById('player-score-val'));
+      const scoreEl = document.getElementById('player-score-val');
+      showScorePopup(scored, scoreEl);
+      vfx.scoreParticles(scoreEl, scored);
       scored >= 15 ? audio.play('bigScore') : audio.play('score');
       vfx.celebrateScore('player', scored);
     }
+    // Show undo button (fades after 3s)
+    this._showUndoBtn();
     if (tile.isDouble()) {
       audio.play('double');
       const dVal = tile.a;
@@ -3776,7 +4186,9 @@ class Game {
     if (play.scoreGained > 0) {
       this.updateScoreDisplay();
       this.flashScore('wendy');
-      showScorePopup(play.scoreGained, document.getElementById('wendy-score-val'));
+      const wendyScoreEl = document.getElementById('wendy-score-val');
+      showScorePopup(play.scoreGained, wendyScoreEl);
+      vfx.scoreParticles(wendyScoreEl, play.scoreGained);
       play.scoreGained >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
       vfx.wendyMood('smug');
       vfx.celebrateScore('wendy', play.scoreGained);
@@ -4150,11 +4562,72 @@ class Game {
 
   setDifficulty(level) {
     this.difficulty = level;
-    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mood-card, .diff-btn').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('diff-' + level);
     if (btn) btn.classList.add('active');
     const labels = { easy: 'Forgiving 😇', medium: 'Focused 😤', hard: 'Merciless 😈' };
     showToast(`Wendy is now ${labels[level]}`);
+  }
+
+  // ── UNDO ──
+  _showUndoBtn() {
+    const btn = document.getElementById('undo-btn');
+    if (!btn) return;
+    clearTimeout(this._undoTimer);
+    btn.classList.add('show');
+    this._undoTimer = setTimeout(() => {
+      btn.classList.remove('show');
+      this._undoSnapshot = null;
+    }, 3000);
+  }
+
+  undoLastPlay() {
+    const snap = this._undoSnapshot;
+    if (!snap) return;
+    clearTimeout(this._undoTimer);
+    const btn = document.getElementById('undo-btn');
+    if (btn) btn.classList.remove('show');
+    this._undoSnapshot = null;
+    // Restore state
+    this.playerHand = snap.hand;
+    this.board.chain = snap.chain;
+    this.board.leftEnd = snap.leftEnd;
+    this.board.rightEnd = snap.rightEnd;
+    this.board.spinner = snap.spinner;
+    this.playerTotal = snap.playerTotal;
+    this.boneyard = snap.boneyard;
+    this.lastPlacedTile = null;
+    this.lastPlacedEnd = null;
+    this.selected = null;
+    this.phase = 'select';
+    this.turn = 'player';
+    this._placementLock = false;
+    this.renderAll();
+    this.setAction('Undone. Choose a tile to play.');
+    showToast('↩ Move undone', 1500);
+    audio.play('click');
+  }
+
+  // ── TUTORIAL ──
+  initTutorial() {
+    try {
+      if (localStorage.getItem('sw_tutorial_seen')) return;
+    } catch { return; }
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    // Stagger step reveals
+    const steps = overlay.querySelectorAll('.tut-step');
+    steps.forEach((s, i) => {
+      setTimeout(() => s.classList.add('visible'), 200 + i * 350);
+    });
+  }
+
+  dismissTutorial() {
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    try { localStorage.setItem('sw_tutorial_seen', '1'); } catch {}
+    audio.play('click');
   }
 
   updateMenuStreak() {
@@ -4261,6 +4734,7 @@ class Game {
   renderBoard() {
     const chain    = document.getElementById('board-chain');
     const emptyMsg = document.getElementById('board-empty-msg');
+    const scrollWrap = document.getElementById('board-scroll-wrap');
     // OLD overlay disabled - we use on-board drop zones now
     const endOverlay = document.getElementById('end-select-overlay');
     if (endOverlay) endOverlay.classList.remove('visible');
@@ -4312,7 +4786,13 @@ class Game {
       }
       chain.appendChild(tileEl);
     }
-    requestAnimationFrame(() => { chain.scrollLeft = chain.scrollWidth; });
+    // Auto-center on the latest tile
+    requestAnimationFrame(() => {
+      const latest = chain.querySelector('.board-tile:last-of-type') || chain.lastElementChild;
+      if (latest && scrollWrap) {
+        latest.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    });
 
     // ── Spinner arms (top / bottom) ──
     const boardArea = document.getElementById('board-area');
@@ -5313,6 +5793,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── BOOT ──
 const game = new Game();
+// Show tutorial on first ever visit (after a tiny delay so menu renders first)
+setTimeout(() => game.initTutorial(), 600);
 </script>
 </body>
 </html>
