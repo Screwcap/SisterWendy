@@ -466,6 +466,30 @@ body::after {
   animation: doublePulse 1.6s ease-in-out infinite;
 }
 
+/* ── SPINNER ARM GROUP LAYOUT — multiple spinners side by side ── */
+.spinner-top-group,
+.spinner-bot-group {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+.spinner-top-group { align-items: flex-end; }
+.spinner-bot-group { align-items: flex-start; }
+.spinner-sub-arm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 0;
+}
+
+/* Arm tile sizing mirrors chain density — boardArea carries the class */
+#board-area.tiles-some .spinner-arm .domino.vert { width: 40px; min-height: 80px; }
+#board-area.tiles-many .spinner-arm .domino.vert { width: 34px; min-height: 68px; }
+#board-area.tiles-lots .spinner-arm .domino.vert { width: 28px; min-height: 56px; }
+
 /* ── PERPENDICULAR DOUBLES (spinners) ── */
 .domino.board-tile.double-spinner {
   flex-direction: column !important;
@@ -3367,33 +3391,41 @@ class Tile {
 // ── BOARD ──
 class Board {
   constructor() {
-    this.chain = [];   // Tile[], left to right
+    this.chain    = [];   // Tile[], left to right
     this.leftEnd  = null;
     this.rightEnd = null;
-    this.spinner  = null; // { pip, topArm:[], botArm:[], topEnd, botEnd, leftCovered, rightCovered }
+    this.spinners = []; // [{ tile, topArm:[], botArm:[], topEnd, botEnd }]
+    // Legacy alias so any stray references don't crash
+    Object.defineProperty(this, 'spinner', { get: () => this.spinners[0] || null });
   }
   isEmpty() { return this.chain.length === 0; }
 
+  // Coverage: computed from position in chain, no stored flags
+  _covered(s) {
+    const idx = this.chain.indexOf(s.tile);
+    return { left: idx > 0, right: idx < this.chain.length - 1 };
+  }
+
   validEnds(tile) {
     if (this.isEmpty()) return ['first'];
-
     const ends = [];
     if (tile.matches(this.leftEnd))  ends.push('left');
     if (tile.matches(this.rightEnd)) ends.push('right');
 
-    // No spinner: collapse left+right when both ends are same value (auto-play)
-    if (!this.spinner && this.leftEnd === this.rightEnd && ends.length === 2) {
+    // No spinners: collapse left+right when both ends same value (auto-play)
+    if (this.spinners.length === 0 && this.leftEnd === this.rightEnd && ends.length === 2) {
       return ['middle'];
     }
 
-    // Spinner: top/bottom only available after BOTH left and right chain sides are covered
-    if (this.spinner && this.spinner.leftCovered && this.spinner.rightCovered) {
-      const topEnd = this.spinner.topArm.length > 0 ? this.spinner.topEnd : this.spinner.pip;
-      const botEnd = this.spinner.botArm.length > 0 ? this.spinner.botEnd : this.spinner.pip;
+    // All spinners: top/bottom available once both sides of that spinner are covered
+    for (const s of this.spinners) {
+      const { left, right } = this._covered(s);
+      if (!left || !right) continue;
+      const topEnd = s.topArm.length > 0 ? s.topEnd : s.tile.a;
+      const botEnd = s.botArm.length > 0 ? s.botEnd : s.tile.a;
       if (tile.matches(topEnd)) ends.push('top');
       if (tile.matches(botEnd)) ends.push('bottom');
     }
-
     return [...new Set(ends)];
   }
 
@@ -3402,122 +3434,80 @@ class Board {
   play(tile, end) {
     if (this.isEmpty() || end === 'first') {
       tile.flipped = false;
-      this.chain = [tile];
+      this.chain    = [tile];
       this.leftEnd  = tile.a;
       this.rightEnd = tile.b;
-      if (tile.isDouble() && !this.spinner) {
-        // First tile: neither side covered yet
-        this.spinner = { pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a, leftCovered: false, rightCovered: false };
+      if (tile.isDouble()) {
+        this.spinners.push({ tile, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a });
       }
       return;
     }
-    // 'middle' means both ends are same value - treat as 'right' (adds to end of chain)
-    if (end === 'middle') {
-      end = 'right';
-    }
-    // Spinner arms: top / bottom
-    // Arm tiles render vertically: aVal = TOP pip, bVal = BOTTOM pip
-    // Top arm: connecting pip (matching curEnd) must be at BOTTOM → use flipped=true when tile.a===curEnd
-    // Bot arm: connecting pip must be at TOP (toward spinner) → use flipped=false when tile.a===curEnd
+    if (end === 'middle') end = 'right';
+
+    // Spinner arm plays — find first covered spinner that accepts this tile
     if (end === 'top' || end === 'bottom') {
       const isTop = end === 'top';
-      const arm    = isTop ? this.spinner.topArm : this.spinner.botArm;
-      const curEnd = arm.length > 0 ? (isTop ? this.spinner.topEnd : this.spinner.botEnd) : this.spinner.pip;
-      if (tile.a === curEnd) {
-        tile.flipped = isTop;  // top: a goes to bottom (flipped=true); bot: a stays at top (flipped=false)
-        if (isTop) this.spinner.topEnd = tile.b; else this.spinner.botEnd = tile.b;
-      } else {
-        tile.flipped = !isTop; // top: b stays at bottom (flipped=false); bot: b goes to top (flipped=true)
-        if (isTop) this.spinner.topEnd = tile.a; else this.spinner.botEnd = tile.a;
+      for (const s of this.spinners) {
+        const { left, right } = this._covered(s);
+        if (!left || !right) continue;
+        const arm    = isTop ? s.topArm : s.botArm;
+        const curEnd = arm.length > 0 ? (isTop ? s.topEnd : s.botEnd) : s.tile.a;
+        if (!tile.matches(curEnd)) continue;
+        // Top arm: connecting pip at BOTTOM (flipped=true when tile.a===curEnd)
+        // Bot arm: connecting pip at TOP (flipped=false when tile.a===curEnd)
+        if (tile.a === curEnd) {
+          tile.flipped = isTop;
+          if (isTop) s.topEnd = tile.b; else s.botEnd = tile.b;
+        } else {
+          tile.flipped = !isTop;
+          if (isTop) s.topEnd = tile.a; else s.botEnd = tile.a;
+        }
+        arm.push(tile);
+        return;
       }
-      arm.push(tile);
       return;
     }
+
     if (end === 'left') {
-      if (tile.b === this.leftEnd) {
-        tile.flipped = false;   // left=a exposed, right=b matches chain
-        this.leftEnd = tile.a;
-      } else {
-        tile.flipped = true;    // left=b exposed, right=a matches chain
-        this.leftEnd = tile.b;
-      }
+      if (tile.b === this.leftEnd) { tile.flipped = false; this.leftEnd = tile.a; }
+      else                         { tile.flipped = true;  this.leftEnd = tile.b; }
       this.chain.unshift(tile);
-      if (this.spinner) this.spinner.leftCovered = true;
     } else { // 'right'
-      if (tile.a === this.rightEnd) {
-        tile.flipped = false;   // left=a matches chain, right=b exposed
-        this.rightEnd = tile.b;
-      } else {
-        tile.flipped = true;    // left=b matches chain, right=a exposed
-        this.rightEnd = tile.a;
-      }
+      if (tile.a === this.rightEnd) { tile.flipped = false; this.rightEnd = tile.b; }
+      else                          { tile.flipped = true;  this.rightEnd = tile.a; }
       this.chain.push(tile);
-      if (this.spinner) this.spinner.rightCovered = true;
     }
-    // Any double played into the chain becomes the spinner (first one wins)
-    if (tile.isDouble() && !this.spinner) {
-      // Tiles already exist on the side we just played FROM
-      this.spinner = {
-        pip: tile.a, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a,
-        leftCovered: (end === 'right'),  // played to right → existing chain is to its left
-        rightCovered: (end === 'left'),  // played to left → existing chain is to its right
-      };
+    // Every double in the chain becomes a spinner
+    if (tile.isDouble()) {
+      this.spinners.push({ tile, topArm: [], botArm: [], topEnd: tile.a, botEnd: tile.a });
     }
   }
 
-  // Horse Race / All-Fives scoring: sum of both open ends; award if multiple of 5
-  // DOUBLES count as BOTH pips (e.g., [3|3] on end = 6, not 3)
+  // Horse Race / All-Fives scoring
   scoreValue() {
     if (this.chain.length === 0) return 0;
-    
-    const leftTile = this.chain[0];
+    const leftTile  = this.chain[0];
     const rightTile = this.chain[this.chain.length - 1];
-    
-    // Special case: only one tile on board
-    if (this.chain.length === 1) {
-      let sum = leftTile.isDouble() ? leftTile.a * 2 : leftTile.a + leftTile.b;
-      if (this.spinner) {
-        if (this.spinner.topArm.length > 0) {
-          const t = this.spinner.topArm[this.spinner.topArm.length - 1];
-          sum += t.isDouble() ? t.a * 2 : this.spinner.topEnd;
-        }
-        if (this.spinner.botArm.length > 0) {
-          const t = this.spinner.botArm[this.spinner.botArm.length - 1];
-          sum += t.isDouble() ? t.a * 2 : this.spinner.botEnd;
-        }
-      }
-      return sum % 5 === 0 ? sum : 0;
-    }
-    
-    // Multiple tiles: check each end
     let sum = 0;
-    
-    // Left end - doubles count both pips
-    if (leftTile.isDouble()) {
-      sum += leftTile.a * 2;
+
+    if (this.chain.length === 1) {
+      sum = leftTile.isDouble() ? leftTile.a * 2 : leftTile.a + leftTile.b;
     } else {
-      sum += this.leftEnd;
-    }
-    
-    // Right end - doubles count both pips
-    if (rightTile.isDouble()) {
-      sum += rightTile.a * 2;
-    } else {
-      sum += this.rightEnd;
-    }
-    
-    // Spinner arms: add exposed end pips when arms have been played
-    if (this.spinner) {
-      if (this.spinner.topArm.length > 0) {
-        const topTile = this.spinner.topArm[this.spinner.topArm.length - 1];
-        sum += topTile.isDouble() ? topTile.a * 2 : this.spinner.topEnd;
-      }
-      if (this.spinner.botArm.length > 0) {
-        const botTile = this.spinner.botArm[this.spinner.botArm.length - 1];
-        sum += botTile.isDouble() ? botTile.a * 2 : this.spinner.botEnd;
-      }
+      sum += leftTile.isDouble()  ? leftTile.a * 2  : this.leftEnd;
+      sum += rightTile.isDouble() ? rightTile.a * 2 : this.rightEnd;
     }
 
+    // Add exposed spinner arm ends for all spinners
+    for (const s of this.spinners) {
+      if (s.topArm.length > 0) {
+        const t = s.topArm[s.topArm.length - 1];
+        sum += t.isDouble() ? t.a * 2 : s.topEnd;
+      }
+      if (s.botArm.length > 0) {
+        const t = s.botArm[s.botArm.length - 1];
+        sum += t.isDouble() ? t.a * 2 : s.botEnd;
+      }
+    }
     return sum % 5 === 0 ? sum : 0;
   }
 }
@@ -3539,17 +3529,10 @@ function aiPickPlay(hand, board, difficulty = 'hard') {
       sim.chain    = [...board.chain];
       sim.leftEnd  = board.leftEnd;
       sim.rightEnd = board.rightEnd;
-      if (board.spinner) {
-        sim.spinner = {
-          pip: board.spinner.pip,
-          topArm: [...board.spinner.topArm],
-          botArm: [...board.spinner.botArm],
-          topEnd: board.spinner.topEnd,
-          botEnd: board.spinner.botEnd,
-          leftCovered: board.spinner.leftCovered,
-          rightCovered: board.spinner.rightCovered,
-        };
-      }
+      sim.spinners = board.spinners.map(s => ({
+        tile: s.tile, topArm: [...s.topArm], botArm: [...s.botArm],
+        topEnd: s.topEnd, botEnd: s.botEnd,
+      }));
       const simTile = new Tile(tile.a, tile.b);
       sim.play(simTile, end);
       const scoreGained = sim.scoreValue();
@@ -3762,12 +3745,15 @@ class Game {
     if (ends.includes('left'))   addZone('left',   '← PLAY LEFT',    this.board.leftEnd,  'board-drop-left');
     if (ends.includes('right'))  addZone('right',  'PLAY RIGHT →',   this.board.rightEnd, 'board-drop-right');
     if (ends.includes('top')) {
-      const topEnd = this.board.spinner.topArm.length > 0 ? this.board.spinner.topEnd : this.board.spinner.pip;
-      addZone('top', '↑ TOP', topEnd, 'board-drop-top');
+      // Find first covered spinner that has a top end matching any tile (display the open end value)
+      const sp = this.board.spinners.find(s => { const c = this.board._covered(s); return c.left && c.right; });
+      const topEnd = sp ? (sp.topArm.length > 0 ? sp.topEnd : sp.tile.a) : null;
+      if (topEnd !== null) addZone('top', '↑ TOP', topEnd, 'board-drop-top');
     }
     if (ends.includes('bottom')) {
-      const botEnd = this.board.spinner.botArm.length > 0 ? this.board.spinner.botEnd : this.board.spinner.pip;
-      addZone('bottom', '↓ BOTTOM', botEnd, 'board-drop-bottom');
+      const sp = this.board.spinners.find(s => { const c = this.board._covered(s); return c.left && c.right; });
+      const botEnd = sp ? (sp.botArm.length > 0 ? sp.botEnd : sp.tile.a) : null;
+      if (botEnd !== null) addZone('bottom', '↓ BOTTOM', botEnd, 'board-drop-bottom');
     }
 
     console.log('[DROPZONE] Created', this._activeDropZones.length, 'zones');
@@ -3821,7 +3807,7 @@ class Game {
       chain: [...this.board.chain],
       leftEnd: this.board.leftEnd,
       rightEnd: this.board.rightEnd,
-      spinner: this.board.spinner ? { ...this.board.spinner, topArm: [...this.board.spinner.topArm], botArm: [...this.board.spinner.botArm] } : null,
+      spinners: this.board.spinners.map(s => ({ tile: s.tile, topArm: [...s.topArm], botArm: [...s.botArm], topEnd: s.topEnd, botEnd: s.botEnd })),
       playerTotal: this.playerTotal,
       boneyard: [...this.boneyard],
     };
@@ -3966,9 +3952,10 @@ class Game {
         const ends = this.board.validEnds(tile);
         for (const end of ends) {
           const sim = new Board();
-          sim.chain = [...this.board.chain];
-          sim.leftEnd = this.board.leftEnd;
+          sim.chain    = [...this.board.chain];
+          sim.leftEnd  = this.board.leftEnd;
           sim.rightEnd = this.board.rightEnd;
+          sim.spinners = this.board.spinners.map(s => ({ tile: s.tile, topArm: [...s.topArm], botArm: [...s.botArm], topEnd: s.topEnd, botEnd: s.botEnd }));
           const simTile = new Tile(tile.a, tile.b);
           sim.play(simTile, end);
           const score = sim.scoreValue();
@@ -4591,7 +4578,7 @@ class Game {
     this.board.chain = snap.chain;
     this.board.leftEnd = snap.leftEnd;
     this.board.rightEnd = snap.rightEnd;
-    this.board.spinner = snap.spinner;
+    this.board.spinners = snap.spinners;
     this.playerTotal = snap.playerTotal;
     this.boneyard = snap.boneyard;
     this.lastPlacedTile = null;
@@ -4748,13 +4735,13 @@ class Game {
     chain.querySelectorAll('.board-tile').forEach(t => t.remove());
 
     const chainLen = this.board.chain.length;
-    
-    // Dynamic scaling based on tile count
+
+    // Dynamic scaling based on tile count — apply to both chain AND boardArea (for arm tiles)
+    const densityClass = chainLen <= 4 ? 'tiles-few' : chainLen <= 8 ? 'tiles-some' : chainLen <= 14 ? 'tiles-many' : 'tiles-lots';
     chain.classList.remove('tiles-few', 'tiles-some', 'tiles-many', 'tiles-lots');
-    if (chainLen <= 4) chain.classList.add('tiles-few');
-    else if (chainLen <= 8) chain.classList.add('tiles-some');
-    else if (chainLen <= 14) chain.classList.add('tiles-many');
-    else chain.classList.add('tiles-lots');
+    chain.classList.add(densityClass);
+    boardArea.classList.remove('tiles-few', 'tiles-some', 'tiles-many', 'tiles-lots');
+    boardArea.classList.add(densityClass);
     for (let i = 0; i < chainLen; i++) {
       const tile = this.board.chain[i];
       const tileEl = this.buildTileEl(tile, false, tile === this.selected);
@@ -4788,35 +4775,46 @@ class Game {
       }
     });
 
-    // ── Spinner arms (top / bottom) ──
-    const boardArea = document.getElementById('board-area');
+    // ── Spinner arms (top / bottom) — all covered spinners ──
     boardArea.querySelectorAll('.spinner-arm').forEach(a => a.remove());
-    if (this.board.spinner) {
-      const makeArm = (armTiles, label, pip) => {
-        const arm = document.createElement('div');
-        arm.className = 'spinner-arm';
-        if (armTiles.length === 0) {
-          const slot = document.createElement('div');
-          slot.className = 'spinner-open-slot';
-          slot.textContent = `${label} [${pip}]`;
-          arm.appendChild(slot);
-        } else {
-          armTiles.forEach(t => {
-            // Build as horizontal board-tile, then switch to vertical display
-            const el = this.buildTileEl(t, false, false); // gets 'board-tile horiz'
-            el.classList.remove('horiz');
-            el.classList.add('vert'); // vertical: aVal on TOP, bVal on BOTTOM
-            arm.appendChild(el);
-          });
-        }
-        return arm;
-      };
-      const sp = this.board.spinner;
-      const topArm = makeArm([...sp.topArm].reverse(), '↑', sp.pip);
-      const botArm = makeArm([...sp.botArm], '↓', sp.pip);
-      // Insert relative to scrollWrap (chain's parent), not chain directly
-      boardArea.insertBefore(topArm, scrollWrap || chain);
-      (scrollWrap || chain).insertAdjacentElement('afterend', botArm);
+
+    const makeArm = (armTiles, label, pip) => {
+      const arm = document.createElement('div');
+      arm.className = 'spinner-arm';
+      if (armTiles.length === 0) {
+        const slot = document.createElement('div');
+        slot.className = 'spinner-open-slot';
+        slot.textContent = `${label} [${pip}]`;
+        arm.appendChild(slot);
+      } else {
+        armTiles.forEach(t => {
+          const el = this.buildTileEl(t, false, false);
+          el.classList.remove('horiz');
+          el.classList.add('vert');
+          arm.appendChild(el);
+        });
+      }
+      return arm;
+    };
+
+    const coveredSpinners = this.board.spinners.filter(sp => {
+      const { left, right } = this.board._covered(sp);
+      return left && right;
+    });
+
+    if (coveredSpinners.length > 0) {
+      const topGroup = document.createElement('div');
+      topGroup.className = 'spinner-arm spinner-top-group';
+      const botGroup = document.createElement('div');
+      botGroup.className = 'spinner-arm spinner-bot-group';
+
+      for (const sp of coveredSpinners) {
+        topGroup.appendChild(makeArm([...sp.topArm].reverse(), '↑', sp.tile.a));
+        botGroup.appendChild(makeArm([...sp.botArm], '↓', sp.tile.a));
+      }
+
+      boardArea.insertBefore(topGroup, scrollWrap || chain);
+      (scrollWrap || chain).insertAdjacentElement('afterend', botGroup);
     }
   }
 
