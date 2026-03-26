@@ -3412,8 +3412,8 @@ class Board {
     if (tile.matches(this.leftEnd))  ends.push('left');
     if (tile.matches(this.rightEnd)) ends.push('right');
 
-    // No spinners: collapse left+right when both ends same value (auto-play)
-    if (this.spinners.length === 0 && this.leftEnd === this.rightEnd && ends.length === 2) {
+    // Collapse left+right when both exposed ends are the same value (auto-play as right)
+    if (this.leftEnd === this.rightEnd && ends.length === 2) {
       return ['middle'];
     }
 
@@ -4729,9 +4729,10 @@ class Game {
   }
 
   renderBoard() {
-    const chain    = document.getElementById('board-chain');
-    const emptyMsg = document.getElementById('board-empty-msg');
+    const chain      = document.getElementById('board-chain');
+    const emptyMsg   = document.getElementById('board-empty-msg');
     const scrollWrap = document.getElementById('board-scroll-wrap');
+    const boardArea  = document.getElementById('board-area');
     // OLD overlay disabled - we use on-board drop zones now
     const endOverlay = document.getElementById('end-select-overlay');
     if (endOverlay) endOverlay.classList.remove('visible');
@@ -5005,8 +5006,8 @@ class Game {
           document.getElementById('end-indicators').appendChild(spinnerBadge);
         }
         const sp = this.board.spinner;
-        document.getElementById('spinner-top-val').textContent = sp.topArm.length > 0 ? sp.topEnd : sp.pip;
-        document.getElementById('spinner-bot-val').textContent = sp.botArm.length > 0 ? sp.botEnd : sp.pip;
+        document.getElementById('spinner-top-val').textContent = sp.topArm.length > 0 ? sp.topEnd : sp.tile.a;
+        document.getElementById('spinner-bot-val').textContent = sp.botArm.length > 0 ? sp.botEnd : sp.tile.a;
       } else if (spinnerBadge) {
         spinnerBadge.remove();
       }
