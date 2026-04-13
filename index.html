@@ -1686,6 +1686,103 @@ body::after {
   margin-top: 16px;
 }
 
+/* Premium upsell on game-over screen */
+.sw-upsell {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(201,168,76,0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+.sw-hard-cta {
+  background: linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.06));
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--text-light);
+}
+.sw-hard-cta .btn-unlock {
+  display: inline-block;
+  margin-top: 6px;
+  background: var(--gold);
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+}
+.sw-hard-cta .btn-unlock:hover { opacity: 0.88; }
+.sw-donate {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+}
+.sw-donate a { color: var(--gold); text-decoration: none; }
+.sw-donate a:hover { text-decoration: underline; }
+/* Lock badge on Merciless difficulty button */
+.sw-lock-badge {
+  display: block;
+  font-size: 0.65rem;
+  margin-top: 3px;
+  opacity: 0.8;
+}
+.sw-lock-badge.hidden { display: none; }
+/* Premium modal */
+.sw-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.sw-modal {
+  background: #1a1a2e;
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(201,168,76,0.3);
+  animation: overlaySlideIn 0.3s ease-out;
+}
+.sw-modal h3 { color: var(--gold); font-size: 1.3rem; margin-bottom: 8px; }
+.sw-modal p  { color: var(--text-light); font-size: 0.9rem; margin-bottom: 16px; line-height: 1.5; }
+.sw-modal input {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid rgba(201,168,76,0.5);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.07);
+  color: #fff; font-size: 0.9rem;
+  box-sizing: border-box; margin-bottom: 10px;
+}
+.sw-modal input:focus { outline: none; border-color: var(--gold); }
+.sw-modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+.sw-modal .btn-gumroad {
+  background: var(--gold); color: #1a1a2e;
+  border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; text-decoration: none; display: inline-block;
+}
+.sw-modal .btn-gumroad:hover { opacity: 0.88; }
+.sw-modal .btn-redeem {
+  background: rgba(201,168,76,0.15);
+  color: var(--gold); border: 1px solid var(--gold);
+  border-radius: 8px; padding: 9px 18px;
+  font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.sw-modal .btn-cancel {
+  background: transparent; color: rgba(255,255,255,0.4);
+  border: none; font-size: 0.82rem; cursor: pointer;
+  padding: 6px 10px;
+}
+.sw-modal-msg { font-size: 0.82rem; min-height: 1.2em; margin-top: 6px; }
+
 /* Share button */
 .btn-share {
   background: #1da1f2;
@@ -2389,6 +2486,7 @@ body::after {
         <button class="mood-card merciless" id="diff-hard" onclick="game.setDifficulty('hard')" title="Sister Wendy is in full nun mode">
           <span class="mood-icon">😈</span>
           <span class="mood-label">Merciless</span>
+          <span class="sw-lock-badge" id="sw-lock-badge">🔒 $1.99</span>
         </button>
       </div>
     </div>
@@ -2440,6 +2538,15 @@ body::after {
       <button class="btn-primary" onclick="game.rematch()">🔄 Rematch</button>
       <button class="btn-secondary" onclick="game.newGame()">New Game</button>
       <button class="btn-share" onclick="game.shareResult()">📤 Share</button>
+    </div>
+    <div class="sw-upsell">
+      <div class="sw-hard-cta" id="sw-hard-cta">
+        😈 Ready for <strong>Merciless Wendy</strong>?<br>
+        <button class="btn-unlock" onclick="SWPremium.showModal()">Unlock Hard Mode — $1.99</button>
+      </div>
+      <div class="sw-donate">
+        ☕ Enjoying the game? <a href="https://buymeacoffee.com/screwcap" target="_blank" rel="noopener">Buy Sister Wendy a coffee</a>
+      </div>
     </div>
   </div>
 </div>
@@ -4557,6 +4664,10 @@ class Game {
   }
 
   setDifficulty(level) {
+    if (level === 'hard' && typeof SWPremium !== 'undefined' && !SWPremium.isUnlocked()) {
+      SWPremium.showModal();
+      return;
+    }
     this.difficulty = level;
     document.querySelectorAll('.mood-card, .diff-btn').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('diff-' + level);
@@ -5798,6 +5909,120 @@ document.addEventListener('DOMContentLoaded', () => {
 const game = new Game();
 // Show tutorial on first ever visit (after a tiny delay so menu renders first)
 setTimeout(() => game.initTutorial(), 600);
+</script>
+
+<script>
+// ── SISTER WENDY PREMIUM (Hard Mode — $1.99) ──
+const SWPremium = (() => {
+  const FLAG     = 'sw_premium_hard';
+  const PRODUCT  = 'sister-wendy-hard';
+  const PRICE    = '$1.99';
+  const BUY_URL  = 'https://screwcap.gumroad.com/l/sister-wendy-hard';
+
+  function isUnlocked() {
+    return localStorage.getItem(FLAG) === '1';
+  }
+
+  function _unlock() {
+    localStorage.setItem(FLAG, '1');
+    // Hide lock badge + upsell CTA
+    const badge = document.getElementById('sw-lock-badge');
+    if (badge) badge.classList.add('hidden');
+    const cta = document.getElementById('sw-hard-cta');
+    if (cta) cta.style.display = 'none';
+  }
+
+  async function _redeemKey(key) {
+    // Offline fallback: SW-XXXXXXXXXXXXXXXX
+    if (/^SW-[0-9A-F]{16}$/i.test(key)) {
+      _unlock();
+      return { ok: true };
+    }
+    try {
+      const resp = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `product_permalink=${PRODUCT}&license_key=${encodeURIComponent(key)}&increment_uses_count=false`
+      });
+      const data = await resp.json();
+      if (data.success) { _unlock(); return { ok: true }; }
+      return { ok: false, msg: 'Key not found. Check your Gumroad receipt.' };
+    } catch (e) {
+      return { ok: false, msg: 'Network error — check your connection and try again.' };
+    }
+  }
+
+  function showModal() {
+    if (isUnlocked()) return;
+    if (document.getElementById('sw-premium-modal')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sw-modal-overlay';
+    overlay.id = 'sw-premium-modal';
+    overlay.innerHTML = `
+      <div class="sw-modal">
+        <h3>😈 Unlock Merciless Mode</h3>
+        <p>Sister Wendy at her most relentless — optimal tile selection, no mercy.<br>
+           One-time unlock for ${PRICE}.</p>
+        <div class="sw-modal-btns">
+          <a class="btn-gumroad" href="${BUY_URL}" target="_blank" rel="noopener">Buy for ${PRICE} →</a>
+        </div>
+        <p style="font-size:0.78rem;color:rgba(255,255,255,0.35);margin:12px 0 4px">Already purchased? Enter your license key:</p>
+        <input type="text" id="sw-key-input" placeholder="SW-XXXXXXXXXXXXXXXX" autocomplete="off" spellcheck="false">
+        <div class="sw-modal-btns">
+          <button class="btn-redeem" onclick="SWPremium._submitKey()">Redeem Key</button>
+          <button class="btn-cancel" onclick="SWPremium.hideModal()">Cancel</button>
+        </div>
+        <div class="sw-modal-msg" id="sw-modal-msg"></div>
+      </div>`;
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) hideModal(); });
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+      const inp = document.getElementById('sw-key-input');
+      if (inp) inp.focus();
+    }, 100);
+  }
+
+  function hideModal() {
+    const el = document.getElementById('sw-premium-modal');
+    if (el) el.remove();
+  }
+
+  async function _submitKey() {
+    const inp = document.getElementById('sw-key-input');
+    const msg = document.getElementById('sw-modal-msg');
+    if (!inp || !msg) return;
+    const key = inp.value.trim().toUpperCase();
+    if (!key) { msg.style.color = '#f87171'; msg.textContent = 'Enter your license key first.'; return; }
+    msg.style.color = 'rgba(255,255,255,0.5)';
+    msg.textContent = 'Verifying…';
+    const result = await _redeemKey(key);
+    if (result.ok) {
+      msg.style.color = '#4ade80';
+      msg.textContent = '✓ Unlocked! Enjoy Merciless Wendy.';
+      setTimeout(() => {
+        hideModal();
+        if (typeof game !== 'undefined') game.setDifficulty('hard');
+      }, 1200);
+    } else {
+      msg.style.color = '#f87171';
+      msg.textContent = result.msg || 'Invalid key.';
+    }
+  }
+
+  // On load: apply premium state
+  document.addEventListener('DOMContentLoaded', () => {
+    if (isUnlocked()) {
+      const badge = document.getElementById('sw-lock-badge');
+      if (badge) badge.classList.add('hidden');
+      const cta = document.getElementById('sw-hard-cta');
+      if (cta) cta.style.display = 'none';
+    }
+  });
+
+  return { isUnlocked, showModal, hideModal, _submitKey };
+})();
 </script>
 </body>
 </html>
