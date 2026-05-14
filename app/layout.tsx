@@ -27,10 +27,19 @@ const mono = DM_Mono({
 export const metadata: Metadata = {
   title: 'Sister Wendy Dominoes',
   description: 'All-Fives dominoes with Sister Wendy Beckett. Art history, mild spiritual threat.',
+  icons: {
+    icon: [
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png',   sizes: '192x192', type: 'image/png' },
+    ],
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180' },
+  },
   openGraph: {
     title: 'Sister Wendy Dominoes',
     description: 'All-Fives dominoes with Sister Wendy Beckett. Art history, mild spiritual threat.',
     type: 'website',
+    images: [{ url: '/icon-1024.png', width: 1024, height: 1024 }],
   },
 };
 
