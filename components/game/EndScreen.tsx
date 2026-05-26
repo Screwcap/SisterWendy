@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Player, GameMode } from '@/lib/game';
 import { calcGrade, getVerdictText } from '@/lib/wendy';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
+import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 import gsap from 'gsap';
 
 interface EndScreenProps {
@@ -118,7 +119,7 @@ export default function EndScreen({
             "{verdict}"
           </p>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.44rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)', textAlign: 'center', marginTop: 8 }}>
-            — SISTER WENDY BECKETT
+            — SISTER WENDY
           </div>
         </div>
 
@@ -153,6 +154,16 @@ export default function EndScreen({
           >
             CHANGE MODE
           </button>
+        </div>
+
+        {/* Cross-promo: other Screwcap games */}
+        <div className="mt-5">
+          <ScrewcapGamesStrip compact />
+        </div>
+
+        {/* Paid mid-game sponsor banner */}
+        <div className="mt-4">
+          <SponsorBanner />
         </div>
 
         {/* SPONSOR_HOOK: post-game partner attribution */}

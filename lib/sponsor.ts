@@ -30,6 +30,13 @@ export interface TournamentSponsor {
   trophyLabel: string;  // e.g. "Sister Wendy's Art History Cup — Presented by Sotheby's"
 }
 
+export interface MidGameBannerSponsor {
+  name: string;
+  message: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
 // SPONSOR_CONFIG: single source of truth for all in-game placements.
 // Wire new sponsors here — the components read this at runtime.
 export const SPONSOR_CONFIG = {
@@ -47,4 +54,7 @@ export const SPONSOR_CONFIG = {
 
   // SPONSOR_HOOK: monthly tournament — trophy and leaderboard title sponsor
   tournament: null as TournamentSponsor | null,
+
+  // SPONSOR_HOOK: mid-game banner — shown on round-over and game-over screens
+  midGameBanner: null as MidGameBannerSponsor | null,
 } as const;

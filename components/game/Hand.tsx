@@ -11,6 +11,7 @@ interface HandProps {
   onTileClick: (tile: TileData) => void;
   onHoverFact: (fact: string) => void;
   showHints: boolean;
+  shakeTileId?: string;
 }
 
 export default function Hand({
@@ -21,19 +22,20 @@ export default function Hand({
   onTileClick,
   onHoverFact,
   showHints,
+  shakeTileId,
 }: HandProps) {
   return (
     <div className="w-full">
       <div
         className="flex flex-wrap justify-center gap-2 p-3 rounded-xl"
         style={{
-          background: 'rgba(26,20,8,0.7)',
-          border: '1px solid rgba(196,144,32,0.2)',
+          background: 'rgba(0,0,0,0.18)',
+          border: '1px solid rgba(255,255,255,0.07)',
           minHeight: 80,
         }}
       >
         {tiles.length === 0 ? (
-          <span style={{ fontFamily: 'var(--font-garamond)', color: 'rgba(196,144,32,0.4)', fontStyle: 'italic', fontSize: '0.85rem', alignSelf: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-garamond)', color: 'rgba(196,144,32,0.4)', fontStyle: 'italic', fontSize: '1rem', alignSelf: 'center' }}>
             Empty hand.
           </span>
         ) : (
@@ -44,9 +46,11 @@ export default function Hand({
               <DominoTile
                 key={tile.id}
                 tile={tile}
+                flipId={`tile-${tile.id}`}
                 isSelected={selected}
                 isPlayable={showHints ? playable : false}
                 isDisabled={!isPlayerTurn}
+                isShaking={shakeTileId === tile.id}
                 onClick={isPlayerTurn ? () => onTileClick(tile) : undefined}
                 onHover={onHoverFact}
                 size="md"
@@ -58,7 +62,7 @@ export default function Hand({
 
       {/* Tile count */}
       <div className="flex justify-center mt-1">
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.52rem', letterSpacing: '0.18em', color: 'rgba(196,144,32,0.45)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.18em', color: 'rgba(196,144,32,0.45)' }}>
           {tiles.length} TILE{tiles.length !== 1 ? 'S' : ''} IN HAND
         </span>
       </div>

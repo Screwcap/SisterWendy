@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
+import { Flip } from 'gsap/Flip';
+
+if (typeof window !== 'undefined') gsap.registerPlugin(Flip);
 import {
   GameState, GameMode, TileData, BoardEnd,
-  initGame, validEnds, canPlay, playOnBoard, scoreValue,
+  initGame, nextRound, validEnds, canPlay, playOnBoard, scoreValue,
   boardIsEmpty, aiPickPlay, difficultyForMode,
-  TARGET_SCORE, isDouble,
+  calcRoundBonus, TARGET_SCORE, isDouble,
 } from '@/lib/game';
 import { randQuote } from '@/lib/wendy';
 import type { WendyMood } from '@/lib/game';
@@ -16,6 +20,13 @@ import WendyPortrait from './WendyPortrait';
 import ScorePanel from './ScorePanel';
 import EndScreen from './EndScreen';
 import GameSetup from './GameSetup';
+import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
+
+const SCREWCAP_FOOTER_GAMES = [
+  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#d4507a', href: '#' },
+  { id: 'the-chair',   name: 'THE CHAIR',    color: '#4a9a8f', href: '#' },
+  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#c49020', href: '#' },
+] as const;
 
 // ── State machine actions ───────────────────────────────────────────────────
 
@@ -122,28 +133,36 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
   const roundWon = current.hand.length === 0;
 
   if (gameWon || roundWon) {
-    const phase: GameState['phase'] = gameWon ? 'gameOver' : 'roundOver';
-    const speech = current.isHuman
-      ? gameWon ? randQuote('playerWins') : "Your hand is empty — round over!"
-      : gameWon ? randQuote('wendyWins') : "Sister Wendy is out of tiles.";
+    // Award pip bonus: sum opponents' remaining tile pips, round to nearest 5
+    const pipBonus = roundWon ? calcRoundBonus(updatedPlayers, playerIdx) : 0;
+    const scoredPlayers = pipBonus > 0
+      ? updatedPlayers.map((p, i) => i === playerIdx ? { ...p, score: p.score + pipBonus } : p)
+      : updatedPlayers;
+    const finalWinner = scoredPlayers[playerIdx];
+    const gameWonFinal = finalWinner.score >= TARGET_SCORE;
+    const phase: GameState['phase'] = gameWonFinal ? 'gameOver' : 'roundOver';
+    const speech = finalWinner.isHuman
+      ? gameWonFinal ? randQuote('playerWins') : `Your hand is empty — round over! (+${pipBonus} pip bonus)`
+      : gameWonFinal ? randQuote('wendyWins') : `Sister Wendy is out of tiles. (+${pipBonus} pip bonus)`;
     return {
       ...state,
       board: newBoard,
-      players: updatedPlayers,
+      players: scoredPlayers,
       selectedTile: null,
       validEndsForSelected: [],
       phase,
-      gameWinnerId: gameWon ? current.id : null,
-      roundWinnerId: current.id,
+      gameWinnerId: gameWonFinal ? finalWinner.id : null,
+      roundWinnerId: finalWinner.id,
       lastScore: scored,
-      lastScoringPlayerId: scored > 0 ? current.id : state.lastScoringPlayerId,
+      lastScoringPlayerId: scored > 0 ? finalWinner.id : state.lastScoringPlayerId,
       wendySpeech: speech,
-      wendyMood: current.isHuman ? 'disappointed' : 'triumphant',
+      wendyMood: finalWinner.isHuman ? 'disappointed' : 'triumphant',
       bonusTurn: false,
     };
   }
 
-  const bonus = scored > 0 || isDouble(tile);
+  // Only doubles grant a replay — scoring alone does not
+  const bonus = isDouble(tile);
   const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus);
   const mood = getMood(current.isHuman, scored, isDouble(tile));
 
@@ -207,11 +226,36 @@ function getMood(isHuman: boolean, scored: number, double_: boolean): WendyMood 
 
 const AI_DELAY_MS = 750;
 
+const SAVE_KEY = 'sw-game';
+
+function loadSavedGame(): GameState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GameState;
+    // Don't restore terminal phases
+    if (parsed.phase === 'gameOver' || parsed.phase === 'roundOver') return null;
+    return parsed;
+  } catch { return null; }
+}
+
 export default function Game() {
-  const [gs, setGs] = useState<GameState | null>(null);
+  const [gs, setGs] = useState<GameState | null>(loadSavedGame);
   const [artFact, setArtFact] = useState<string | undefined>(undefined);
   const [latestTileId, setLatestTileId] = useState<string | undefined>(undefined);
+  const [shakeTileId, setShakeTileId] = useState<string | undefined>(undefined);
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist game state to localStorage
+  useEffect(() => {
+    if (!gs) return;
+    if (gs.phase === 'gameOver') {
+      localStorage.removeItem(SAVE_KEY);
+      return;
+    }
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(gs)); } catch { /* quota */ }
+  }, [gs]);
 
   const dispatch = useCallback((action: Action) => {
     setGs(prev => prev ? reducer(prev, action) : prev);
@@ -243,7 +287,7 @@ export default function Game() {
           const current = updatedPlayers[prev.currentPlayerIndex];
           const gameWon = current.score >= TARGET_SCORE;
           const roundWon = current.hand.length === 0;
-          const bonus = scored > 0 || isDouble(play.tile);
+          const bonus = isDouble(play.tile);
           const speech = buildSpeech(false, scored, isDouble(play.tile), bonus);
           const mood = getMood(false, scored, isDouble(play.tile));
 
@@ -252,13 +296,26 @@ export default function Game() {
             phase: 'gameOver', gameWinnerId: current.id,
             wendySpeech: randQuote('wendyWins'), wendyMood: 'triumphant',
           };
-          if (roundWon) return {
-            ...prev, board: newBoard, players: updatedPlayers,
-            phase: 'roundOver', roundWinnerId: current.id, wendySpeech: speech, wendyMood: mood,
-          };
+          if (roundWon) {
+            const pipBonus = calcRoundBonus(updatedPlayers, prev.currentPlayerIndex);
+            const scoredPlayers = pipBonus > 0
+              ? updatedPlayers.map((p, i) => i === prev.currentPlayerIndex ? { ...p, score: p.score + pipBonus } : p)
+              : updatedPlayers;
+            const gameWonFinal = scoredPlayers[prev.currentPlayerIndex].score >= TARGET_SCORE;
+            return {
+              ...prev, board: newBoard, players: scoredPlayers,
+              phase: gameWonFinal ? 'gameOver' : 'roundOver',
+              gameWinnerId: gameWonFinal ? current.id : null,
+              roundWinnerId: current.id,
+              wendySpeech: gameWonFinal ? randQuote('wendyWins') : `${speech} (+${pipBonus} pip bonus)`,
+              wendyMood: gameWonFinal ? 'triumphant' : mood,
+            };
+          }
+          // Only doubles grant a replay
           if (bonus) return {
             ...prev, board: newBoard, players: updatedPlayers,
             phase: 'aiThinking', lastScore: scored, wendySpeech: speech, wendyMood: mood,
+            turnCount: prev.turnCount + 1,
           };
 
           const nextIdx = (prev.currentPlayerIndex + 1) % prev.players.length;
@@ -278,37 +335,41 @@ export default function Game() {
           };
         });
       } else {
-        // AI can't play — draw or pass
+        // AI can't play — draw until playable or boneyard empty, then pass
         setGs(prev => {
           if (!prev) return prev;
-          if (prev.boneyard.length === 0) {
-            const nextIdx = (prev.currentPlayerIndex + 1) % prev.players.length;
-            const nextPlayer = prev.players[nextIdx];
-            return {
-              ...prev,
-              currentPlayerIndex: nextIdx,
-              phase: nextPlayer.isHuman ? 'selecting' : 'aiThinking',
-              wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn'),
-              wendyMood: 'neutral',
-            };
+
+          // Draw tiles one by one until we find a playable tile or run out
+          let boneyard = [...prev.boneyard];
+          let hand = [...prev.players[prev.currentPlayerIndex].hand];
+          while (boneyard.length > 0) {
+            const [drawn, ...rest] = boneyard;
+            boneyard = rest;
+            hand = [...hand, drawn];
+            if (boardIsEmpty(prev.board) || canPlay(prev.board, drawn)) break;
           }
-          const [drawn, ...rest] = prev.boneyard;
+
           const updatedPlayers = prev.players.map((p, i) =>
-            i === prev.currentPlayerIndex ? { ...p, hand: [...p.hand, drawn] } : p
+            i === prev.currentPlayerIndex ? { ...p, hand } : p
           );
-          const canPlayDrawn = boardIsEmpty(prev.board) || canPlay(prev.board, drawn);
-          if (canPlayDrawn) {
-            return { ...prev, players: updatedPlayers, boneyard: rest, phase: 'aiThinking', wendySpeech: randQuote('herTurn') };
+          const canPlayNow = hand.some(t => boardIsEmpty(prev.board) || canPlay(prev.board, t));
+
+          if (canPlayNow) {
+            // Stay in aiThinking; next tick will find the play
+            return { ...prev, players: updatedPlayers, boneyard, wendySpeech: randQuote('herTurn') };
           }
+
+          // Truly stuck — pass
           const nextIdx = (prev.currentPlayerIndex + 1) % prev.players.length;
           const nextPlayer = updatedPlayers[nextIdx];
           return {
             ...prev,
             players: updatedPlayers,
-            boneyard: rest,
+            boneyard,
             currentPlayerIndex: nextIdx,
             phase: nextPlayer.isHuman ? 'selecting' : 'aiThinking',
             wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn'),
+            wendyMood: 'neutral',
           };
         });
       }
@@ -322,7 +383,7 @@ export default function Game() {
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} />
         <EndScreen
           players={gs.players}
           gameWinnerId={gs.gameWinnerId}
@@ -335,6 +396,20 @@ export default function Game() {
     );
   }
 
+  if (gs.phase === 'roundOver' && gs.roundWinnerId) {
+    return (
+      <>
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} />
+        <RoundOverScreen
+          players={gs.players}
+          roundWinnerId={gs.roundWinnerId}
+          roundCount={gs.roundCount}
+          onNextRound={() => setGs(nextRound(gs))}
+        />
+      </>
+    );
+  }
+
   return (
     <GameUI
       gs={gs}
@@ -342,6 +417,9 @@ export default function Game() {
       artFact={artFact}
       setArtFact={setArtFact}
       latestTileId={latestTileId}
+      setLatestTileId={setLatestTileId}
+      shakeTileId={shakeTileId}
+      setShakeTileId={setShakeTileId}
     />
   );
 }
@@ -354,13 +432,56 @@ interface GameUIProps {
   artFact?: string;
   setArtFact: (f: string | undefined) => void;
   latestTileId?: string;
+  setLatestTileId: (id: string | undefined) => void;
+  shakeTileId?: string;
+  setShakeTileId: (id: string | undefined) => void;
 }
 
-function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId }: GameUIProps) {
+function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId }: GameUIProps) {
   const human = gs.players[0];
   const isPlayerTurn = gs.currentPlayerIndex === 0 && (gs.phase === 'selecting' || gs.phase === 'choosingEnd');
   const showHints = gs.mode === 'forgiving';
   const hintSponsor = SPONSOR_CONFIG.hint;
+  const flipStateRef = useRef<ReturnType<typeof Flip.getState> | null>(null);
+
+  // Run FLIP animation after board chain grows (human or AI play)
+  useLayoutEffect(() => {
+    if (!flipStateRef.current) return;
+    const state = flipStateRef.current;
+    flipStateRef.current = null;
+    Flip.from(state, {
+      duration: 0.42,
+      ease: 'power2.inOut',
+      absolute: true,
+      scale: true,
+      nested: true,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gs.board.chain.length]);
+
+  function handleTileClick(tile: TileData) {
+    const ends = boardIsEmpty(gs.board) ? (['first'] as BoardEnd[]) : validEnds(gs.board, tile);
+    if (ends.length === 0) {
+      // Tile can't be played — shake it
+      setShakeTileId(tile.id);
+      setTimeout(() => setShakeTileId(undefined), 600);
+      dispatch({ type: 'SELECT_TILE', tile }); // updates wendySpeech feedback
+      return;
+    }
+    if (ends.length === 1) {
+      flipStateRef.current = Flip.getState('[data-flip-id]');
+      setLatestTileId(tile.id);
+    }
+    dispatch({ type: 'SELECT_TILE', tile });
+  }
+
+  function handleEndClick(end: BoardEnd) {
+    if (gs.selectedTile) {
+      flipStateRef.current = Flip.getState('[data-flip-id]');
+      setLatestTileId(gs.selectedTile.id);
+    }
+    dispatch({ type: 'CHOOSE_END', end });
+  }
 
   function handleHint() {
     if (!isPlayerTurn || gs.mode !== 'forgiving') return;
@@ -384,7 +505,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId }: GameUIProps
     !human.hand.some(t => boardIsEmpty(gs.board) || canPlay(gs.board, t));
 
   return (
-    <div className="min-h-screen" style={{ background: '#0d0a06', color: '#f5ead8' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#0d0a06', color: '#f5ead8' }}>
 
       {/* Gear background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
@@ -399,130 +520,283 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId }: GameUIProps
       </div>
 
       {/* Header */}
-      <header className="relative z-10 px-4 pt-4 pb-2 flex items-center justify-between"
+      <header className="relative z-10 px-4 pt-3 pb-2 flex items-center justify-center"
         style={{ borderBottom: '1px solid rgba(196,144,32,0.15)' }}>
-        <div>
+        <div className="text-center">
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.4rem', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1 }}>
             SISTER WENDY
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.48rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.45)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.64rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.45)' }}>
             {gs.mode.toUpperCase()} MODE · ROUND {gs.roundCount} · TURN {gs.turnCount}
           </div>
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.52rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
-          {isPlayerTurn ? '▶ YOUR TURN' : '⏳ WENDY PLAYS'}
+        <div className="absolute right-4" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
+          {isPlayerTurn ? '▶ YOUR TURN' : '⏳ WENDY'}
         </div>
       </header>
 
-      {/* Main layout */}
-      <main className="relative z-10 max-w-6xl mx-auto px-3 py-4 grid gap-4"
-        style={{ gridTemplateColumns: 'minmax(0,1fr) 200px' }}>
+      {/* ── FELT TABLE ─────────────────────────────────────────────────────── */}
+      <div
+        className="relative z-10 flex-1 w-full"
+        style={{
+          background: 'linear-gradient(160deg, #1e5c2e 0%, #174d25 60%, #123f1e 100%)',
+          boxShadow: 'inset 0 4px 24px rgba(0,0,0,0.35)',
+          minHeight: '60vh',
+        }}
+      >
+        {/* Felt texture */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px)',
+        }} />
 
-        {/* Left column */}
-        <div className="flex flex-col gap-4">
+        <div className="relative flex flex-col md:flex-row h-full" style={{ minHeight: '60vh' }}>
 
-          <Board
-            board={gs.board}
-            validEnds={gs.validEndsForSelected}
-            awaitingEnd={gs.phase === 'choosingEnd'}
-            onEndClick={end => dispatch({ type: 'CHOOSE_END', end })}
-            latestTileId={latestTileId}
-            sponsorLogoUrl={SPONSOR_CONFIG.tileBack?.logoUrl}
-          />
-
-          {gs.phase === 'choosingEnd' && (
-            <div className="text-center py-2 rounded-lg"
-              style={{ background: 'rgba(74,154,143,0.12)', border: '1px solid rgba(74,154,143,0.35)', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.15em', color: '#4a9a8f' }}>
-              ← CLICK LEFT OR RIGHT END TO PLACE →
-            </div>
-          )}
-          {gs.bonusTurn && gs.phase === 'selecting' && (
-            <div className="text-center py-2 rounded-lg"
-              style={{ background: 'rgba(232,184,64,0.08)', border: '1px solid rgba(232,184,64,0.3)', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.15em', color: '#e8b840' }}>
-              ⚡ BONUS TURN — PLAY AGAIN
-            </div>
-          )}
-
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.52rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.45)', marginBottom: 6 }}>
-              YOUR HAND
-            </div>
-            <Hand
-              tiles={human.hand}
-              selectedTile={gs.selectedTile}
-              board={gs.board}
-              isPlayerTurn={isPlayerTurn}
-              onTileClick={tile => dispatch({ type: 'SELECT_TILE', tile })}
-              onHoverFact={setArtFact}
-              showHints={showHints}
+          {/* LEFT PANEL: Wendy + scores — sits on the felt */}
+          <div className="flex flex-col gap-3 p-3 md:w-[200px] flex-shrink-0">
+            <WendyPortrait mood={gs.wendyMood} speech={gs.wendySpeech} artFact={artFact} />
+            <ScorePanel
+              players={gs.players}
+              currentPlayerIndex={gs.currentPlayerIndex}
+              boneyard={gs.boneyard.length}
+              round={gs.roundCount}
+              lastScore={gs.lastScore}
+              lastScoringPlayerId={gs.lastScoringPlayerId}
             />
           </div>
 
-          {/* AI hands (Merciless) */}
-          {gs.mode === 'merciless' && gs.players.slice(1).map(p => (
-            <div key={p.id}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.52rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.35)', marginBottom: 4 }}>
-                {p.name.toUpperCase()} · {p.hand.length} TILES
+          {/* Subtle divider */}
+          <div className="hidden md:block flex-shrink-0" style={{ width: 1, background: 'rgba(0,0,0,0.25)', margin: '16px 0' }} />
+
+          {/* MAIN TABLE SURFACE: board + hand */}
+          <div className="flex flex-col flex-1 min-w-0 px-3 pt-3 pb-3 gap-3">
+
+            {/* Opponent tile rows (merciless) */}
+            {gs.mode === 'merciless' && gs.players.slice(1).map(p => (
+              <div key={p.id} className="flex items-center gap-2">
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'rgba(200,240,200,0.4)', flexShrink: 0 }}>
+                  {p.name.slice(0, 10).toUpperCase()} ·
+                </span>
+                <div className="flex gap-1 flex-wrap">
+                  {p.hand.map(t => (
+                    <div key={t.id} style={{ width: 16, height: 32, background: '#1a1408', borderRadius: 3, border: '1px solid rgba(196,144,32,0.2)', flexShrink: 0 }} />
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-1 p-2 rounded-lg" style={{ background: 'rgba(26,20,8,0.5)', border: '1px solid rgba(196,144,32,0.1)' }}>
-                {p.hand.map(t => (
-                  <div key={t.id} style={{ width: 24, height: 48, background: '#1a1408', borderRadius: 3, border: '1px solid rgba(196,144,32,0.2)' }} />
-                ))}
+            ))}
+
+            {/* Board chain — centred in available space */}
+            <div className="flex-1 flex items-center">
+              <div className="w-full">
+                <Board
+                  board={gs.board}
+                  validEnds={gs.validEndsForSelected}
+                  awaitingEnd={gs.phase === 'choosingEnd'}
+                  onEndClick={handleEndClick}
+                  latestTileId={latestTileId}
+                  sponsorLogoUrl={SPONSOR_CONFIG.tileBack?.logoUrl}
+                />
               </div>
             </div>
-          ))}
 
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            {canDraw && (
-              <button onClick={() => dispatch({ type: 'DRAW' })} className="flex-1 py-2 rounded-xl transition-all"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.14em', background: 'rgba(196,144,32,0.15)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer' }}>
-                DRAW FROM BONEYARD ({gs.boneyard.length})
-              </button>
-            )}
-            {canPass && (
-              <button onClick={() => dispatch({ type: 'PASS' })} className="flex-1 py-2 rounded-xl transition-all"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.14em', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.35)', color: '#ef4444', cursor: 'pointer' }}>
-                PASS
-              </button>
-            )}
+            {/* Status banners */}
             {gs.phase === 'choosingEnd' && (
-              <button onClick={() => dispatch({ type: 'CANCEL_SELECTION' })} className="py-2 px-4 rounded-xl"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', background: 'transparent', border: '1px solid rgba(196,144,32,0.2)', color: 'rgba(245,234,216,0.5)', cursor: 'pointer' }}>
-                CANCEL
-              </button>
+              <div className="text-center py-3 rounded-lg"
+                style={{ background: 'rgba(74,154,143,0.12)', border: '1px solid rgba(74,154,143,0.35)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.15em', color: '#4a9a8f' }}>
+                ← CLICK LEFT OR RIGHT END TO PLACE →
+              </div>
             )}
-            {showHints && isPlayerTurn && (
-              <button onClick={handleHint} className="py-2 px-3 rounded-xl"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.12em', background: 'rgba(74,154,143,0.1)', border: '1px solid rgba(74,154,143,0.25)', color: '#4a9a8f', cursor: 'pointer' }}
-                title={hintSponsor ? `Ask Sister Wendy's Patron — ${hintSponsor.name}` : 'Ask for a hint'}>
-                {/* SPONSOR_HOOK: hint button */}
-                {hintSponsor ? `ASK ${hintSponsor.name.toUpperCase().slice(0, 8)}` : '💡 HINT'}
-              </button>
+            {gs.bonusTurn && gs.phase === 'selecting' && (
+              <div className="text-center py-3 rounded-lg"
+                style={{ background: 'rgba(232,184,64,0.08)', border: '1px solid rgba(232,184,64,0.3)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.15em', color: '#e8b840' }}>
+                ⚡ BONUS TURN — PLAY AGAIN
+              </div>
             )}
+
+            {/* Player hand — overlaid on felt at bottom */}
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', letterSpacing: '0.2em', color: 'rgba(200,240,200,0.45)', marginBottom: 6, textAlign: 'center' }}>
+                YOUR HAND
+              </div>
+              <Hand
+                tiles={human.hand}
+                selectedTile={gs.selectedTile}
+                board={gs.board}
+                isPlayerTurn={isPlayerTurn}
+                onTileClick={handleTileClick}
+                onHoverFact={setArtFact}
+                showHints={showHints}
+                shakeTileId={shakeTileId}
+              />
+
+              {/* Mobile-only speech — shown near the hand, not as a fixed overlay */}
+              <div className="md:hidden mt-2 px-3 py-2 rounded-lg"
+                style={{ background: 'rgba(13,10,6,0.88)', border: '1px solid rgba(196,144,32,0.15)' }}>
+                <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.88rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.82)', lineHeight: 1.4, textAlign: 'center' }}>
+                  &ldquo;{gs.wendySpeech}&rdquo;
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ── FOOTER: actions + ad spot ───────────────────────────────────────── */}
+      <div
+        className="relative z-10 w-full px-4 py-2 flex items-center gap-2 flex-wrap justify-center"
+        style={{ background: '#0d0a06', borderTop: '1px solid rgba(196,144,32,0.15)', minHeight: 64 }}
+      >
+        {canDraw && (
+          <button onClick={() => dispatch({ type: 'DRAW' })}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', letterSpacing: '0.14em', background: 'rgba(196,144,32,0.15)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', padding: '6px 16px', borderRadius: 10 }}>
+            DRAW ({gs.boneyard.length})
+          </button>
+        )}
+        {canPass && (
+          <button onClick={() => dispatch({ type: 'PASS' })}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', letterSpacing: '0.14em', background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.35)', color: '#ef4444', cursor: 'pointer', padding: '6px 16px', borderRadius: 10 }}>
+            PASS
+          </button>
+        )}
+        {gs.phase === 'choosingEnd' && (
+          <button onClick={() => dispatch({ type: 'CANCEL_SELECTION' })}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', background: 'transparent', border: '1px solid rgba(196,144,32,0.2)', color: 'rgba(245,234,216,0.5)', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
+            CANCEL
+          </button>
+        )}
+        {showHints && isPlayerTurn && (
+          <button onClick={handleHint}
+            title={hintSponsor ? `Ask Sister Wendy's Patron — ${hintSponsor.name}` : 'Ask for a hint'}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(74,154,143,0.1)', border: '1px solid rgba(74,154,143,0.25)', color: '#4a9a8f', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
+            {hintSponsor ? `ASK ${hintSponsor.name.toUpperCase().slice(0, 8)}` : '💡 HINT'}
+          </button>
+        )}
+
+        <div className="flex-1" />
+
+        {/* Sponsor / other-games ad slot */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {SCREWCAP_FOOTER_GAMES.map(g => (
+            <a
+              key={g.id}
+              href={g.href}
+              style={{
+                fontFamily: 'var(--font-bebas)',
+                fontSize: '0.8rem',
+                letterSpacing: '0.1em',
+                color: `${g.color}88`,
+                textDecoration: 'none',
+                border: `1px solid ${g.color}22`,
+                borderRadius: 6,
+                padding: '4px 10px',
+                transition: 'color 0.2s, border-color 0.2s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.color = g.color;
+                (e.currentTarget as HTMLElement).style.borderColor = `${g.color}66`;
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.color = `${g.color}88`;
+                (e.currentTarget as HTMLElement).style.borderColor = `${g.color}22`;
+              }}
+            >
+              {g.name}
+            </a>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ── Round Over overlay ──────────────────────────────────────────────────────
+
+function RoundOverScreen({
+  players,
+  roundWinnerId,
+  roundCount,
+  onNextRound,
+}: {
+  players: GameState['players'];
+  roundWinnerId: string;
+  roundCount: number;
+  onNextRound: () => void;
+}) {
+  const winner = players.find(p => p.id === roundWinnerId)!;
+  const humanWon = winner.isHuman;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(13,10,6,0.93)', backdropFilter: 'blur(6px)' }}>
+      <div className="w-full max-w-md rounded-2xl p-9"
+        style={{
+          background: 'linear-gradient(180deg, #1a1408 0%, #0d0a06 100%)',
+          border: '1px solid rgba(196,144,32,0.3)',
+          boxShadow: '0 0 50px rgba(196,144,32,0.08)',
+        }}
+      >
+        <div className="text-center mb-5">
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.28em', color: 'rgba(196,144,32,0.5)', marginBottom: 6 }}>
+            ROUND {roundCount} COMPLETE
+          </div>
+          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.8rem, 5vw, 3rem)', letterSpacing: '0.08em', color: humanWon ? '#e8b840' : '#f5ead8', lineHeight: 1 }}>
+            {humanWon ? 'ROUND WON' : winner.name.toUpperCase() + ' WINS THE ROUND'}
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-4">
-          <WendyPortrait mood={gs.wendyMood} speech={gs.wendySpeech} artFact={artFact} />
-          <ScorePanel
-            players={gs.players}
-            currentPlayerIndex={gs.currentPlayerIndex}
-            boneyard={gs.boneyard.length}
-            round={gs.roundCount}
-            lastScore={gs.lastScore}
-            lastScoringPlayerId={gs.lastScoringPlayerId}
-          />
+        <div className="grid gap-2 mb-5" style={{ gridTemplateColumns: `repeat(${players.length}, 1fr)` }}>
+          {players.map(p => (
+            <div key={p.id} className="rounded-xl p-4 text-center"
+              style={{
+                background: p.id === roundWinnerId ? 'rgba(196,144,32,0.1)' : 'rgba(26,20,8,0.6)',
+                border: `1px solid ${p.id === roundWinnerId ? 'rgba(232,184,64,0.35)' : 'rgba(196,144,32,0.1)'}`,
+              }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.64rem', letterSpacing: '0.12em', color: 'rgba(196,144,32,0.55)', marginBottom: 3 }}>
+                {p.name.toUpperCase()}{p.id === roundWinnerId ? ' ★' : ''}
+              </div>
+              <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '2rem', color: '#f5ead8', lineHeight: 1 }}>
+                {p.score}
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.56rem', color: 'rgba(196,144,32,0.3)' }}>/ 61</div>
+            </div>
+          ))}
         </div>
-      </main>
 
-      {/* Mobile speech bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-20 px-3 pb-safe"
-        style={{ background: 'rgba(13,10,6,0.96)', borderTop: '1px solid rgba(196,144,32,0.2)' }}>
-        <div className="py-2" style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.78rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.85)', lineHeight: 1.4 }}>
-          "{gs.wendySpeech}"
+        <div className="rounded-xl p-5 mb-5 text-center"
+          style={{ background: 'rgba(26,20,8,0.6)', border: '1px solid rgba(196,144,32,0.12)' }}>
+          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.95rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.75)', lineHeight: 1.5 }}>
+            "{humanWon
+              ? "Well done. Don't celebrate too long — we're going again."
+              : "The tiles don't lie. On to the next round. The habit stays on."}"
+          </p>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.35)', marginTop: 6 }}>
+            — SISTER WENDY
+          </div>
         </div>
+
+        {/* Cross-promo between rounds */}
+        <div className="mb-5">
+          <ScrewcapGamesStrip compact />
+        </div>
+
+        {/* Paid mid-game sponsor banner */}
+        <div className="mb-5">
+          <SponsorBanner />
+        </div>
+
+        <button
+          onClick={onNextRound}
+          className="w-full py-3 rounded-xl transition-all hover:scale-[1.02]"
+          style={{
+            fontFamily: 'var(--font-bebas)', fontSize: '1.1rem', letterSpacing: '0.1em',
+            background: '#c49020', color: '#0d0a06',
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          NEXT ROUND →
+        </button>
       </div>
     </div>
   );

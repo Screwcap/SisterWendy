@@ -304,8 +304,8 @@ export function initGame(mode: GameMode): GameState {
     roundWinnerId: null,
     gameWinnerId: null,
     wendySpeech: mode === 'merciless'
-      ? "Four players. This is going to be carnage. Magnificent, religious carnage."
-      : "A new game. I approach it with the same intensity I bring to Caravaggio.",
+      ? "Four of us. Oh this is going to be something. Possibly a sin. Probably worth it."
+      : "Right, let's go. I didn't put this habit on to lose.",
     wendyMood: 'neutral',
     bonusTurn: false,
     hintsUsed: 0,
@@ -316,4 +316,39 @@ export function difficultyForMode(mode: GameMode): Difficulty {
   if (mode === 'forgiving') return 'forgiving';
   if (mode === 'focused') return 'focused';
   return 'merciless';
+}
+
+// Sum of all opponents' remaining tile pips, rounded to nearest 5.
+// Awarded to the player who goes out at end of a round.
+export function calcRoundBonus(players: Player[], winnerIndex: number): number {
+  const pipTotal = players
+    .filter((_, i) => i !== winnerIndex)
+    .reduce((sum, p) => sum + p.hand.reduce((s, t) => s + t.a + t.b, 0), 0);
+  return Math.round(pipTotal / 5) * 5;
+}
+
+// Start the next round: fresh tiles, preserved scores, winner plays first.
+export function nextRound(state: GameState): GameState {
+  const tiles = createFullSet();
+  const newPlayers = state.players.map(p => ({ ...p, hand: tiles.splice(0, HAND_SIZE) }));
+  const winnerIdx = Math.max(0, newPlayers.findIndex(p => p.id === state.roundWinnerId));
+  const nextPhase: GameState['phase'] = newPlayers[winnerIdx].isHuman ? 'selecting' : 'aiThinking';
+  return {
+    ...state,
+    players: newPlayers,
+    board: emptyBoard(),
+    boneyard: tiles,
+    phase: nextPhase,
+    currentPlayerIndex: winnerIdx,
+    selectedTile: null,
+    validEndsForSelected: [],
+    roundCount: state.roundCount + 1,
+    roundWinnerId: null,
+    lastScore: 0,
+    lastScoringPlayerId: null,
+    bonusTurn: false,
+    turnCount: 0,
+    wendySpeech: "New round. Same habit. Let's go.",
+    wendyMood: 'neutral',
+  };
 }

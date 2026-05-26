@@ -122,7 +122,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
 
       {/* Name plate */}
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '0.52rem',
+        fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
         letterSpacing: '0.18em', color: 'rgba(196,144,32,0.6)',
         textTransform: 'uppercase',
       }}>
@@ -132,7 +132,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
       {/* Speech bubble */}
       <div
         ref={speechRef}
-        className="w-full rounded-lg p-3 relative"
+        className="w-full rounded-lg p-4 relative"
         style={{
           background: 'rgba(26,20,8,0.9)',
           border: `1px solid ${moodColor}33`,
@@ -149,7 +149,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
         }} />
         <p style={{
           fontFamily: 'var(--font-garamond)',
-          fontSize: '0.78rem', fontStyle: 'italic',
+          fontSize: '0.9rem', fontStyle: 'italic',
           color: 'rgba(245,234,216,0.88)',
           lineHeight: 1.5,
         }}>
@@ -160,16 +160,16 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
       {/* Art fact pill (shown on tile hover) */}
       {artFact && (
         <div
-          className="w-full rounded-lg p-2 mt-1"
+          className="w-full rounded-lg p-3 mt-1"
           style={{
             background: 'rgba(74,154,143,0.08)',
             border: '1px solid rgba(74,154,143,0.2)',
           }}
         >
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.44rem', letterSpacing: '0.15em', color: '#4a9a8f', marginBottom: 3 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', letterSpacing: '0.15em', color: '#4a9a8f', marginBottom: 3 }}>
             ART HISTORY NOTE
           </div>
-          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.7rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.75)', lineHeight: 1.4 }}>
+          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.82rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.75)', lineHeight: 1.4 }}>
             {artFact}
           </p>
         </div>

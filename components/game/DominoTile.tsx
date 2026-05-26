@@ -10,55 +10,70 @@ interface DominoTileProps {
   isSelected?: boolean;
   isPlayable?: boolean;
   isDisabled?: boolean;
-  isNew?: boolean;          // triggers entrance animation
+  isNew?: boolean;
+  isShaking?: boolean;
   onClick?: () => void;
   onHover?: (fact: string) => void;
   size?: 'sm' | 'md' | 'lg';
-  vertical?: boolean;       // board placement orientation
-  showBack?: boolean;       // tile face-down (for back sponsor logo)
+  vertical?: boolean;      // true = portrait (tall/narrow); false = landscape (wide/short)
+  crosswise?: boolean;     // rotate 90° — for doubles displayed perpendicular in the chain
+  flipId?: string;         // sets data-flip-id for GSAP FLIP animations
+  showBack?: boolean;
   sponsorLogoUrl?: string;
 }
 
+// Pip positions as [x%, y%] within the square pip face
 const PIP_POSITIONS: Record<number, Array<[number, number]>> = {
   0: [],
   1: [[50, 50]],
-  2: [[25, 25], [75, 75]],
-  3: [[25, 25], [50, 50], [75, 75]],
-  4: [[25, 25], [75, 25], [25, 75], [75, 75]],
-  5: [[25, 25], [75, 25], [50, 50], [25, 75], [75, 75]],
-  6: [[25, 22], [75, 22], [25, 50], [75, 50], [25, 78], [75, 78]],
+  2: [[30, 30], [70, 70]],
+  3: [[30, 30], [50, 50], [70, 70]],
+  4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+  6: [[28, 20], [72, 20], [28, 50], [72, 50], [28, 80], [72, 80]],
 };
 
-function PipFace({ value, cx, cy }: { value: number; cx: number; cy: number }) {
+// pip_size = square dimension of each half-face
+const SIZE_MAP = {
+  sm: { pip: 36, r: 5, pipR: 4.0 },
+  md: { pip: 50, r: 7, pipR: 5.6 },
+  lg: { pip: 64, r: 8, pipR: 7.0 },
+};
+
+function PipFace({
+  value,
+  pipSize,
+  pipRadius,
+  dark,
+}: {
+  value: number;
+  pipSize: number;
+  pipRadius: number;
+  dark: boolean;
+}) {
   const positions = PIP_POSITIONS[value] ?? [];
-  const halfSize = 38;
   return (
-    <g>
-      {/* Face background */}
-      <rect
-        x={cx - halfSize} y={cy - halfSize}
-        width={halfSize * 2} height={halfSize * 2}
-        rx={4} fill="none"
-      />
-      {/* Pips */}
+    <div style={{ position: 'relative', width: pipSize, height: pipSize, flexShrink: 0 }}>
       {positions.map(([px, py], i) => (
-        <circle
+        <div
           key={i}
-          cx={cx - halfSize + (px / 100) * halfSize * 2}
-          cy={cy - halfSize + (py / 100) * halfSize * 2}
-          r={value === 0 ? 0 : 5.5}
-          fill="var(--pip-color, #f5ead8)"
+          style={{
+            position: 'absolute',
+            width: pipRadius * 2,
+            height: pipRadius * 2,
+            borderRadius: '50%',
+            background: dark
+              ? 'radial-gradient(circle at 38% 35%, #8a6010, #3d2000)'
+              : 'radial-gradient(circle at 38% 35%, #3d2410, #080400)',
+            left: `calc(${px}% - ${pipRadius}px)`,
+            top: `calc(${py}% - ${pipRadius}px)`,
+            boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.55)',
+          }}
         />
       ))}
-    </g>
+    </div>
   );
 }
-
-const SIZE_MAP = {
-  sm: { w: 44, h: 88,  r: 4,  pip: 5,  div: 1.5 },
-  md: { w: 56, h: 112, r: 5,  pip: 6,  div: 2   },
-  lg: { w: 72, h: 144, r: 6,  pip: 7.5, div: 2.5 },
-};
 
 export default function DominoTile({
   tile,
@@ -66,64 +81,140 @@ export default function DominoTile({
   isPlayable = false,
   isDisabled = false,
   isNew = false,
+  isShaking = false,
   onClick,
   onHover,
   size = 'md',
   vertical = false,
+  crosswise = false,
+  flipId,
   showBack = false,
   sponsorLogoUrl,
 }: DominoTileProps) {
-  const ref = useRef<SVGSVGElement>(null);
-  const { w, h } = SIZE_MAP[size];
+  const ref = useRef<HTMLDivElement>(null);
+  const { pip, r, pipR } = SIZE_MAP[size];
 
   useEffect(() => {
     if (isNew && ref.current) {
       gsap.fromTo(
         ref.current,
-        { opacity: 0, scale: 0.6, y: -12 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.38, ease: 'back.out(1.5)' }
+        { opacity: 0, scale: 0.55, y: -10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(1.6)' }
       );
     }
   }, [isNew]);
 
-  const svgW = vertical ? h : w;
-  const svgH = vertical ? w : h;
-  const midX  = vertical ? w / 2 : h / 2;
+  useEffect(() => {
+    if (isShaking && ref.current) {
+      gsap.killTweensOf(ref.current);
+      gsap.fromTo(ref.current,
+        { x: 0 },
+        { x: 7, duration: 0.055, repeat: 7, yoyo: true, ease: 'power2.inOut',
+          onComplete: () => { if (ref.current) gsap.set(ref.current, { x: 0 }); } }
+      );
+    }
+  }, [isShaking]);
 
-  // When tile.flipped, display as [b|a]
-  const topVal  = tile.flipped ? tile.b : tile.a;
-  const botVal  = tile.flipped ? tile.a : tile.b;
+  const topVal = tile.flipped ? tile.b : tile.a;
+  const botVal = tile.flipped ? tile.a : tile.b;
 
-  const glowClass = isSelected
-    ? 'drop-shadow-[0_0_10px_rgba(232,184,64,0.9)]'
+  // Tile dimensions: portrait = pip × (pip*2+2), landscape = (pip*2+2) × pip
+  const GAP = 2; // divider thickness
+  const tileW = vertical ? pip : pip * 2 + GAP;
+  const tileH = vertical ? pip * 2 + GAP : pip;
+
+  // 3D shadow — baseline + glow ring when selected/playable
+  const shadow = isSelected
+    ? '0 0 0 2.5px #e8b840, 0 6px 16px rgba(0,0,0,0.55), 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.35)'
     : isPlayable
-    ? 'drop-shadow-[0_0_6px_rgba(74,154,143,0.7)]'
-    : '';
+    ? '0 0 0 2px #4a9a8f, 0 6px 16px rgba(0,0,0,0.55), 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.6)'
+    : '0 5px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,255,255,0.65), inset -1px -1px 3px rgba(0,0,0,0.08)';
 
-  const cursorClass = onClick && !isDisabled ? 'cursor-pointer' : 'cursor-default';
-  const opacityClass = isDisabled && !isSelected ? 'opacity-40' : 'opacity-100';
+  const faceBackground = isSelected
+    ? 'linear-gradient(145deg, #ddb030 0%, #c49020 55%, #a87018 100%)'
+    : 'linear-gradient(145deg, #fbf7e8 0%, #f2ecd6 55%, #e6dfc4 100%)';
+
+  const borderColor = isSelected ? '#8a6010' : '#1e1006';
+  const dividerColor = isSelected ? '#a07818' : '#1e1006';
 
   function handleClick() {
     if (!isDisabled && onClick) onClick();
   }
-
   function handleMouseEnter() {
     if (onHover && !isDisabled) onHover(getTileFact(tile.a, tile.b));
-    if (ref.current && isPlayable && !isDisabled) {
-      gsap.to(ref.current, { y: -4, duration: 0.18, ease: 'power2.out' });
+    if (ref.current && onClick && !isDisabled) {
+      gsap.to(ref.current, {
+        y: -8,
+        boxShadow: '0 0 0 2px rgba(196,144,32,0.4), 0 14px 28px rgba(0,0,0,0.65), 0 4px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.55)',
+        duration: 0.18,
+        ease: 'power2.out',
+      });
     }
   }
   function handleMouseLeave() {
-    if (ref.current) gsap.to(ref.current, { y: 0, duration: 0.22, ease: 'power2.out' });
+    if (ref.current) gsap.to(ref.current, { y: 0, boxShadow: shadow, duration: 0.22, ease: 'power2.out' });
+  }
+
+  const baseStyle: React.CSSProperties = {
+    width: tileW,
+    height: tileH,
+    borderRadius: r,
+    border: `2px solid ${borderColor}`,
+    background: faceBackground,
+    boxShadow: shadow,
+    display: 'flex',
+    flexDirection: vertical ? 'column' : 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    flexShrink: 0,
+    userSelect: 'none',
+    opacity: isDisabled && !isSelected ? 0.45 : 1,
+    cursor: onClick && !isDisabled ? 'pointer' : 'default',
+    transition: 'opacity 0.2s',
+    ...(crosswise && { transform: 'rotate(90deg)' }),
+  };
+
+  const dividerStyle: React.CSSProperties = {
+    width: vertical ? '80%' : GAP,
+    height: vertical ? GAP : '80%',
+    background: dividerColor,
+    opacity: 0.7,
+    flexShrink: 0,
+  };
+
+  if (showBack) {
+    return (
+      <div
+        ref={ref}
+        data-flip-id={flipId}
+        style={{
+          ...baseStyle,
+          background: 'linear-gradient(145deg, #1e1408 0%, #140e04 100%)',
+          border: `2px solid ${isSelected ? '#e8b840' : '#4a3010'}`,
+          boxShadow: '0 5px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {sponsorLogoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={sponsorLogoUrl} alt="" style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.7 }} />
+        ) : (
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: pip * 0.2, color: 'rgba(196,144,32,0.45)', letterSpacing: '0.1em' }}>SW</span>
+        )}
+      </div>
+    );
   }
 
   return (
-    <svg
+    <div
       ref={ref}
-      width={svgW}
-      height={svgH}
-      viewBox={`0 0 ${svgW} ${svgH}`}
-      className={`transition-opacity select-none ${glowClass} ${cursorClass} ${opacityClass}`}
+      data-flip-id={flipId}
+      style={baseStyle}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -131,61 +222,10 @@ export default function DominoTile({
       aria-label={`Domino ${tile.a}-${tile.b}${isPlayable ? ', playable' : ''}${isSelected ? ', selected' : ''}`}
       tabIndex={onClick && !isDisabled ? 0 : -1}
       onKeyDown={e => e.key === 'Enter' && handleClick()}
-      style={{ '--pip-color': isSelected ? '#0d0a06' : '#f5ead8' } as React.CSSProperties}
     >
-      {showBack ? (
-        /* Tile back — sponsor logo or default pattern */
-        <g>
-          <rect width={svgW} height={svgH} rx={6}
-            fill="#1a1408" stroke={isSelected ? '#e8b840' : '#c49020'} strokeWidth={isSelected ? 2.5 : 1.5} />
-          {sponsorLogoUrl ? (
-            <image href={sponsorLogoUrl} x={svgW * 0.15} y={svgH * 0.15}
-              width={svgW * 0.7} height={svgH * 0.7} preserveAspectRatio="xMidYMid meet" opacity={0.7} />
-          ) : (
-            /* Default back: brass diagonal hatching */
-            <>
-              <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1="0" y1="0" x2="0" y2="8" stroke="#c49020" strokeWidth="0.8" opacity="0.3" />
-              </pattern>
-              <rect width={svgW} height={svgH} rx={6} fill="url(#hatch)" />
-              <text x={svgW / 2} y={svgH / 2 + 4} textAnchor="middle"
-                fill="#c49020" fontSize="10" fontFamily="'DM Mono', monospace" opacity={0.5}>SW</text>
-            </>
-          )}
-        </g>
-      ) : vertical ? (
-        /* Vertical tile (board chain) */
-        <g>
-          <rect width={svgW} height={svgH} rx={6}
-            fill={isSelected ? '#c49020' : '#1a1408'}
-            stroke={isSelected ? '#e8b840' : isPlayable ? '#4a9a8f' : '#7a5a14'}
-            strokeWidth={isSelected ? 2.5 : 1.5}
-          />
-          {/* Top half */}
-          <PipFace value={topVal} cx={svgW / 2} cy={svgH / 4} />
-          {/* Divider */}
-          <line x1={6} y1={svgH / 2} x2={svgW - 6} y2={svgH / 2}
-            stroke={isSelected ? '#0d0a06' : '#c49020'} strokeWidth={1} opacity={0.6} />
-          {/* Bottom half */}
-          <PipFace value={botVal} cx={svgW / 2} cy={(svgH * 3) / 4} />
-        </g>
-      ) : (
-        /* Horizontal tile (hand) */
-        <g>
-          <rect width={svgW} height={svgH} rx={6}
-            fill={isSelected ? '#c49020' : '#1a1408'}
-            stroke={isSelected ? '#e8b840' : isPlayable ? '#4a9a8f' : '#7a5a14'}
-            strokeWidth={isSelected ? 2.5 : 1.5}
-          />
-          {/* Left half */}
-          <PipFace value={topVal} cx={svgW / 4} cy={svgH / 2} />
-          {/* Divider */}
-          <line x1={svgW / 2} y1={6} x2={svgW / 2} y2={svgH - 6}
-            stroke={isSelected ? '#0d0a06' : '#c49020'} strokeWidth={1} opacity={0.6} />
-          {/* Right half */}
-          <PipFace value={botVal} cx={(svgW * 3) / 4} cy={svgH / 2} />
-        </g>
-      )}
-    </svg>
+      <PipFace value={topVal} pipSize={pip} pipRadius={pipR} dark={isSelected} />
+      <div style={dividerStyle} />
+      <PipFace value={botVal} pipSize={pip} pipRadius={pipR} dark={isSelected} />
+    </div>
   );
 }

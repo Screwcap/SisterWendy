@@ -42,7 +42,7 @@ export default function ScorePanel({
 
   return (
     <div
-      className="rounded-xl p-3"
+      className="rounded-xl p-5"
       style={{
         background: 'rgba(26,20,8,0.85)',
         border: '1px solid rgba(196,144,32,0.2)',
@@ -50,10 +50,10 @@ export default function ScorePanel({
     >
       {/* Round info */}
       <div className="flex justify-between items-center mb-3">
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.55)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.55)' }}>
           ROUND {round}
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.4)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.4)' }}>
           BONEYARD: {boneyard}
         </span>
       </div>
@@ -68,7 +68,7 @@ export default function ScorePanel({
             <div key={player.id}>
               <div className="flex justify-between items-baseline mb-1">
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
+                  fontFamily: 'var(--font-mono)', fontSize: '0.74rem',
                   letterSpacing: '0.14em',
                   color: isActive ? '#e8b840' : 'rgba(245,234,216,0.55)',
                   transition: 'color 0.3s',
@@ -78,7 +78,7 @@ export default function ScorePanel({
                 <span
                   ref={el => { scoreRefs.current[player.id] = el; }}
                   style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '1rem',
+                    fontFamily: 'var(--font-mono)', fontSize: '1.2rem',
                     color: '#f5ead8', fontWeight: 600,
                   }}
                 >
@@ -100,10 +100,10 @@ export default function ScorePanel({
               </div>
 
               <div className="flex justify-between mt-0.5">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.42rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
                   0
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.42rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
                   {TARGET}
                 </span>
               </div>
@@ -118,7 +118,7 @@ export default function ScorePanel({
           marginTop: '0.75rem',
           paddingTop: '0.5rem',
           borderTop: '1px solid rgba(196,144,32,0.1)',
-          fontFamily: 'var(--font-mono)', fontSize: '0.44rem',
+          fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
           letterSpacing: '0.15em', textTransform: 'uppercase' as const,
           color: 'rgba(196,144,32,0.45)',
           textAlign: 'center' as const,

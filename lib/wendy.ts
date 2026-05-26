@@ -1,4 +1,6 @@
-// lib/wendy.ts — Sister Wendy personality: voice lines, art facts, verdicts
+// lib/wendy.ts — Sister Wendy personality: a woman who wore a nun's habit
+// through her divorce years and swore like a sailor in the grocery store
+// while her ten-year-old son followed behind with the cart.
 
 export type QuoteKey =
   | 'gameStart' | 'playerScores' | 'playerBigScore' | 'playerDouble'
@@ -8,90 +10,90 @@ export type QuoteKey =
 
 const QUOTES: Record<QuoteKey, string[]> = {
   gameStart: [
-    "A new game. I approach it with the same intensity I bring to Caravaggio.",
-    "Shall we begin? I warn you — I have played dominoes since the Reformation.",
-    "Right then. Try not to embarrass yourself too comprehensively.",
-    "One must approach dominoes as one approaches Vermeer: with patience, precision, and no expectation of mercy.",
+    "Right, let's go. I didn't put this habit on to lose.",
+    "Shuffle those tiles properly. This isn't the cereal aisle.",
+    "I've played dominoes through worse than this. Considerably worse.",
+    "God give me strength. And decent tiles.",
   ],
   playerScores: [
-    "Oh. Well played. Don't expect me to say that again.",
-    "Points for you. How tediously competent.",
-    "Hmm. I didn't see that coming. Nor, I suspect, did you.",
-    "Credit where it's due. Briefly.",
+    "Fine. Points. Don't let it go to your head.",
+    "Oh good for you. You want a biscuit?",
+    "I saw that coming. I let you have it.",
+    "Mmm. Lucky. But we'll call it skill.",
   ],
   playerBigScore: [
-    "Good heavens. You must be cheating. Or inspired. In art, the line is blurry.",
-    "That was remarkable. I'm going to pretend I let you do that.",
-    "Twenty points. The audacity. The Flemish masters would have wept.",
+    "Jesus, Mary and Joseph — where did THAT come from?",
+    "Twenty points. Oh for— right. Fine. Well played.",
+    "I taught you everything you know. Not everything I know. Remember that.",
   ],
   playerDouble: [
-    "A double! The baroque flourish of domino play.",
-    "You lay doubles like Tintoretto lays perspective — aggressively and without apology.",
-    "The double. Drama in pip form.",
+    "A double. Showing off, are we.",
+    "The double. Classic. Your grandfather played like that. Infuriating man.",
+    "Right, play again then. Don't milk it.",
   ],
   playerCombo: [
-    "Another bonus turn? You're becoming presumptuous. I respect it.",
-    "Consecutive scoring — like a Bach fugue. I didn't expect it from you.",
-    "You've found a rhythm. Don't celebrate. Rhythms break.",
+    "Another turn? Bloody hell. Fine.",
+    "You're on a run. Enjoy it. It won't last.",
+    "Keep going. I'm letting you. Strategically.",
   ],
   playerCantPlay: [
-    "No tile fits? Join Cézanne in his late period — stranded, magnificent, forced to reconsider everything.",
-    "Draw from the boneyard. Art demands patience.",
-    "The tiles resist you. This is not unlike how art resisted Picasso — briefly, then surrendered.",
+    "No tile? Draw. That's what the boneyard's for. Life too, as it happens.",
+    "Can't play? Welcome to the club. Very popular club.",
+    "Draw from the pile, love. We've all been there.",
   ],
   wendyScores: [
-    "Fifteen points. I try not to gloat. I try.",
-    "The board yields its secrets to those who study it. As with all art.",
-    "There we are. The tiles, as usual, have excellent taste.",
+    "There we are. Fifteen. The habit brings luck, what can I say.",
+    "That's mine. Noted.",
+    "Points. I've earned them. God knows I've earned them.",
   ],
   wendyBigScore: [
-    "Twenty points. I have achieved what Rothko called 'the inevitable.'",
-    "Ah. That's rather good, isn't it. Yes. It rather is.",
-    "I did not choose to score twenty points. The game chose it for me. Like all true art.",
+    "Twenty points. Right. Yes. That's how it's done.",
+    "Brilliant. Even I'm impressed and I rarely am.",
+    "That's twenty. Don't make a scene, I'm wearing the habit.",
   ],
   wendyDouble: [
-    "A double. One does enjoy a double.",
-    "The double pip — symmetry made playable.",
-    "Doubles are God's geometry. I'm simply deploying it.",
+    "Double. Lovely. Play again.",
+    "Oh that's satisfying. The double always is.",
+    "Doubles are God's little joke. I appreciate the humour.",
   ],
   herTurn: [
-    "My turn. Watch closely. This is what studied attention looks like.",
-    "Now then.",
-    "Allow me.",
-    "I have considered the board. The board has considered me back.",
+    "My turn. Stand by.",
+    "Right then.",
+    "Let me think. Don't rush me.",
+    "I've been planning this since the boneyard.",
   ],
   smug: [
-    "I see your strategy. It won't work.",
-    "Interesting choice. Wrong, but interesting.",
-    "You're playing with hope. I'm playing with intention. There is a difference.",
+    "I know exactly what you're doing. It's not going to work.",
+    "Interesting. Wrong, but interesting.",
+    "You're playing on hope. I'm playing on experience. Different things entirely.",
   ],
   commentary: [
-    "The board has a certain elegance now. I may be responsible for some of it.",
-    "We are constructing something together. Neither of us will mention this.",
-    "The chain grows. Like a Flemish altarpiece — panel by panel, inexorable.",
+    "The board's taking shape. Mostly thanks to me.",
+    "Good game so far. Considering.",
+    "We're building something here. Whether it ends well is another matter.",
   ],
   angry: [
-    "I see what you're doing. It is rude.",
-    "That was deliberately blocking. Sister Wendy does not forget.",
-    "You're playing like you're angry at something. Are you angry at something?",
+    "Oh that is RUDE. That is a rude tile placement and you know it.",
+    "You're blocking me. In this house. At this table.",
+    "Right, that's it. Gloves off. I didn't wear the habit for this.",
   ],
   playerWins: [
-    "You've won. I accept this with the grace of Matisse accepting a bad day — briefly, then I paint over it.",
-    "Well. You beat a nun at dominoes. Feel what you feel about that.",
-    "Victory is yours. Don't let it change you. It usually does.",
-    "You won. I shall now go and contemplate a Flemish interior until the feeling passes.",
+    "You won. Well done. Don't ever tell your father.",
+    "Fine. You beat me. I hope you're pleased with yourself. I'd be pleased with myself.",
+    "Victory. You've earned it. Don't expect a parade.",
+    "You won. I'm going to go put the kettle on and not think about this.",
   ],
   wendyWins: [
-    "I win. As God and Mondrian intended.",
-    "The tiles were kind to me today. Or perhaps I was kind to the tiles.",
-    "There we are. Beaten by a nun. That's going in your biography.",
-    "Game over. It was over rather sooner than you expected, wasn't it.",
+    "Ha. And there it is. Don't look so surprised.",
+    "I win. The habit was a factor. Don't question it.",
+    "Game over. You played well. Not well enough, but well.",
+    "Beaten by a woman in a nun's habit. Pop that in your diary.",
   ],
   tileHover: [
-    "Consider it carefully.",
-    "Is that your move?",
-    "Interesting selection.",
+    "Thinking about it?",
+    "That one?",
     "Hmm.",
+    "Choose wisely. I'm watching.",
   ],
 };
 
@@ -100,52 +102,51 @@ export function randQuote(key: QuoteKey): string {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-// Art-history facts keyed by pip value (0–6)
+// Tile facts — Sister Wendy's grocery-store-era wisdom, keyed by pip value (0–6)
 export const PIP_FACTS: Record<number, string[]> = {
   0: [
-    "Zero. The void. Malevich nearly broke abstract painting debating it.",
-    "The blank pip — negative space. Matisse called it 'the paper the paint doesn't cover.' He meant it as praise.",
-    "Zero pips. Kazimir Malevich painted a black square on white canvas in 1915 and called it the beginning of everything.",
+    "Zero. Nothing. That's what was in the account some months. We got through it.",
+    "The blank. She always said a blank tile was an opportunity in disguise. Usually she was wrong but sometimes not.",
+    "Zero pips. Empty. There were weeks like that. The habit helped, she said. The dominoes helped more.",
   ],
   1: [
-    "One singular point — Kandinsky's entire theory of composition begins with this mark.",
-    "The first commitment. Every masterpiece started with exactly this: a single mark on nothing.",
-    "One dot. The loneliest, most loaded pip on the tile. Yves Klein spent a career here.",
+    "One. Just the one. Some years it was just us two in the cereal aisle and honestly that was enough.",
+    "The single pip. She'd find the one good thing in a bad situation and fixate on it mercilessly.",
+    "One pip. She had one good coat, one good handbag, and one hell of a strategy at this table.",
   ],
   2: [
-    "Two — balance, tension. Think of Rembrandt's portraits: always a dialogue between light and shadow.",
-    "Two pips. Duality. Yin and yang. Braque and Picasso circling each other like planets.",
-    "The number of Michelangelo's hands that painted the Sistine Chapel ceiling. Both extraordinary.",
+    "Two. Her and me, mostly. The cart, the habit, the frozen aisle. We managed.",
+    "Two pips. She always said two's company and three's a divorce lawyer. She had opinions.",
+    "Two. The team. Down the cereal aisle, around the deli counter, past the looks from strangers.",
   ],
   3: [
-    "Three — the Holy Trinity of composition. Every Renaissance painter knew the rule of thirds before they named it.",
-    "Three dots. Triangular stability. Raphael built his entire Madonnas on this geometry.",
-    "Three is the first odd prime. Mathematicians are fascinated. Artists merely use it constantly.",
+    "Three. She could carry three shopping bags, a grudge and a domino hand simultaneously. Remarkable woman.",
+    "Third aisle was always the biscuit aisle. She'd mutter something unprintable at the price and put them in the cart anyway.",
+    "Three pips. Three things she never did: give up, apologise first, or leave a scoring tile unplayed.",
   ],
   4: [
-    "Four seasons, four humours, four Evangelists — painters adored the square. Paul Klee made a career of it.",
-    "Mondrian reduced the entire world to four angles and primary colours. He was, in his way, correct.",
-    "Four pips. The grid. Mondrian, Albers, LeWitt — all lived here, in perfect, uncompromising fours.",
+    "Four. The number of things she could be simultaneously furious about while still completing the shopping.",
+    "Four pips. Four seasons and she wore the habit through all of them. That's commitment.",
+    "She'd do the whole weekly shop in four aisles flat if she was in a mood. Speed. Focus. Terrifying.",
   ],
   5: [
-    "Five! The Fibonacci sequence begins its persuasion around here. Da Vinci hid it in everything.",
-    "Five pips — Dürer's engravings were dominated by fives. He was obsessed with mathematical beauty and so am I.",
-    "The pentagram. Five-pointed. Medieval mystics feared it; Renaissance artists worshipped it. Both had a point.",
+    "Five. I was ten. The cart was heavy. The habit billowed. The language, on a scale of one to five, was a five.",
+    "Five pips — the scoring pip. She could spot a scoring play faster than a checkout queue jumper and react more forcefully.",
+    "Five. She said five was the luck number. Argued about it with a priest once. She won.",
   ],
   6: [
-    "Six — the perfect number. Pythagoras said so. Da Vinci agreed. Vitruvian Man is all sixfold symmetry.",
-    "The hexagon — the most efficient shape in nature. Bees know this. Paul Klee painted it. We all bow to six.",
-    "Six pips. The maximum. The double-six is the king of this table, and don't pretend otherwise.",
+    "Six. The double-six. The best tile in the box. She always said if you get the double-six, you play it immediately. No hesitation. She meant at dominoes. Probably.",
+    "Six pips. Maximum. She operated at maximum most of the time. It was a lot. It was also impressive.",
+    "The six. She had a six on a necklace. Saint somebody. Patron of complicated situations, she said. Never checked.",
   ],
 };
 
 export function getPipFact(pip: number): string {
-  const facts = PIP_FACTS[pip] ?? ["A perfectly adequate number. Trust me on this."];
+  const facts = PIP_FACTS[pip] ?? ["A number. She had a view on it. She had a view on most things."];
   return facts[Math.floor(Math.random() * facts.length)];
 }
 
 export function getTileFact(a: number, b: number): string {
-  // Higher pip gets the educational focus; doubles get a double-fact
   if (a === b) {
     return `[${a}|${a}] — the double-${a}. ${getPipFact(a)}`;
   }
@@ -169,29 +170,29 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
   wendy: {
     id: 'wendy',
     name: 'Sister Wendy',
-    title: 'Keeper of Art & Dominoes',
+    title: 'The Original. The Only.',
     accentColor: '#c49020',
-    scores: ["Fifteen points. I try not to gloat.", "The board yields its secrets."],
-    wins: ["I win. As God and Mondrian intended.", "Beaten by a nun. That's going in your biography."],
-    blocks: ["I see what you're doing. It is rude.", "Playing defensively. How very contemporary."],
+    scores: ["Fifteen. I'll take it.", "Points. Mine. Moving on."],
+    wins: ["Ha. And there it is.", "Beaten by a woman in a nun's habit. Write that down."],
+    blocks: ["I see what you're doing. Bold.", "Blocked. You're welcome."],
   },
   patricia: {
     id: 'patricia',
     name: 'Sister Patricia',
-    title: 'Iron Hand of God',
+    title: 'The Competitive One',
     accentColor: '#d4507a',
-    scores: ["Points. Mine now.", "The Lord provides. Specifically, He provides me with scoring tiles."],
-    wins: ["The righteous win. This is not surprising.", "I have prevailed. Again."],
-    blocks: ["Your path is closed. As it should be.", "I have blocked you. Spiritually as well as literally."],
+    scores: ["Mine.", "Patricia provides. Patricia scores."],
+    wins: ["Patricia wins. Again. Obviously.", "Expected outcome. Next."],
+    blocks: ["Closed. Move on.", "Your tile doesn't fit there. Mine does."],
   },
   hildegard: {
     id: 'hildegard',
     name: 'Abbess Hildegard',
-    title: 'Merciless & Medieval',
+    title: 'Merciless, Medieval, Magnificent',
     accentColor: '#6b46c1',
-    scores: ["FÜNFZEHN PUNKTE. The medieval Church had no mercy and neither do I.", "Score. Mine."],
-    wins: ["The Abbess does not lose. History confirms this.", "Vanquished. As in 1189."],
-    blocks: ["Your advance is stopped. Like the Turks at Vienna.", "I seal this end of the board as I would seal a monastery gate."],
+    scores: ["POINTS. MINE. GOD WILLS IT.", "The Abbess scores. As foretold."],
+    wins: ["The Abbess does not lose. History is consistent on this.", "You have been beaten by someone in institutional clothing. Reflect."],
+    blocks: ["Your advance ends here. As do most advances.", "Sealed. Like a very serious envelope."],
   },
 };
 
@@ -218,20 +219,20 @@ export function calcGrade(playerScore: number, opponentScore: number, hintsUsed:
 export function getVerdictText(grade: Grade, won: boolean): string {
   const lines: Record<Grade, string> = {
     A: won
-      ? "I didn't think you had it in you. Neither did you, I suspect. That's what makes it interesting. Magnificent."
-      : "A noble defeat. Cézanne failed repeatedly before his greatness. This is the beginning, not the end.",
+      ? "I'm impressed. Genuinely. Don't tell anyone I said that."
+      : "A good run. You played hard. The tiles weren't with you. These things happen and then you carry on.",
     B: won
-      ? "Solid. Not inspired, but solid. Solid is underrated — ask any Flemish master."
-      : "You played with intelligence but not quite enough of it. There's something honest about that.",
+      ? "Solid game. Not flashy, but solid. Solid gets the shopping done."
+      : "You were close. Close is something. Close means you nearly had it. Nearly.",
     C: won
-      ? "Average, but winning. The Sistine Chapel was not painted by average, but here we are — you've won. Barely."
-      : "Average. The middle is a terrible place to live, in art or dominoes. Do better.",
+      ? "You won. I'll give you that. The habit may have distracted you at key moments. It does that."
+      : "Middle of the road. She always said the middle of the road is where you get hit by traffic. Think on that.",
     D: won
-      ? "You won despite yourself. This is not uncommon in art history. Turner was called a failure until he wasn't."
-      : "You played with the confidence of a forger and the skill of a tax accountant. Not a compliment.",
+      ? "You won but I'm not sure how. Nor are you. We'll move on."
+      : "That was a difficult watch. You played like someone who learned the rules five minutes ago. Did you learn the rules five minutes ago?",
     F: won
-      ? "You won. I do not understand how. Neither do you. Art is sometimes inexplicable."
-      : "What we witnessed today will not be discussed again. I am going to go pray and then contemplate Rothko until I feel better.",
+      ? "You won. I cannot explain it. I've seen a lot and I cannot explain it."
+      : "Right. Cup of tea. We don't speak of this. We simply do better next time. That's always been the approach.",
   };
   return lines[grade];
 }
