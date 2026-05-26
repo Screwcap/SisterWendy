@@ -21,6 +21,7 @@ import WendyPortrait from './WendyPortrait';
 import ScorePanel from './ScorePanel';
 import EndScreen from './EndScreen';
 import GameSetup from './GameSetup';
+import IntroScreen from './IntroScreen';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 
 const SCREWCAP_FOOTER_GAMES = [
@@ -247,6 +248,10 @@ export default function Game() {
   const [latestTileId, setLatestTileId] = useState<string | undefined>(undefined);
   const [shakeTileId, setShakeTileId] = useState<string | undefined>(undefined);
   const [isMuted, setIsMuted] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('sw-intro-seen');
+  });
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync mute button state with audio singleton on mount
@@ -406,6 +411,15 @@ export default function Game() {
 
     return () => { if (aiTimerRef.current) clearTimeout(aiTimerRef.current); };
   }, [gs?.phase, gs?.currentPlayerIndex, gs?.turnCount]);
+
+  if (showIntro) {
+    return (
+      <IntroScreen onDone={() => {
+        try { localStorage.setItem('sw-intro-seen', '1'); } catch { /* */ }
+        setShowIntro(false);
+      }} />
+    );
+  }
 
   if (!gs) return <GameSetup onStart={m => setGs(initGame(m))} />;
 
