@@ -14,6 +14,7 @@ import {
 import { randQuote } from '@/lib/wendy';
 import type { WendyMood } from '@/lib/game';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
+import { audio } from '@/lib/audio';
 import Board from './Board';
 import Hand from './Hand';
 import WendyPortrait from './WendyPortrait';
@@ -245,7 +246,11 @@ export default function Game() {
   const [artFact, setArtFact] = useState<string | undefined>(undefined);
   const [latestTileId, setLatestTileId] = useState<string | undefined>(undefined);
   const [shakeTileId, setShakeTileId] = useState<string | undefined>(undefined);
+  const [isMuted, setIsMuted] = useState(false);
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync mute button state with audio singleton on mount
+  useEffect(() => { setIsMuted(audio.muted); }, []);
 
   // Persist game state to localStorage
   useEffect(() => {
@@ -260,6 +265,30 @@ export default function Game() {
   const dispatch = useCallback((action: Action) => {
     setGs(prev => prev ? reducer(prev, action) : prev);
   }, []);
+
+  // Sound effects — react to board changes and phase transitions
+  const prevBoardLen = useRef(0);
+  const prevPhase = useRef<string>('');
+  const prevLastScore = useRef(0);
+  useEffect(() => {
+    if (!gs) return;
+    const boardLen = gs.board.chain.length;
+    // Tile placed
+    if (boardLen > prevBoardLen.current) {
+      audio.play('place');
+    }
+    // Scored
+    if (gs.lastScore > 0 && gs.lastScore !== prevLastScore.current) {
+      setTimeout(() => audio.play('score'), 180);
+    }
+    // Round or game over
+    if ((gs.phase === 'roundOver' || gs.phase === 'gameOver') && prevPhase.current !== gs.phase) {
+      setTimeout(() => audio.play('clear'), 300);
+    }
+    prevBoardLen.current = boardLen;
+    prevPhase.current = gs.phase;
+    prevLastScore.current = gs.lastScore;
+  }, [gs]);
 
   // AI turn
   useEffect(() => {
@@ -383,7 +412,7 @@ export default function Game() {
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} />
         <EndScreen
           players={gs.players}
           gameWinnerId={gs.gameWinnerId}
@@ -399,7 +428,7 @@ export default function Game() {
   if (gs.phase === 'roundOver' && gs.roundWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} />
         <RoundOverScreen
           players={gs.players}
           roundWinnerId={gs.roundWinnerId}
@@ -420,6 +449,8 @@ export default function Game() {
       setLatestTileId={setLatestTileId}
       shakeTileId={shakeTileId}
       setShakeTileId={setShakeTileId}
+      isMuted={isMuted}
+      onToggleMute={() => { setIsMuted(audio.toggleMute()); }}
     />
   );
 }
@@ -435,9 +466,11 @@ interface GameUIProps {
   setLatestTileId: (id: string | undefined) => void;
   shakeTileId?: string;
   setShakeTileId: (id: string | undefined) => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
 }
 
-function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId }: GameUIProps) {
+function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId, isMuted, onToggleMute }: GameUIProps) {
   const human = gs.players[0];
   const isPlayerTurn = gs.currentPlayerIndex === 0 && (gs.phase === 'selecting' || gs.phase === 'choosingEnd');
   const showHints = gs.mode === 'forgiving';
@@ -462,7 +495,8 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
   function handleTileClick(tile: TileData) {
     const ends = boardIsEmpty(gs.board) ? (['first'] as BoardEnd[]) : validEnds(gs.board, tile);
     if (ends.length === 0) {
-      // Tile can't be played — shake it
+      // Tile can't be played — shake it and play error sound
+      audio.play('error');
       setShakeTileId(tile.id);
       setTimeout(() => setShakeTileId(undefined), 600);
       dispatch({ type: 'SELECT_TILE', tile }); // updates wendySpeech feedback
@@ -530,8 +564,17 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             {gs.mode.toUpperCase()} MODE · ROUND {gs.roundCount} · TURN {gs.turnCount}
           </div>
         </div>
-        <div className="absolute right-4" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
-          {isPlayerTurn ? '▶ YOUR TURN' : '⏳ WENDY'}
+        <div className="absolute right-4 flex items-center gap-3">
+          <button
+            onClick={onToggleMute}
+            title={isMuted ? 'Unmute' : 'Mute'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', opacity: 0.55, lineHeight: 1 }}
+          >
+            {isMuted ? '🔇' : '🔊'}
+          </button>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
+            {isPlayerTurn ? '▶ YOUR TURN' : '⏳ WENDY'}
+          </span>
         </div>
       </header>
 
@@ -648,7 +691,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
         style={{ background: '#0d0a06', borderTop: '1px solid rgba(196,144,32,0.15)', minHeight: 64 }}
       >
         {canDraw && (
-          <button onClick={() => dispatch({ type: 'DRAW' })}
+          <button onClick={() => { audio.play('draw'); dispatch({ type: 'DRAW' }); }}
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', letterSpacing: '0.14em', background: 'rgba(196,144,32,0.15)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', padding: '6px 16px', borderRadius: 10 }}>
             DRAW ({gs.boneyard.length})
           </button>
