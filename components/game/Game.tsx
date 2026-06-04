@@ -514,6 +514,30 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
   const hintSponsor = SPONSOR_CONFIG.hint;
   const flipStateRef = useRef<ReturnType<typeof Flip.getState> | null>(null);
 
+  // ── Floating score flash (juice): pops the All-Fives math above the board on a scoring play ──
+  const [scoreFlash, setScoreFlash] = useState<{ id: number; text: string; sub: string } | null>(null);
+  const scoreFlashRef = useRef<HTMLDivElement>(null);
+  const prevFlashScore = useRef(gs.lastScore);
+  useEffect(() => {
+    if (gs.lastScore > 0 && gs.lastScore !== prevFlashScore.current) {
+      const a = gs.board.leftEnd ?? 0;
+      const b = gs.board.rightEnd ?? 0;
+      // Show the literal math when the two open ends add up to the score; else just the points.
+      const sub = a + b === gs.lastScore ? `${a} + ${b} = ${gs.lastScore}` : 'ALL-FIVES';
+      setScoreFlash({ id: Date.now(), text: `+${gs.lastScore}`, sub });
+    }
+    prevFlashScore.current = gs.lastScore;
+  }, [gs.lastScore, gs.board.leftEnd, gs.board.rightEnd]);
+  useEffect(() => {
+    if (!scoreFlash || !scoreFlashRef.current) return;
+    const el = scoreFlashRef.current;
+    gsap.killTweensOf(el);
+    gsap.fromTo(el,
+      { opacity: 0, y: 24, scale: 0.7 },
+      { opacity: 1, y: -8, scale: 1, duration: 0.38, ease: 'back.out(2)' });
+    gsap.to(el, { opacity: 0, y: -48, duration: 0.55, delay: 0.95, ease: 'power1.in' });
+  }, [scoreFlash]);
+
   // Run FLIP animation after board chain grows (human or AI play)
   useLayoutEffect(() => {
     if (!flipStateRef.current) return;
@@ -698,7 +722,18 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
           <div className="flex flex-col flex-1 min-w-0 px-3 pt-3 pb-3 gap-3">
 
             {/* Board chain — centred in available space */}
-            <div className="flex-1 flex items-center">
+            <div className="flex-1 flex items-center relative">
+              {scoreFlash && (
+                <div ref={scoreFlashRef} key={scoreFlash.id}
+                  style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 30, pointerEvents: 'none', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '2.6rem', lineHeight: 1, color: '#C9A84C', textShadow: '0 2px 14px rgba(201,168,76,0.65)' }}>
+                    {scoreFlash.text} <span style={{ fontSize: '1.5rem' }}>✦</span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.64rem', letterSpacing: '0.18em', color: 'rgba(245,234,216,0.65)', marginTop: 3 }}>
+                    {scoreFlash.sub}
+                  </div>
+                </div>
+              )}
               <div className="w-full">
                 <Board
                   board={gs.board}
