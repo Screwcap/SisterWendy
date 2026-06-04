@@ -9,8 +9,8 @@ export interface TileData {
 }
 
 export type BoardEnd = 'left' | 'right' | 'first';
-export type Difficulty = 'forgiving' | 'focused' | 'merciless';
-export type GameMode = 'forgiving' | 'focused' | 'merciless';
+export type Difficulty = 'forgiving' | 'focused';
+export type GameMode = 'forgiving' | 'focused';
 
 export interface Player {
   id: string;
@@ -239,28 +239,9 @@ export function aiPickPlay(
     return { tile: best.tile, end: best.end, score: best.score };
   }
 
-  // merciless: 2-move lookahead + blocking
-  const scored = candidates.map(c => {
-    let myFuture = 0;
-    for (const t2 of hand.filter(t => t.id !== c.tile.id)) {
-      for (const e2 of validEnds(c.simBoard, t2)) {
-        myFuture = Math.max(myFuture, scoreValue(playOnBoard(c.simBoard, t2, e2)));
-      }
-    }
-    let opponentPotential = 0;
-    if (opponentHand) {
-      for (const pt of opponentHand) {
-        for (const pe of validEnds(c.simBoard, pt)) {
-          opponentPotential = Math.max(opponentPotential, scoreValue(playOnBoard(c.simBoard, pt, pe)));
-        }
-      }
-    }
-    return { ...c, value: c.score + myFuture * 0.55 - opponentPotential * 0.45 };
-  });
-
-  scored.sort((a, b) => b.value - a.value);
-  const best = scored[0];
-  return { tile: best.tile, end: best.end, score: best.score };
+  // 'focused' is now the strongest difficulty; defensive fallback (unreachable, keeps the union exhaustive)
+  const fallback = candidates[0];
+  return { tile: fallback.tile, end: fallback.end, score: fallback.score };
 }
 
 // ── Game Factory ────────────────────────────────────────────────────────────
@@ -280,13 +261,7 @@ export function initGame(mode: GameMode): GameState {
   };
 
   const aiPlayers: Player[] =
-    mode === 'merciless'
-      ? [
-          { id: 'wendy', name: 'Sister Wendy', isHuman: false, personalityId: 'wendy', hand: tiles.splice(0, HAND_SIZE), score: 0 },
-          { id: 'patricia', name: 'Sister Patricia', isHuman: false, personalityId: 'patricia', hand: tiles.splice(0, HAND_SIZE), score: 0 },
-          { id: 'hildegard', name: 'Abbess Hildegard', isHuman: false, personalityId: 'hildegard', hand: tiles.splice(0, HAND_SIZE), score: 0 },
-        ]
-      : [{ id: 'wendy', name: 'Sister Wendy', isHuman: false, personalityId: 'wendy', hand: tiles.splice(0, HAND_SIZE), score: 0 }];
+    [{ id: 'wendy', name: 'Sister Wendy', isHuman: false, personalityId: 'wendy', hand: tiles.splice(0, HAND_SIZE), score: 0 }];
 
   return {
     mode,
@@ -303,9 +278,7 @@ export function initGame(mode: GameMode): GameState {
     lastScoringPlayerId: null,
     roundWinnerId: null,
     gameWinnerId: null,
-    wendySpeech: mode === 'merciless'
-      ? "Four of us. Oh this is going to be something. Possibly a sin. Probably worth it."
-      : "Right, let's go. I didn't put this habit on to lose.",
+    wendySpeech: "Right, let's go. I didn't put this habit on to lose.",
     wendyMood: 'neutral',
     bonusTurn: false,
     hintsUsed: 0,
@@ -314,8 +287,7 @@ export function initGame(mode: GameMode): GameState {
 
 export function difficultyForMode(mode: GameMode): Difficulty {
   if (mode === 'forgiving') return 'forgiving';
-  if (mode === 'focused') return 'focused';
-  return 'merciless';
+  return 'focused';
 }
 
 // Sum of all opponents' remaining tile pips, rounded to nearest 5.

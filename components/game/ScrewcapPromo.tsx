@@ -12,21 +12,21 @@ const SCREWCAP_GAMES = [
     name: 'DOUBLE FIVES',
     tagline: 'The full ML beast. Four players. Carnage.',
     color: '#d4507a',
-    href: '#',
+    href: 'https://screwcap.games', // pre-launch — send to hub/waitlist
   },
   {
     id: 'the-chair',
     name: 'THE CHAIR',
     tagline: 'Strategic. Brutal. Comfortable.',
     color: '#4a9a8f',
-    href: '#',
+    href: 'https://thechair.vercel.app',
   },
   {
     id: 'fly-macro',
     name: 'FLYMACROPILOT',
     tagline: 'Macro games. Micro decisions.',
     color: '#c49020',
-    href: '#',
+    href: 'https://flymacropilot.vercel.app',
   },
 ] as const;
 
@@ -60,6 +60,8 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
           <a
             key={game.id}
             href={game.href}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: 'flex',
               flexDirection: 'column',

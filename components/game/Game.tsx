@@ -697,20 +697,6 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
           {/* MAIN TABLE SURFACE: board + hand */}
           <div className="flex flex-col flex-1 min-w-0 px-3 pt-3 pb-3 gap-3">
 
-            {/* Opponent tile rows (merciless) */}
-            {gs.mode === 'merciless' && gs.players.slice(1).map(p => (
-              <div key={p.id} className="flex items-center gap-2">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'rgba(200,240,200,0.4)', flexShrink: 0 }}>
-                  {p.name.slice(0, 10).toUpperCase()} ·
-                </span>
-                <div className="flex gap-1 flex-wrap">
-                  {p.hand.map(t => (
-                    <div key={t.id} style={{ width: 16, height: 32, background: '#1a1408', borderRadius: 3, border: '1px solid rgba(196,144,32,0.2)', flexShrink: 0 }} />
-                  ))}
-                </div>
-              </div>
-            ))}
-
             {/* Board chain — centred in available space */}
             <div className="flex-1 flex items-center">
               <div className="w-full">

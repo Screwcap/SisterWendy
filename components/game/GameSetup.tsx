@@ -147,14 +147,6 @@ const MODES: Array<{
     color: '#c49020',
     wendy: '"Right then. No mercy. I didn\'t put this habit on for charity."',
   },
-  {
-    id: 'merciless',
-    label: 'MERCILESS',
-    subtitle: 'Cut Throat — 4 players',
-    desc: 'You vs Sister Wendy, Sister Patricia & Abbess Hildegard. God help you.',
-    color: '#d4507a',
-    wendy: '"Four of us. Oh this is going to be something. Possibly a sin. Probably worth it."',
-  },
 ];
 
 export default function GameSetup({ onStart }: GameSetupProps) {
