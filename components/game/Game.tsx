@@ -25,9 +25,9 @@ import IntroScreen from './IntroScreen';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 
 const SCREWCAP_FOOTER_GAMES = [
-  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#d4507a', href: '#' },
-  { id: 'the-chair',   name: 'THE CHAIR',    color: '#4a9a8f', href: '#' },
-  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#c49020', href: '#' },
+  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#d4507a', href: 'https://screwcap.games' },
+  { id: 'the-chair',   name: 'THE CHAIR',    color: '#4a9a8f', href: 'https://thechair.vercel.app' },
+  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#c49020', href: 'https://flymacropilot.vercel.app' },
 ] as const;
 
 // ── State machine actions ───────────────────────────────────────────────────
@@ -793,6 +793,8 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             <a
               key={g.id}
               href={g.href}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontFamily: 'var(--font-bebas)',
                 fontSize: '0.8rem',
