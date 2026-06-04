@@ -97,8 +97,55 @@ const QUOTES: Record<QuoteKey, string[]> = {
   ],
 };
 
-export function randQuote(key: QuoteKey): string {
-  const list = QUOTES[key];
+// Sister Patricia — "The Snap Queen"
+const PATRICIA_QUOTES: Record<QuoteKey, string[]> = {
+  gameStart:      ["Let's go.", "I've been waiting.", "Finally."],
+  playerScores:   ["Lucky.", "Don't get used to that.", "Okay. Your turn still coming."],
+  playerBigScore: ["...Fine. That was good.", "I see you.", "Alright. I'll allow it."],
+  playerDouble:   ["Double. Sure. Enjoy the bonus turn.", "Of course."],
+  playerCombo:    ["Look at you.", "Going off, huh?", "Okay, okay."],
+  playerCantPlay: ["Draw. Yes. Draw.", "Boneyard's waiting, honey.", "Take your time. Actually don't."],
+  wendyScores:    ["That's mine.", "Thank you.", "As expected."],
+  wendyBigScore:  ["Twenty. Write that down.", "Called it.", "I don't celebrate but... yes."],
+  wendyDouble:    ["Double. Play again. Already ahead.", "Mm."],
+  herTurn:        ["Moving.", "Watch.", "Already done.", "I don't think about this long."],
+  smug:           ["Honey, no.", "Did you think about that before or after you played it?", "Bless your heart.", "I see what you were going for. I do."],
+  commentary:     ["Board's looking good. For me.", "This is going exactly how I thought.", "You're fighting hard. Respect. Doesn't matter though."],
+  angry:          ["Oh you did NOT.", "That tile. That tile right there. Who raised you?", "I'm not mad. I'm disappointed. Actually no — I'm mad."],
+  playerWins:     ["Fine. You won. Don't make it weird.", "I let you have that one. Spiritual reasons.", "Go on then. I'll be over here."],
+  wendyWins:      ["Called it.", "See? Effortless.", "I could do this all day. And I have.", "Next."],
+  tileHover:      ["That one?", "Careful.", "Hmm.", "Think it through."],
+};
+
+// Abbess Hildegard — "The Deadpan Superior"
+const HILDEGARD_QUOTES: Record<QuoteKey, string[]> = {
+  gameStart:      ["Let us begin. God is watching, presumably.", "In my own time.", "I've seen worse tables. Not many."],
+  playerScores:   ["Noted.", "A point. Congratulations on the minimum.", "Fine."],
+  playerBigScore: ["That was... acceptable.", "I won't pretend I'm not slightly irritated.", "You've played well. Don't let it go to your head."],
+  playerDouble:   ["A double. How festive.", "Bonus turn. Proceed."],
+  playerCombo:    ["You're on a run. It won't last.", "Enjoy this moment.", "I've seen this before. It ends."],
+  playerCantPlay: ["Draw. Yes. The boneyard is humbling.", "Even the gifted must draw sometimes.", "Take a tile. Reflect."],
+  wendyScores:    ["Correct.", "As it should be.", "Order is restored briefly."],
+  wendyBigScore:  ["Twenty points. Yes. That's what preparation looks like.", "I've been waiting for that.", "Mm."],
+  wendyDouble:    ["The double. Play again.", "Expected. But satisfying."],
+  herTurn:        ["In my own time.", "The board waits for no one, yet here we are waiting for me.", "I'm deliberating. It's a virtue."],
+  smug:           ["I've seen better plays from the postulants.", "That's one approach.", "Interesting choice. Very... human of you.", "I won't comment. The tile speaks for itself."],
+  commentary:     ["The board develops. Slowly, in your case.", "We are playing dominoes. I remind myself of this periodically.", "Twenty years of prayer prepared me for many things. Not this."],
+  angry:          ["That. Was. Unnecessary.", "I didn't leave the enclosure for this.", "Twenty years of prayer and I'm watching THIS."],
+  playerWins:     ["You have beaten an elderly nun. Reflect on that.", "I'll add it to my Lenten penance.", "Enjoy it. God is watching. And so am I."],
+  wendyWins:      ["As expected.", "Order restored.", "The younger ones get excited. I don't need to."],
+  tileHover:      ["Choose carefully.", "That one?", "Deliberate.", "The wrong tile is its own punishment."],
+};
+
+const QUOTE_BANKS: Record<string, Record<QuoteKey, string[]>> = {
+  wendy:     QUOTES,
+  patricia:  PATRICIA_QUOTES,
+  hildegard: HILDEGARD_QUOTES,
+};
+
+export function randQuote(key: QuoteKey, personalityId?: string): string {
+  const bank = (personalityId && QUOTE_BANKS[personalityId]) ? QUOTE_BANKS[personalityId] : QUOTES;
+  const list = bank[key] ?? QUOTES[key];
   return list[Math.floor(Math.random() * list.length)];
 }
 
@@ -179,8 +226,8 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
   patricia: {
     id: 'patricia',
     name: 'Sister Patricia',
-    title: 'The Competitive One',
-    accentColor: '#d4507a',
+    title: 'The Snap Queen',
+    accentColor: '#6B2FA0',
     scores: ["Mine.", "Patricia provides. Patricia scores."],
     wins: ["Patricia wins. Again. Obviously.", "Expected outcome. Next."],
     blocks: ["Closed. Move on.", "Your tile doesn't fit there. Mine does."],
@@ -188,8 +235,8 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
   hildegard: {
     id: 'hildegard',
     name: 'Abbess Hildegard',
-    title: 'Merciless, Medieval, Magnificent',
-    accentColor: '#6b46c1',
+    title: 'The Deadpan Superior',
+    accentColor: '#1A5C3A',
     scores: ["POINTS. MINE. GOD WILLS IT.", "The Abbess scores. As foretold."],
     wins: ["The Abbess does not lose. History is consistent on this.", "You have been beaten by someone in institutional clothing. Reflect."],
     blocks: ["Your advance ends here. As do most advances.", "Sealed. Like a very serious envelope."],

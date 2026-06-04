@@ -1,14 +1,26 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { WendyMood } from '@/lib/game';
+import { PERSONALITIES } from '@/lib/wendy';
 import gsap from 'gsap';
+
+const MOOD_PORTRAIT: Record<WendyMood, string> = {
+  neutral:      '/wendy-neutral.png',
+  pleased:      '/wendy-pleased.png',
+  disappointed: '/wendy-thinking.png',
+  suspicious:   '/wendy-thinking.png',
+  triumphant:   '/wendy-triumphant.png',
+  amused:       '/wendy-pleased.png',
+};
 
 interface WendyPortraitProps {
   mood: WendyMood;
   speech: string;
   artFact?: string;
   playerName?: string;
+  personalityId?: string;
 }
 
 const MOOD_COLORS: Record<WendyMood, string> = {
@@ -72,9 +84,11 @@ function NunFace({ mood }: { mood: WendyMood }) {
   );
 }
 
-export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitProps) {
+export default function WendyPortrait({ mood, speech, artFact, personalityId }: WendyPortraitProps) {
   const speechRef = useRef<HTMLDivElement>(null);
   const portraitRef = useRef<HTMLDivElement>(null);
+  const personality = PERSONALITIES[personalityId as keyof typeof PERSONALITIES] ?? PERSONALITIES.wendy;
+  const displayName = personality.name;
 
   useEffect(() => {
     if (!speechRef.current) return;
@@ -95,6 +109,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
   }, [mood]);
 
   const moodColor = MOOD_COLORS[mood];
+  const accentColor = personality.accentColor;
 
   return (
     <div className="flex flex-col items-center gap-2 w-full">
@@ -103,13 +118,20 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
         ref={portraitRef}
         className="relative rounded-xl overflow-hidden flex items-center justify-center"
         style={{
-          background: 'radial-gradient(ellipse at 50% 30%, rgba(196,144,32,0.08) 0%, #0d0a06 70%)',
-          border: `1px solid ${moodColor}44`,
-          width: 100, height: 120,
+          background: `radial-gradient(ellipse at 50% 30%, ${accentColor}14 0%, #0d0a06 70%)`,
+          border: `2px solid ${accentColor}88`,
+          width: 110, height: 132,
           transition: 'border-color 0.4s',
         }}
       >
-        <NunFace mood={mood} />
+        <Image
+          src={MOOD_PORTRAIT[mood]}
+          alt={`${displayName} portrait`}
+          width={110}
+          height={132}
+          style={{ objectFit: 'cover', objectPosition: 'top', transition: 'opacity 0.3s' }}
+          priority
+        />
         {/* Mood indicator dot */}
         <div style={{
           position: 'absolute', bottom: 6, right: 6,
@@ -123,10 +145,10 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
       {/* Name plate */}
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
-        letterSpacing: '0.18em', color: 'rgba(196,144,32,0.6)',
+        letterSpacing: '0.18em', color: `${accentColor}99`,
         textTransform: 'uppercase',
       }}>
-        Sister Wendy
+        {displayName}
       </div>
 
       {/* Speech bubble */}
@@ -135,7 +157,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
         className="w-full rounded-lg p-4 relative"
         style={{
           background: 'rgba(26,20,8,0.9)',
-          border: `1px solid ${moodColor}33`,
+          border: `1px solid ${accentColor}44`,
           minHeight: 56,
         }}
       >
@@ -145,7 +167,7 @@ export default function WendyPortrait({ mood, speech, artFact }: WendyPortraitPr
           width: 0, height: 0,
           borderLeft: '7px solid transparent',
           borderRight: '7px solid transparent',
-          borderBottom: `8px solid ${moodColor}33`,
+          borderBottom: `8px solid ${accentColor}44`,
         }} />
         <p style={{
           fontFamily: 'var(--font-garamond)',

@@ -143,9 +143,11 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
     const finalWinner = scoredPlayers[playerIdx];
     const gameWonFinal = finalWinner.score >= TARGET_SCORE;
     const phase: GameState['phase'] = gameWonFinal ? 'gameOver' : 'roundOver';
+    const pid = state.players.find(p => !p.isHuman)?.personalityId;
+    const oppName = state.players.find(p => !p.isHuman)?.name ?? 'Sister Wendy';
     const speech = finalWinner.isHuman
-      ? gameWonFinal ? randQuote('playerWins') : `Your hand is empty — round over! (+${pipBonus} pip bonus)`
-      : gameWonFinal ? randQuote('wendyWins') : `Sister Wendy is out of tiles. (+${pipBonus} pip bonus)`;
+      ? gameWonFinal ? randQuote('playerWins', pid) : `Your hand is empty — round over! (+${pipBonus} pip bonus)`
+      : gameWonFinal ? randQuote('wendyWins', pid) : `${oppName} is out of tiles. (+${pipBonus} pip bonus)`;
     return {
       ...state,
       board: newBoard,
@@ -165,7 +167,7 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
 
   // Only doubles grant a replay — scoring alone does not
   const bonus = isDouble(tile);
-  const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus);
+  const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus, state.players.find(p => !p.isHuman)?.personalityId);
   const mood = getMood(current.isHuman, scored, isDouble(tile));
 
   return {
@@ -196,22 +198,26 @@ function advanceTurn(state: GameState): GameState {
     bonusTurn: false,
     selectedTile: null,
     validEndsForSelected: [],
-    wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn'),
+    wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn', nextPlayer.personalityId),
     wendyMood: 'neutral',
   };
 }
 
-function buildSpeech(isHuman: boolean, scored: number, double_: boolean, bonus: boolean): string {
+function oppPersonality(state: GameState): string | undefined {
+  return state.players.find(p => !p.isHuman)?.personalityId ?? 'wendy';
+}
+
+function buildSpeech(isHuman: boolean, scored: number, double_: boolean, bonus: boolean, pid?: string): string {
   if (isHuman) {
-    if (scored >= 20) return randQuote('playerBigScore');
-    if (scored > 0)   return randQuote('playerScores') + (bonus ? " Play again." : "");
-    if (double_)      return randQuote('playerDouble') + " Play again.";
-    return randQuote('herTurn');
+    if (scored >= 20) return randQuote('playerBigScore', pid);
+    if (scored > 0)   return randQuote('playerScores', pid) + (bonus ? " Play again." : "");
+    if (double_)      return randQuote('playerDouble', pid) + " Play again.";
+    return randQuote('herTurn', pid);
   } else {
-    if (scored >= 20) return randQuote('wendyBigScore');
-    if (scored > 0)   return randQuote('wendyScores');
-    if (double_)      return randQuote('wendyDouble');
-    return randQuote('commentary');
+    if (scored >= 20) return randQuote('wendyBigScore', pid);
+    if (scored > 0)   return randQuote('wendyScores', pid);
+    if (double_)      return randQuote('wendyDouble', pid);
+    return randQuote('commentary', pid);
   }
 }
 
@@ -248,6 +254,7 @@ export default function Game() {
   const [latestTileId, setLatestTileId] = useState<string | undefined>(undefined);
   const [shakeTileId, setShakeTileId] = useState<string | undefined>(undefined);
   const [isMuted, setIsMuted] = useState(false);
+  const [undoable, setUndoable] = useState<GameState | null>(null);
   const [showIntro, setShowIntro] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('sw-intro-seen');
@@ -402,7 +409,7 @@ export default function Game() {
             boneyard,
             currentPlayerIndex: nextIdx,
             phase: nextPlayer.isHuman ? 'selecting' : 'aiThinking',
-            wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn'),
+            wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn', nextPlayer.personalityId),
             wendyMood: 'neutral',
           };
         });
@@ -411,6 +418,13 @@ export default function Game() {
 
     return () => { if (aiTimerRef.current) clearTimeout(aiTimerRef.current); };
   }, [gs?.phase, gs?.currentPlayerIndex, gs?.turnCount]);
+
+  // Clear undo snapshot when the AI takes its turn — can't undo through AI moves
+  useEffect(() => {
+    if (gs && gs.currentPlayerIndex !== 0 && gs.phase === 'aiThinking') {
+      setUndoable(null);
+    }
+  }, [gs?.phase, gs?.currentPlayerIndex]);
 
   if (showIntro) {
     return (
@@ -426,7 +440,7 @@ export default function Game() {
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode))} onReturnToMenu={() => setGs(null)} />
         <EndScreen
           players={gs.players}
           gameWinnerId={gs.gameWinnerId}
@@ -442,7 +456,7 @@ export default function Game() {
   if (gs.phase === 'roundOver' && gs.roundWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode))} onReturnToMenu={() => setGs(null)} />
         <RoundOverScreen
           players={gs.players}
           roundWinnerId={gs.roundWinnerId}
@@ -465,6 +479,10 @@ export default function Game() {
       setShakeTileId={setShakeTileId}
       isMuted={isMuted}
       onToggleMute={() => { setIsMuted(audio.toggleMute()); }}
+      undoable={undoable}
+      setUndoable={setUndoable}
+      onNewGame={() => setGs(initGame(gs.mode))}
+      onReturnToMenu={() => setGs(null)}
     />
   );
 }
@@ -472,6 +490,8 @@ export default function Game() {
 // ── GameUI ──────────────────────────────────────────────────────────────────
 
 interface GameUIProps {
+  onNewGame: () => void;
+  onReturnToMenu: () => void;
   gs: GameState;
   dispatch: (a: Action) => void;
   artFact?: string;
@@ -482,9 +502,12 @@ interface GameUIProps {
   setShakeTileId: (id: string | undefined) => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  undoable: GameState | null;
+  setUndoable: (s: GameState | null) => void;
 }
 
-function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId, isMuted, onToggleMute }: GameUIProps) {
+function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId, isMuted, onToggleMute, undoable, setUndoable, onNewGame, onReturnToMenu }: GameUIProps) {
+  const [showMenuModal, setShowMenuModal] = useState(false);
   const human = gs.players[0];
   const isPlayerTurn = gs.currentPlayerIndex === 0 && (gs.phase === 'selecting' || gs.phase === 'choosingEnd');
   const showHints = gs.mode === 'forgiving';
@@ -570,6 +593,15 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
       {/* Header */}
       <header className="relative z-10 px-4 pt-3 pb-2 flex items-center justify-center"
         style={{ borderBottom: '1px solid rgba(196,144,32,0.15)' }}>
+        {/* Menu button */}
+        <div className="absolute left-4">
+          <button
+            onClick={() => setShowMenuModal(true)}
+            style={{ background: 'none', border: '1px solid rgba(196,144,32,0.25)', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', padding: '4px 8px', color: 'rgba(196,144,32,0.55)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
+          >
+            ☰ MENU
+          </button>
+        </div>
         <div className="text-center">
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.4rem', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1 }}>
             SISTER WENDY
@@ -587,10 +619,47 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             {isMuted ? '🔇' : '🔊'}
           </button>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
-            {isPlayerTurn ? '▶ YOUR TURN' : '⏳ WENDY'}
+            {isPlayerTurn ? '▶ YOUR TURN' : `⏳ ${gs.players.find(p => !p.isHuman)?.name?.split(' ')[1] ?? 'WENDY'}`}
           </span>
         </div>
       </header>
+
+      {/* Menu Modal */}
+      {showMenuModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6"
+          style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowMenuModal(false)}
+        >
+          <div
+            className="rounded-2xl p-8 flex flex-col gap-4 w-full max-w-xs"
+            style={{ background: '#0d0a06', border: '1px solid rgba(196,144,32,0.3)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.6rem', letterSpacing: '0.12em', color: '#e8b840', textAlign: 'center' }}>
+              PAUSED
+            </div>
+            <button
+              onClick={() => setShowMenuModal(false)}
+              style={{ background: 'rgba(196,144,32,0.12)', border: '1px solid rgba(196,144,32,0.3)', borderRadius: 10, padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', letterSpacing: '0.12em', color: '#e8b840', cursor: 'pointer' }}
+            >
+              ▶ RESUME GAME
+            </button>
+            <button
+              onClick={() => { onNewGame(); setShowMenuModal(false); }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
+            >
+              ↺ NEW GAME
+            </button>
+            <button
+              onClick={() => { onReturnToMenu(); setShowMenuModal(false); }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
+            >
+              ← RETURN TO MENU
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── FELT TABLE ─────────────────────────────────────────────────────── */}
       <div
@@ -611,7 +680,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
 
           {/* LEFT PANEL: Wendy + scores — sits on the felt */}
           <div className="flex flex-col gap-3 p-3 md:w-[200px] flex-shrink-0">
-            <WendyPortrait mood={gs.wendyMood} speech={gs.wendySpeech} artFact={artFact} />
+            <WendyPortrait mood={gs.wendyMood} speech={gs.wendySpeech} artFact={artFact} personalityId={oppPersonality(gs)} />
             <ScorePanel
               players={gs.players}
               currentPlayerIndex={gs.currentPlayerIndex}
