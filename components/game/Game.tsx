@@ -419,12 +419,11 @@ export default function Game() {
     return () => { if (aiTimerRef.current) clearTimeout(aiTimerRef.current); };
   }, [gs?.phase, gs?.currentPlayerIndex, gs?.turnCount]);
 
-  // Clear undo snapshot when the AI takes its turn — can't undo through AI moves
+  // Clear the Undo snapshot at round/game transitions — no undoing across rounds.
+  // (Within a round the snapshot persists through Sister Wendy's reply so you can take back your move.)
   useEffect(() => {
-    if (gs && gs.currentPlayerIndex !== 0 && gs.phase === 'aiThinking') {
-      setUndoable(null);
-    }
-  }, [gs?.phase, gs?.currentPlayerIndex]);
+    setUndoable(null);
+  }, [gs?.roundCount]);
 
   if (showIntro) {
     return (
@@ -481,6 +480,7 @@ export default function Game() {
       onToggleMute={() => { setIsMuted(audio.toggleMute()); }}
       undoable={undoable}
       setUndoable={setUndoable}
+      onUndo={() => { if (undoable) { setGs(undoable); setUndoable(null); } }}
       onNewGame={() => setGs(initGame(gs.mode))}
       onReturnToMenu={() => setGs(null)}
     />
@@ -504,9 +504,10 @@ interface GameUIProps {
   onToggleMute: () => void;
   undoable: GameState | null;
   setUndoable: (s: GameState | null) => void;
+  onUndo?: () => void;
 }
 
-function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId, isMuted, onToggleMute, undoable, setUndoable, onNewGame, onReturnToMenu }: GameUIProps) {
+function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTileId, shakeTileId, setShakeTileId, isMuted, onToggleMute, undoable, setUndoable, onUndo, onNewGame, onReturnToMenu }: GameUIProps) {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const human = gs.players[0];
   const isPlayerTurn = gs.currentPlayerIndex === 0 && (gs.phase === 'selecting' || gs.phase === 'choosingEnd');
@@ -574,6 +575,11 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
     if (gs.selectedTile) {
       flipStateRef.current = Flip.getState('[data-flip-id]');
       setLatestTileId(gs.selectedTile.id);
+    }
+    // Snapshot the pre-move state for Undo (Forgiving only) — restores the board + hand
+    // before this play, reverting Sister Wendy's reply too.
+    if (gs.mode === 'forgiving') {
+      setUndoable({ ...gs, selectedTile: null, validEndsForSelected: [], phase: 'selecting' });
     }
     dispatch({ type: 'CHOOSE_END', end });
   }
@@ -817,6 +823,13 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             title={hintSponsor ? `Ask Sister Wendy's Patron — ${hintSponsor.name}` : 'Ask for a hint'}
             style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(74,154,143,0.1)', border: '1px solid rgba(74,154,143,0.25)', color: '#4a9a8f', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
             {hintSponsor ? `ASK ${hintSponsor.name.toUpperCase().slice(0, 8)}` : '💡 HINT'}
+          </button>
+        )}
+        {gs.mode === 'forgiving' && undoable && isPlayerTurn && onUndo && (
+          <button onClick={onUndo}
+            title="Take back your last move — Sister Wendy will pretend she didn't see."
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(196,144,32,0.1)', border: '1px solid rgba(196,144,32,0.3)', color: '#c49020', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
+            ↩ UNDO
           </button>
         )}
 
