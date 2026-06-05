@@ -37,6 +37,23 @@ export default function EndScreen({
   // Record this game into the persistent meta-loop (once per game-over).
   const recordedRef = useRef(false);
   const [stats, setStats] = useState<SWStats | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function handleShare() {
+    const line = humanWon
+      ? `I beat Sister Wendy at All-Fives dominoes — Grade ${grade}, ${human.score}–${opponent?.score ?? 0}. Think you can take the habit? 🎴`
+      : `Beaten by a nun at dominoes. Sister Wendy ${opponent?.score ?? 0}, me ${human.score} (Grade ${grade}). 🎴`;
+    const url = 'https://sisterwendy.com';
+    const text = `${line} "${verdict}"`;
+    try { (window as { plausible?: (e: string, o?: unknown) => void }).plausible?.('Share Card', { props: { game: 'sister-wendy', result: humanWon ? 'win' : 'loss', grade } }); } catch { /* analytics never blocks */ }
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({ title: 'Sister Wendy Dominoes', text, url }).catch(() => { /* user cancelled */ });
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+        setCopied(true); setTimeout(() => setCopied(false), 2000);
+      }).catch(() => { /* clipboard blocked */ });
+    }
+  }
   useEffect(() => {
     if (recordedRef.current) return;
     recordedRef.current = true;
@@ -163,6 +180,21 @@ export default function EndScreen({
             {hintsUsed} hint{hintsUsed !== 1 ? 's' : ''} consulted. Sister Wendy noticed.
           </p>
         )}
+
+        {/* Share — the viral hook */}
+        <button
+          onClick={handleShare}
+          className="w-full py-3 rounded-xl mb-3 transition-all hover:scale-[1.02]"
+          style={{
+            fontFamily: 'var(--font-bebas)', fontSize: '1.05rem', letterSpacing: '0.12em',
+            background: copied ? 'rgba(74,154,143,0.2)' : 'rgba(196,144,32,0.12)',
+            color: copied ? '#4a9a8f' : '#e8b840',
+            border: `1px solid ${copied ? 'rgba(74,154,143,0.5)' : 'rgba(196,144,32,0.4)'}`,
+            cursor: 'pointer',
+          }}
+        >
+          {copied ? 'COPIED — GO BRAG ✓' : '🎴 SHARE YOUR VERDICT'}
+        </button>
 
         {/* Actions */}
         <div className="flex gap-3">
