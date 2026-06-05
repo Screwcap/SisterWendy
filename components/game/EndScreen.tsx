@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Player, GameMode } from '@/lib/game';
 import { calcGrade, getVerdictText } from '@/lib/wendy';
+import { recordResult, type SWStats } from '@/lib/stats';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 import gsap from 'gsap';
@@ -32,6 +33,16 @@ export default function EndScreen({
 
   const grade = calcGrade(human.score, opponent?.score ?? 0, hintsUsed);
   const verdict = getVerdictText(grade, humanWon);
+
+  // Record this game into the persistent meta-loop (once per game-over).
+  const recordedRef = useRef(false);
+  const [stats, setStats] = useState<SWStats | null>(null);
+  useEffect(() => {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    setStats(recordResult({ won: humanWon, score: human.score, grade }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -122,6 +133,29 @@ export default function EndScreen({
             — SISTER WENDY
           </div>
         </div>
+
+        {/* Your record — the meta-loop */}
+        {stats && (
+          <div className="rounded-xl p-3 mb-5"
+            style={{ background: 'rgba(26,20,8,0.5)', border: '1px solid rgba(196,144,32,0.12)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.5)', textAlign: 'center', marginBottom: 8 }}>
+              YOUR RECORD vs THE HABIT
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { v: `${stats.won}–${stats.lost}`, l: 'WON–LOST' },
+                { v: stats.currentStreak > 0 ? `${stats.currentStreak}🔥` : '0', l: stats.bestStreak > 0 ? `STREAK · best ${stats.bestStreak}` : 'STREAK' },
+                { v: stats.bestGrade || '—', l: 'BEST GRADE' },
+                { v: stats.bestScore, l: 'HIGH SCORE' },
+              ].map((s, i) => (
+                <div key={i} className="text-center">
+                  <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.5rem', color: '#f5ead8', lineHeight: 1 }}>{s.v}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.4rem', letterSpacing: '0.08em', color: 'rgba(196,144,32,0.4)', marginTop: 3 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Hints used note */}
         {hintsUsed > 0 && (
