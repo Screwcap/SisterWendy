@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -46,6 +47,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bebas.variable} ${garamond.variable} ${mono.variable}`}>
+      <head>
+        {/* Privacy-friendly analytics by Plausible (portfolio property: screwcap.games) */}
+        <Script
+          defer
+          src="https://plausible.io/js/pa-d6bTHaTtSN8d3dQaPmfFZ.js"
+          strategy="afterInteractive"
+        />
+        <Script id="plausible-init" strategy="afterInteractive">
+          {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
+        </Script>
+      </head>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
