@@ -73,20 +73,44 @@ export function tileMatches(tile: TileData, val: number): boolean {
   return tile.a === val || tile.b === val;
 }
 
-export function createFullSet(): TileData[] {
+// Seeded RNG (mulberry32) — used by the Daily Challenge so everyone gets the
+// same deal on a given day. Returns a () => number in [0,1).
+export function makeRng(seed: number): () => number {
+  let s = seed >>> 0;
+  return function () {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Stable hash of today's date (UTC) → a daily seed. Same for everyone, all day.
+export function dailySeed(date = new Date()): number {
+  const key = date.toISOString().slice(0, 10); // YYYY-MM-DD
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+export function todayKey(date = new Date()): string {
+  return 'sw-daily-' + date.toISOString().slice(0, 10);
+}
+
+export function createFullSet(rng: () => number = Math.random): TileData[] {
   const tiles: TileData[] = [];
   for (let i = 0; i <= 6; i++) {
     for (let j = i; j <= 6; j++) {
       tiles.push(createTile(i, j));
     }
   }
-  return shuffle(tiles);
+  return shuffle(tiles, rng);
 }
 
-export function shuffle<T>(arr: T[]): T[] {
+export function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -249,8 +273,9 @@ export function aiPickPlay(
 export const TARGET_SCORE = 61;
 export const HAND_SIZE = 7;
 
-export function initGame(mode: GameMode): GameState {
-  const tiles = createFullSet();
+export function initGame(mode: GameMode, daily = false): GameState {
+  // Daily Challenge: deterministic deal from today's date — same tiles for everyone.
+  const tiles = daily ? createFullSet(makeRng(dailySeed())) : createFullSet();
 
   const humanPlayer: Player = {
     id: 'human',
@@ -278,7 +303,9 @@ export function initGame(mode: GameMode): GameState {
     lastScoringPlayerId: null,
     roundWinnerId: null,
     gameWinnerId: null,
-    wendySpeech: "Right, let's go. I didn't put this habit on to lose.",
+    wendySpeech: daily
+      ? "Today's deal. Same tiles for everyone. No excuses, no do-overs."
+      : "Right, let's go. I didn't put this habit on to lose.",
     wendyMood: 'neutral',
     bonusTurn: false,
     hintsUsed: 0,

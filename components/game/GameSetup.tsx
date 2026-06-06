@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { GameMode } from '@/lib/game';
+import { useEffect, useRef, useState } from 'react';
+import { GameMode, todayKey } from '@/lib/game';
 import gsap from 'gsap';
 import { ScrewcapGamesStrip } from './ScrewcapPromo';
 
 interface GameSetupProps {
-  onStart: (mode: GameMode) => void;
+  onStart: (mode: GameMode, daily?: boolean) => void;
 }
 
 function HeroPortrait() {
@@ -151,6 +151,11 @@ const MODES: Array<{
 
 export default function GameSetup({ onStart }: GameSetupProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [playedToday, setPlayedToday] = useState(false);
+
+  useEffect(() => {
+    try { setPlayedToday(localStorage.getItem(todayKey()) === '1'); } catch { /* */ }
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -257,6 +262,24 @@ export default function GameSetup({ onStart }: GameSetupProps) {
               </div>
             </button>
           ))}
+        </div>
+
+        {/* Daily Challenge — same deal for everyone, every day (meta-loop / return hook) */}
+        <div className="mb-8">
+          <button
+            onClick={() => { try { localStorage.setItem(todayKey(), '1'); } catch { /* */ } setPlayedToday(true); onStart('focused', true); }}
+            className="w-full rounded-2xl transition-all"
+            style={{ background: 'rgba(74,154,143,0.1)', border: '2px solid rgba(74,154,143,0.45)', cursor: 'pointer', padding: '1.1rem 2rem' }}
+            onMouseEnter={e => { gsap.to(e.currentTarget, { scale: 1.015, duration: 0.2 }); }}
+            onMouseLeave={e => { gsap.to(e.currentTarget, { scale: 1, duration: 0.2 }); }}
+          >
+            <span style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.6rem', letterSpacing: '0.12em', color: '#4a9a8f', display: 'block' }}>
+              ⭐ TODAY&apos;S CHALLENGE
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.14em', color: 'rgba(245,234,216,0.5)' }}>
+              {playedToday ? "PLAYED TODAY ✓ · same deal as everyone else" : "One deal. Everyone gets the same tiles today. Focused rules."}
+            </span>
+          </button>
         </div>
 
         {/* Other Screwcap games */}

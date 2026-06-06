@@ -434,7 +434,7 @@ export default function Game() {
     );
   }
 
-  if (!gs) return <GameSetup onStart={m => setGs(initGame(m))} />;
+  if (!gs) return <GameSetup onStart={(m, daily) => setGs(initGame(m, daily))} />;
 
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (
