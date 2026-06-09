@@ -1,6 +1,15 @@
 // lib/game.ts — Sister Wendy Dominoes game engine
 // All-Fives / Horse Race scoring. Double-six set (28 tiles).
 
+import { randQuote } from './wendy';
+
+// Selectable opponents → name shown + which dialogue bank speaks.
+const OPPONENTS: Record<string, { id: string; name: string }> = {
+  wendy: { id: 'wendy', name: 'Sister Wendy' },
+  patricia: { id: 'patricia', name: 'Sister Patricia' },
+  hildegard: { id: 'hildegard', name: 'Abbess Hildegard' },
+};
+
 export interface TileData {
   id: string;
   a: number;
@@ -273,9 +282,10 @@ export function aiPickPlay(
 export const TARGET_SCORE = 61;
 export const HAND_SIZE = 7;
 
-export function initGame(mode: GameMode, daily = false): GameState {
+export function initGame(mode: GameMode, daily = false, personalityId = 'wendy'): GameState {
   // Daily Challenge: deterministic deal from today's date — same tiles for everyone.
   const tiles = daily ? createFullSet(makeRng(dailySeed())) : createFullSet();
+  const opp = OPPONENTS[personalityId] ?? OPPONENTS.wendy;
 
   const humanPlayer: Player = {
     id: 'human',
@@ -286,7 +296,7 @@ export function initGame(mode: GameMode, daily = false): GameState {
   };
 
   const aiPlayers: Player[] =
-    [{ id: 'wendy', name: 'Sister Wendy', isHuman: false, personalityId: 'wendy', hand: tiles.splice(0, HAND_SIZE), score: 0 }];
+    [{ id: opp.id, name: opp.name, isHuman: false, personalityId, hand: tiles.splice(0, HAND_SIZE), score: 0 }];
 
   return {
     mode,
@@ -305,7 +315,7 @@ export function initGame(mode: GameMode, daily = false): GameState {
     gameWinnerId: null,
     wendySpeech: daily
       ? "Today's deal. Same tiles for everyone. No excuses, no do-overs."
-      : "Right, let's go. I didn't put this habit on to lose.",
+      : randQuote('gameStart', personalityId),
     wendyMood: 'neutral',
     bonusTurn: false,
     hintsUsed: 0,

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { GameMode, todayKey } from '@/lib/game';
+import { PERSONALITIES } from '@/lib/wendy';
 import gsap from 'gsap';
 import { ScrewcapGamesStrip } from './ScrewcapPromo';
 
 interface GameSetupProps {
-  onStart: (mode: GameMode, daily?: boolean) => void;
+  onStart: (mode: GameMode, daily?: boolean, personalityId?: string) => void;
 }
 
 function HeroPortrait() {
@@ -152,6 +153,9 @@ const MODES: Array<{
 export default function GameSetup({ onStart }: GameSetupProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [playedToday, setPlayedToday] = useState(false);
+  const [oppId, setOppId] = useState('wendy');
+  const opponents = Object.values(PERSONALITIES);
+  const opp = PERSONALITIES[oppId as keyof typeof PERSONALITIES] ?? PERSONALITIES.wendy;
 
   useEffect(() => {
     try { setPlayedToday(localStorage.getItem(todayKey()) === '1'); } catch { /* */ }
@@ -201,6 +205,35 @@ export default function GameSetup({ onStart }: GameSetupProps) {
           </p>
         </div>
 
+        {/* Opponent picker — choose which sister judges you */}
+        <div className="mb-8">
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.22em', color: 'rgba(245,234,216,0.45)', textAlign: 'center', marginBottom: 12 }}>
+            CHOOSE YOUR OPPONENT
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {opponents.map(p => {
+              const sel = p.id === oppId;
+              return (
+                <button key={p.id} onClick={() => setOppId(p.id)}
+                  className="rounded-2xl text-center transition-all"
+                  style={{
+                    background: sel ? `${p.accentColor}1f` : 'rgba(26,20,8,0.6)',
+                    border: `2px solid ${p.accentColor}${sel ? 'ff' : '40'}`,
+                    cursor: 'pointer', padding: '1rem 0.5rem',
+                    opacity: sel ? 1 : 0.7,
+                  }}>
+                  <div style={{ fontSize: '1.6rem', lineHeight: 1, marginBottom: 6 }}>{p.emoji}</div>
+                  <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.05rem', letterSpacing: '0.05em', color: p.accentColor, lineHeight: 1.05 }}>{p.name}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5rem', letterSpacing: '0.14em', color: 'rgba(245,234,216,0.5)', marginTop: 3 }}>{p.title}</div>
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.85rem', fontStyle: 'italic', color: `${opp.accentColor}dd`, textAlign: 'center', marginTop: 12, minHeight: '2.4em', lineHeight: 1.4 }}>
+            {opp.blurb}
+          </p>
+        </div>
+
         {/* Mode cards */}
         <div className="flex flex-col gap-4 mb-8">
           {MODES.map(mode => (
@@ -213,7 +246,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                 cursor: 'pointer',
                 padding: '2rem 2.5rem',
               }}
-              onClick={() => onStart(mode.id)}
+              onClick={() => onStart(mode.id, false, oppId)}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLElement).style.border = `2px solid ${mode.color}`;
                 (e.currentTarget as HTMLElement).style.background = `rgba(26,20,8,0.95)`;
@@ -267,7 +300,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
         {/* Daily Challenge — same deal for everyone, every day (meta-loop / return hook) */}
         <div className="mb-8">
           <button
-            onClick={() => { try { localStorage.setItem(todayKey(), '1'); } catch { /* */ } setPlayedToday(true); onStart('focused', true); }}
+            onClick={() => { try { localStorage.setItem(todayKey(), '1'); } catch { /* */ } setPlayedToday(true); onStart('focused', true, oppId); }}
             className="w-full rounded-2xl transition-all"
             style={{ background: 'rgba(74,154,143,0.1)', border: '2px solid rgba(74,154,143,0.45)', cursor: 'pointer', padding: '1.1rem 2rem' }}
             onMouseEnter={e => { gsap.to(e.currentTarget, { scale: 1.015, duration: 0.2 }); }}

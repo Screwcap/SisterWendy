@@ -329,13 +329,13 @@ export default function Game() {
           const gameWon = current.score >= TARGET_SCORE;
           const roundWon = current.hand.length === 0;
           const bonus = isDouble(play.tile);
-          const speech = buildSpeech(false, scored, isDouble(play.tile), bonus);
+          const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId);
           const mood = getMood(false, scored, isDouble(play.tile));
 
           if (gameWon) return {
             ...prev, board: newBoard, players: updatedPlayers,
             phase: 'gameOver', gameWinnerId: current.id,
-            wendySpeech: randQuote('wendyWins'), wendyMood: 'triumphant',
+            wendySpeech: randQuote('wendyWins', current.personalityId), wendyMood: 'triumphant',
           };
           if (roundWon) {
             const pipBonus = calcRoundBonus(updatedPlayers, prev.currentPlayerIndex);
@@ -348,7 +348,7 @@ export default function Game() {
               phase: gameWonFinal ? 'gameOver' : 'roundOver',
               gameWinnerId: gameWonFinal ? current.id : null,
               roundWinnerId: current.id,
-              wendySpeech: gameWonFinal ? randQuote('wendyWins') : `${speech} (+${pipBonus} pip bonus)`,
+              wendySpeech: gameWonFinal ? randQuote('wendyWins', current.personalityId) : `${speech} (+${pipBonus} pip bonus)`,
               wendyMood: gameWonFinal ? 'triumphant' : mood,
             };
           }
@@ -397,7 +397,7 @@ export default function Game() {
 
           if (canPlayNow) {
             // Stay in aiThinking; next tick will find the play
-            return { ...prev, players: updatedPlayers, boneyard, wendySpeech: randQuote('herTurn') };
+            return { ...prev, players: updatedPlayers, boneyard, wendySpeech: randQuote('herTurn', prev.players.find(p => !p.isHuman)?.personalityId) };
           }
 
           // Truly stuck — pass
@@ -434,7 +434,7 @@ export default function Game() {
     );
   }
 
-  if (!gs) return <GameSetup onStart={(m, daily) => setGs(initGame(m, daily))} />;
+  if (!gs) return <GameSetup onStart={(m, daily, pid) => setGs(initGame(m, daily, pid))} />;
 
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (

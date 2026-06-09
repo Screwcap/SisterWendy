@@ -97,9 +97,58 @@ const QUOTES: Record<QuoteKey, string[]> = {
   ],
 };
 
+// ──────────────────────────────────────────────────────────────
+// SISTER PATRICIA — "THE SNAP QUEEN" — 40s, sharp, clipped, straight
+// to the punchline. White Whoopi energy. Accent: #6B2FA0
+// ──────────────────────────────────────────────────────────────
+const PATRICIA: Record<QuoteKey, string[]> = {
+  gameStart: ["Let's go.", "I've been waiting.", "Finally.", "Deal the tiles. I don't have all day."],
+  playerScores: ["Lucky.", "Don't get used to that.", "Okay. Your turn still coming.", "Cute."],
+  playerBigScore: ["...Fine. That was good.", "I see you.", "Alright. I'll allow it.", "Not bad. For an amateur."],
+  playerDouble: ["Double. Sure. Enjoy the bonus turn.", "Of course.", "Play again. Don't get cocky."],
+  playerCombo: ["Look at you.", "Going off, huh?", "Okay, okay. Calm down."],
+  playerCantPlay: ["Draw. Yes. Draw.", "Boneyard's waiting, honey.", "Take your time. Actually don't."],
+  wendyScores: ["That's mine.", "Thank you.", "As expected.", "Record that."],
+  wendyBigScore: ["Twenty. Write that down.", "Called it.", "I don't celebrate but... yes."],
+  wendyDouble: ["Double. Play again. Already ahead.", "Mm.", "Again. Obviously."],
+  herTurn: ["Moving.", "Watch.", "Already done.", "I don't think about this long."],
+  smug: ["Honey, no.", "Did you think about that before or after you played it?", "Bless your heart.", "I see what you were going for. I do."],
+  commentary: ["Board's looking good. For me.", "This is going exactly how I thought.", "You're fighting hard. Respect. Doesn't matter though."],
+  angry: ["Oh you did NOT.", "That tile. That tile right there. Who raised you?", "I'm not mad. I'm disappointed. Actually no — I'm mad."],
+  playerWins: ["Fine. You won. Don't make it weird.", "I let you have that one. Spiritual reasons.", "Go on then. I'll be over here.", "Congratulations. You're the champion of... this table."],
+  wendyWins: ["Called it.", "See? Effortless.", "I could do this all day. And I have.", "Next."],
+  tileHover: ["That one?", "Careful.", "Hmm.", "Think it through."],
+};
+
+// ──────────────────────────────────────────────────────────────
+// ABBESS HILDEGARD — "THE DEADPAN SUPERIOR" — 70s, stern, radiates
+// mild disappointment. Thinks she's above the game. Accent: #1A5C3A
+// ──────────────────────────────────────────────────────────────
+const HILDEGARD: Record<QuoteKey, string[]> = {
+  gameStart: ["Let us begin. God is watching, presumably.", "In my own time.", "I've seen worse tables. Not many.", "The Lord helps those who help themselves. Deal."],
+  playerScores: ["Noted.", "A point. Congratulations on the minimum.", "Fine.", "Adequate."],
+  playerBigScore: ["That was... acceptable.", "I won't pretend I'm not slightly irritated.", "You've played well. Don't let it go to your head."],
+  playerDouble: ["A double. How festive.", "Bonus turn. Proceed."],
+  playerCombo: ["You're on a run. It won't last.", "Enjoy this moment.", "I've seen this before. It ends."],
+  playerCantPlay: ["Draw. Yes. The boneyard is humbling.", "Even the gifted must draw sometimes.", "Take a tile. Reflect."],
+  wendyScores: ["Correct.", "As it should be.", "Order is restored briefly."],
+  wendyBigScore: ["Twenty points. Yes. That's what preparation looks like.", "I've been waiting for that.", "Mm."],
+  wendyDouble: ["The double. Play again.", "Expected. But satisfying."],
+  herTurn: ["In my own time.", "The board waits for no one, yet here we are waiting for me.", "I'm deliberating. It's a virtue."],
+  smug: ["I've seen better plays from the postulants.", "That's one approach.", "Interesting choice. Very... human of you.", "I won't comment. The tile speaks for itself."],
+  commentary: ["The board develops. Slowly, in your case.", "We are playing dominoes. I remind myself of this periodically.", "Twenty years of prayer prepared me for many things. Not this."],
+  angry: ["That. Was. Unnecessary.", "I didn't leave the enclosure for this.", "Twenty years of prayer and I'm watching THIS."],
+  playerWins: ["You have beaten an elderly nun. Reflect on that.", "I'll add it to my Lenten penance.", "Enjoy it. God is watching. And so am I."],
+  wendyWins: ["As expected.", "Order restored.", "The younger ones get excited. I don't need to."],
+  tileHover: ["Choose carefully.", "That one?", "Deliberate.", "The wrong tile is its own punishment."],
+};
+
 const QUOTE_BANKS: Record<string, Record<QuoteKey, string[]>> = {
   wendy: QUOTES,
+  patricia: PATRICIA,
+  hildegard: HILDEGARD,
 };
+
 
 export function randQuote(key: QuoteKey, personalityId?: string): string {
   const bank = (personalityId && QUOTE_BANKS[personalityId]) ? QUOTE_BANKS[personalityId] : QUOTES;
@@ -159,13 +208,15 @@ export function getTileFact(a: number, b: number): string {
   return `[${a}|${b}] — ${getPipFact(dominant)}`;
 }
 
-export type WendyPersonalityId = 'wendy';
+export type WendyPersonalityId = 'wendy' | 'patricia' | 'hildegard';
 
 export interface WendyPersonality {
   id: WendyPersonalityId;
   name: string;
   title: string;
-  accentColor: string;
+  emoji: string;        // shown on the character-select card
+  blurb: string;        // one-line pitch on the select screen
+  accentColor: string;  // portrait + card theming
   scores: string[];
   wins: string[];
   blocks: string[];
@@ -175,11 +226,35 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
   wendy: {
     id: 'wendy',
     name: 'Sister Wendy',
-    title: 'The Original. The Only.',
+    title: 'THE COMPETITOR',
+    emoji: '👁',
+    blurb: 'Plays to win. The original. You know her. You fear her.',
     accentColor: '#c49020',
     scores: ["Fifteen. I'll take it.", "Points. Mine. Moving on."],
     wins: ["Ha. And there it is.", "Beaten by a woman in a nun's habit. Write that down."],
     blocks: ["I see what you're doing. Bold.", "Blocked. You're welcome."],
+  },
+  patricia: {
+    id: 'patricia',
+    name: 'Sister Patricia',
+    title: 'THE SNAP QUEEN',
+    emoji: '⚡',
+    blurb: 'Quick wit, zero patience. Whoopi Goldberg in a habit. She sees through you.',
+    accentColor: '#6B2FA0',
+    scores: ["That's mine.", "As expected.", "Record that."],
+    wins: ["Called it.", "See? Effortless.", "Next."],
+    blocks: ["Honey, no.", "Not today.", "Sit with that."],
+  },
+  hildegard: {
+    id: 'hildegard',
+    name: 'Abbess Hildegard',
+    title: 'THE DEADPAN SUPERIOR',
+    emoji: '🕯️',
+    blurb: "Seventy years of disappointment. She thinks she's above this. She isn't.",
+    accentColor: '#1A5C3A',
+    scores: ["Correct.", "As it should be.", "Order is restored briefly."],
+    wins: ["As expected.", "Order restored.", "The younger ones get excited. I don't need to."],
+    blocks: ["A wall. How biblical.", "Reflect on that.", "The tile speaks for itself."],
   },
 };
 

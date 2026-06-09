@@ -6,14 +6,26 @@ import { WendyMood } from '@/lib/game';
 import { PERSONALITIES } from '@/lib/wendy';
 import gsap from 'gsap';
 
+// Sister Wendy — full set of distinct mood portraits (pleased reuses the amused art).
 const MOOD_PORTRAIT: Record<WendyMood, string> = {
-  neutral:      '/wendy-neutral.png',
-  pleased:      '/wendy-pleased.png',
-  disappointed: '/wendy-thinking.png',
-  suspicious:   '/wendy-thinking.png',
-  triumphant:   '/wendy-triumphant.png',
-  amused:       '/wendy-pleased.png',
+  neutral:      '/wendy-neutral.webp',
+  pleased:      '/wendy-pleased.webp',
+  disappointed: '/wendy-disappointed.webp',
+  suspicious:   '/wendy-suspicious.webp',
+  triumphant:   '/wendy-triumphant.webp',
+  amused:       '/wendy-amused.webp',
 };
+
+// Rival nuns have their own face (one each); they override the mood map.
+const CHARACTER_PORTRAIT: Record<string, string> = {
+  patricia:  '/patricia-neutral.webp',
+  hildegard: '/hildegard-neutral.webp',
+};
+
+function portraitFor(personalityId: string | undefined, mood: WendyMood): string {
+  if (personalityId && CHARACTER_PORTRAIT[personalityId]) return CHARACTER_PORTRAIT[personalityId];
+  return MOOD_PORTRAIT[mood];
+}
 
 interface WendyPortraitProps {
   mood: WendyMood;
@@ -125,7 +137,7 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
         }}
       >
         <Image
-          src={MOOD_PORTRAIT[mood]}
+          src={portraitFor(personalityId, mood)}
           alt={`${displayName} portrait`}
           width={110}
           height={132}
