@@ -11,7 +11,7 @@ import {
   boardIsEmpty, aiPickPlay, difficultyForMode,
   calcRoundBonus, isDouble,
 } from '@/lib/game';
-import { randQuote } from '@/lib/wendy';
+import { randQuote, wendyCommentary } from '@/lib/wendy';
 import type { WendyMood } from '@/lib/game';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 import { audio } from '@/lib/audio';
@@ -167,7 +167,7 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
 
   // Only doubles grant a replay — scoring alone does not
   const bonus = isDouble(tile);
-  const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus, state.players.find(p => !p.isHuman)?.personalityId);
+  const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus, state.players.find(p => !p.isHuman)?.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
   const mood = getMood(current.isHuman, scored, isDouble(tile));
 
   return {
@@ -207,17 +207,17 @@ function oppPersonality(state: GameState): string | undefined {
   return state.players.find(p => !p.isHuman)?.personalityId ?? 'wendy';
 }
 
-function buildSpeech(isHuman: boolean, scored: number, double_: boolean, bonus: boolean, pid?: string): string {
+function buildSpeech(isHuman: boolean, scored: number, double_: boolean, bonus: boolean, pid?: string, humanScore = 0, oppScore = 0): string {
   if (isHuman) {
-    if (scored >= 20) return randQuote('playerBigScore', pid);
+    if (scored >= 15) return randQuote('playerBigScore', pid);
     if (scored > 0)   return randQuote('playerScores', pid) + (bonus ? " Play again." : "");
     if (double_)      return randQuote('playerDouble', pid) + " Play again.";
     return randQuote('herTurn', pid);
   } else {
-    if (scored >= 20) return randQuote('wendyBigScore', pid);
+    if (scored >= 15) return randQuote('wendyBigScore', pid);
     if (scored > 0)   return randQuote('wendyScores', pid);
     if (double_)      return randQuote('wendyDouble', pid);
-    return randQuote('commentary', pid);
+    return wendyCommentary(humanScore, oppScore, pid); // context-aware: blowout / nail-biter / rare
   }
 }
 
@@ -329,7 +329,7 @@ export default function Game() {
           const gameWon = current.score >= prev.targetScore;
           const roundWon = current.hand.length === 0;
           const bonus = isDouble(play.tile);
-          const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId);
+          const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
           const mood = getMood(false, scored, isDouble(play.tile));
 
           if (gameWon) return {

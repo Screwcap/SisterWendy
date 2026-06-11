@@ -1,6 +1,7 @@
-// lib/wendy.ts — Sister Wendy personality: a woman who wore a nun's habit
-// through her divorce years and swore like a sailor in the grocery store
-// while her ten-year-old son followed behind with the cart.
+// lib/wendy.ts — Sister Wendy Calhoun (1945–2019). A sharp, preppy Southern woman
+// who ended up in a habit and never lost her edge. Vanderbilt, married a farmer,
+// traveled the world, knows her wine, proud of her rural roots, opinions on EVERYTHING.
+// Snarky but warm — she roasts you because you're family. Never mean. (CARL_SPEC §5)
 
 export type QuoteKey =
   | 'gameStart' | 'playerScores' | 'playerBigScore' | 'playerDouble'
@@ -10,90 +11,118 @@ export type QuoteKey =
 
 const QUOTES: Record<QuoteKey, string[]> = {
   gameStart: [
-    "Right, let's go. I didn't put this habit on to lose.",
-    "Shuffle those tiles properly. This isn't the cereal aisle.",
-    "I've played dominoes through worse than this. Considerably worse.",
-    "God give me strength. And decent tiles.",
+    "Sit down, darling. Let's see what you're made of.",
+    "I've got nowhere to be and all afternoon to beat you.",
+    "Deal them out. Mind your manners and your math.",
+    "Right. Let's play. I'll try to be gracious. No promises.",
   ],
-  playerScores: [
-    "Fine. Points. Don't let it go to your head.",
-    "Oh good for you. You want a biscuit?",
-    "I saw that coming. I let you have it.",
-    "Mmm. Lucky. But we'll call it skill.",
+  playerScores: [ // small (≈5)
+    "Every point counts. That's what I tell myself about calories too.",
+    "Modest. Like a Tuesday wine.",
+    "Five points. Enough to notice, not enough to brag about.",
+    "That's what we call 'showing up' where I'm from.",
+    "Small but honest. Like my first apartment.",
+    "I've seen bigger scores from a sleeping cat.",
+    "Well, it's not nothing. I'll give you that.",
+    "Five points. The participation trophy of dominoes.",
+    "That's a starter, not a main course.",
+    "Bless your heart, you're trying.",
   ],
-  playerBigScore: [
-    "Jesus, Mary and Joseph — where did THAT come from?",
-    "Twenty points. Oh for— right. Fine. Well played.",
-    "I taught you everything you know. Not everything I know. Remember that.",
+  playerBigScore: [ // 15+
+    "Well. Someone's been paying attention.",
+    "That's the kind of play that earns a second glass.",
+    "Darling, if you keep that up, I'll have to start trying.",
+    "Twenty points? I haven't been this impressed since the '98 Bordeaux.",
+    "That was almost rude. I liked it.",
+    "My garden doesn't grow things that fast.",
+    "Alright, alright. Don't let it go to your head.",
+    "That play had legs. Like a good Burgundy.",
+    "Even my rooster doesn't crow that loud. Settle down.",
+    "Fine. You earned a slow clap. *clap... clap... clap.*",
   ],
   playerDouble: [
-    "A double. Showing off, are we.",
-    "The double. Classic. Your grandfather played like that. Infuriating man.",
-    "Right, play again then. Don't milk it.",
+    "A double. Aren't you pleased with yourself.",
+    "Play it again, darling. I'll wait.",
+    "Doubles. Showy. I respect it.",
   ],
   playerCombo: [
-    "Another turn? Bloody hell. Fine.",
-    "You're on a run. Enjoy it. It won't last.",
-    "Keep going. I'm letting you. Strategically.",
+    "Another turn? Somebody's feeling their oats.",
+    "On a little run, are we. Enjoy the weather.",
+    "Keep going. The fall's always more fun from up high.",
   ],
-  playerCantPlay: [
-    "No tile? Draw. That's what the boneyard's for. Life too, as it happens.",
-    "Can't play? Welcome to the club. Very popular club.",
-    "Draw from the pile, love. We've all been there.",
+  playerCantPlay: [ // draw from boneyard
+    "Drawing again? The boneyard isn't a buffet, dear.",
+    "Slim pickings? Story of my dating life in the '70s.",
+    "Sometimes you have to dig before you plant. Keep going.",
+    "The boneyard giveth and the boneyard taketh away.",
+    "I once drew four tiles in a row in Provence. Worst game, best trip.",
+    "Reaching into the unknown. How very brave of you.",
+    "That's the third draw. Are you collecting them?",
+    "The boneyard is not a strategy, darling.",
+    "Keep drawing. I'll wait. I have wine.",
+    "Even my chickens find what they're looking for faster.",
   ],
-  wendyScores: [
-    "There we are. Fifteen. The habit brings luck, what can I say.",
-    "That's mine. Noted.",
-    "Points. I've earned them. God knows I've earned them.",
+  wendyScores: [ // wendy small
+    "Mine. I'll take the five and say thank you.",
+    "A few points. They add up, like good manners.",
+    "There we are. Tidy.",
   ],
   wendyBigScore: [
-    "Twenty points. Right. Yes. That's how it's done.",
-    "Brilliant. Even I'm impressed and I rarely am.",
-    "That's twenty. Don't make a scene, I'm wearing the habit.",
+    "Oh, don't look at me like that. You left it wide open.",
+    "I learned that move in Tuscany. Long story.",
+    "That's what happens when you underestimate a woman in sensible shoes.",
+    "I'd apologize, but my mother raised me not to lie.",
+    "Fifteen points. I believe that's what they call 'getting schooled.'",
+    "I picked that up at a café in Lyon. The dominoes, not the wine. Well, both.",
+    "Some days the garden just blooms, darling.",
+    "You know what pairs well with that play? Your silence.",
+    "That wasn't personal. Well, maybe a little.",
+    "I've been saving that one. Like a good Sauternes.",
   ],
   wendyDouble: [
-    "Double. Lovely. Play again.",
-    "Oh that's satisfying. The double always is.",
-    "Doubles are God's little joke. I appreciate the humour.",
+    "A double for me. How nice. Again, then.",
+    "Doubles. The Lord provides, occasionally.",
+    "Play again. Don't mind if I do.",
   ],
   herTurn: [
-    "My turn. Stand by.",
-    "Right then.",
-    "Let me think. Don't rush me.",
-    "I've been planning this since the boneyard.",
+    "My turn. Sit tight, darling.",
+    "Let me think. Patience is a virtue I'm still working on.",
+    "Give me a moment. Good things, and all that.",
+    "Watch and learn, sweetheart.",
   ],
   smug: [
-    "I know exactly what you're doing. It's not going to work.",
-    "Interesting. Wrong, but interesting.",
-    "You're playing on hope. I'm playing on experience. Different things entirely.",
+    "Bless your heart. I see exactly what you're doing.",
+    "Honestly, darling. I was reading people before you were born.",
+    "That's one way to play it. Not the right way, but one way.",
+    "I'd let you take that back, but where's the fun.",
   ],
   commentary: [
-    "The board's taking shape. Mostly thanks to me.",
-    "Good game so far. Considering.",
-    "We're building something here. Whether it ends well is another matter.",
+    "Nice little board we're building. I'll take most of the credit.",
+    "This is pleasant. For me, anyway.",
+    "A civilized game. Let's keep it that way, darling.",
   ],
   angry: [
-    "Oh that is RUDE. That is a rude tile placement and you know it.",
-    "You're blocking me. In this house. At this table.",
-    "Right, that's it. Gloves off. I didn't wear the habit for this.",
+    "Well that was just rude. Effective, but rude.",
+    "Blocking me? In my own house? Bold.",
+    "Alright. Gloves off, darling. You asked for it.",
   ],
   playerWins: [
-    "You won. Well done. Don't ever tell your father.",
-    "Fine. You beat me. I hope you're pleased with yourself. I'd be pleased with myself.",
-    "Victory. You've earned it. Don't expect a parade.",
-    "You won. I'm going to go put the kettle on and not think about this.",
+    "You won. Don't gloat — it's unbecoming. But well done.",
+    "Fine. You beat me. I'll allow it. Once.",
+    "Victory's yours, darling. I'll have the wine ready for the rematch.",
+    "Beaten at my own table. I taught you too well.",
   ],
   wendyWins: [
-    "Ha. And there it is. Don't look so surprised.",
-    "I win. The habit was a factor. Don't question it.",
-    "Game over. You played well. Not well enough, but well.",
-    "Beaten by a woman in a nun's habit. Pop that in your diary.",
+    "And that's the game. Don't take it personally, dear.",
+    "I win. Sensible shoes, sharp mind. Works every time.",
+    "Game's mine. You played well — for a while.",
+    "There it is. Now, who's pouring?",
   ],
   tileHover: [
-    "Thinking about it?",
-    "That one?",
-    "Hmm.",
-    "Choose wisely. I'm watching.",
+    "Thinking about it, are we?",
+    "That one, darling?",
+    "Mm. Choose carefully.",
+    "I'm watching. Take your time.",
   ],
 };
 
@@ -156,47 +185,94 @@ export function randQuote(key: QuoteKey, personalityId?: string): string {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+const _pick = (a: string[]) => a[Math.floor(Math.random() * a.length)];
+
+// Context-aware Wendy commentary (CARL_SPEC §5) — fired on her non-scoring turns,
+// keyed off the score gap so she reacts to a blowout / a nail-biter. Wendy-only;
+// Patricia & Hildegard fall back to their own commentary bank.
+const WENDY_LOSING = [ // player is down 15+
+  "Don't panic. I've seen comebacks. Not from you yet, but I've seen them.",
+  "This is what we call a 'character-building moment.'",
+  "You know what? The view from behind isn't so bad. You can see all your mistakes.",
+  "I once lost a game by 40 points in Lisbon. Beautiful city though.",
+  "Chin up. Even bad wine has its moments.",
+  "If it helps, you're losing with dignity. Mostly.",
+  "The scoreboard is just a number. A very unflattering number, but still.",
+  "My garden looked this bad once. Then spring came.",
+  "Would you like some cheese with that whine? Sorry. Had to.",
+  "Down by twenty? That's not a deficit, that's an adventure.",
+];
+const WENDY_CLOSE = [ // within ~5 points
+  "Now THIS is a game.",
+  "I can hear my own heartbeat. Don't tell anyone.",
+  "This is tighter than my schedule in harvest season.",
+  "One of us is about to be very smug. I hope it's me.",
+  "Close games are like good wine — they make you sweat a little.",
+  "I haven't been this nervous since customs in Morocco.",
+  "This is where the amateurs fold. You're not folding, are you?",
+  "Neck and neck. Just how I like my scarves and my dominoes.",
+  "If this gets any closer, I'm opening the reserve bottle.",
+  "Three points apart. I can taste the finish line. Tastes like victory.",
+];
+const WENDY_RARE = [ // 1-in-25 flavor, any play
+  "You know, I once played dominoes with a duchess on a train to Vienna. She cheated. I let her. She was buying dinner.",
+  "My mother used to say, 'Wendy, you'd argue with a fence post.' She was right. And I'd win.",
+  "I spent a summer in Mendoza learning two things: Malbec and patience. You're testing both.",
+  "There's a vineyard in Burgundy where I left a domino set in 1987. I think about it sometimes.",
+  "My nephew once asked me why I play dominoes. I told him it's cheaper than therapy and the company is better.",
+];
+
+/** A Wendy filler/commentary line that reacts to the current score gap (humanScore − wendyScore). */
+export function wendyCommentary(humanScore: number, wendyScore: number, personalityId = 'wendy'): string {
+  if (personalityId !== 'wendy') return randQuote('commentary', personalityId);
+  if (Math.random() < 0.04) return _pick(WENDY_RARE);
+  const gap = humanScore - wendyScore;
+  if (gap <= -15) return _pick(WENDY_LOSING);
+  if (Math.abs(gap) <= 5 && humanScore + wendyScore >= 20) return _pick(WENDY_CLOSE);
+  return randQuote('commentary', 'wendy');
+}
+
 // Tile facts — Sister Wendy's grocery-store-era wisdom, keyed by pip value (0–6)
 export const PIP_FACTS: Record<number, string[]> = {
   0: [
-    "Zero. Nothing. That's what was in the account some months. We got through it.",
-    "The blank. She always said a blank tile was an opportunity in disguise. Usually she was wrong but sometimes not.",
-    "Zero pips. Empty. There were weeks like that. The habit helped, she said. The dominoes helped more.",
+    "Zero. A blank — empty as a Sunday pew once the sermon's done.",
+    "The blank, darling. My grandmother grew the best tomatoes out of a patch of nothing. Don't underestimate it.",
+    "Nothing on it. Like the polite answer I give when someone asks my age.",
   ],
   1: [
-    "One. Just the one. Some years it was just us two in the cereal aisle and honestly that was enough.",
-    "The single pip. She'd find the one good thing in a bad situation and fixate on it mercilessly.",
-    "One pip. She had one good coat, one good handbag, and one hell of a strategy at this table.",
+    "One. The loneliest number, they say. They never gardened alone at dawn — it's heaven.",
+    "A single pip. One good husband, one good dog, one good bottle for company. That's plenty.",
+    "Just the one. I've started whole adventures on less, darling.",
   ],
   2: [
-    "Two. Her and me, mostly. The cart, the habit, the frozen aisle. We managed.",
-    "Two pips. She always said two's company and three's a divorce lawyer. She had opinions.",
-    "Two. The team. Down the cereal aisle, around the deli counter, past the looks from strangers.",
+    "Two. A pair — like me and trouble. We travel together.",
+    "Two pips. Two things I trust: a sharp knife and a sharper opinion.",
+    "Two. Mother said good things and bad news both come in twos. She was usually right.",
   ],
   3: [
-    "Three. She could carry three shopping bags, a grudge and a domino hand simultaneously. Remarkable woman.",
-    "Third aisle was always the biscuit aisle. She'd mutter something unprintable at the price and put them in the cart anyway.",
-    "Three pips. Three things she never did: give up, apologise first, or leave a scoring tile unplayed.",
+    "Three. The number of times I've been told to mind my manners. I declined, politely.",
+    "Three pips. Spring, summer, and the long supper in between. My favorite math.",
+    "Three. I can hold a grudge, a wineglass, and a winning hand all at once. It's a gift.",
   ],
   4: [
-    "Four. The number of things she could be simultaneously furious about while still completing the shopping.",
-    "Four pips. Four seasons and she wore the habit through all of them. That's commitment.",
-    "She'd do the whole weekly shop in four aisles flat if she was in a mood. Speed. Focus. Terrifying.",
+    "Four. Four seasons on the farm, and I had an opinion about every one of them.",
+    "Four pips — the number of countries I've nearly been thrown out of. Nearly.",
+    "Four. A good dinner-party number. Any more and someone starts in on politics.",
   ],
   5: [
-    "Five. I was ten. The cart was heavy. The habit billowed. The language, on a scale of one to five, was a five.",
-    "Five pips — the scoring pip. She could spot a scoring play faster than a checkout queue jumper and react more forcefully.",
-    "Five. She said five was the luck number. Argued about it with a priest once. She won.",
+    "Five — the scoring pip, darling. Treat it with the respect you'd give a good Bordeaux.",
+    "Five. My lucky number. I argued the point with a priest once. I won. He poured.",
+    "Five pips. I can spot a five-play across a crowded table faster than gossip travels in a small town.",
   ],
   6: [
-    "Six. The double-six. The best tile in the box. She always said if you get the double-six, you play it immediately. No hesitation. She meant at dominoes. Probably.",
-    "Six pips. Maximum. She operated at maximum most of the time. It was a lot. It was also impressive.",
-    "The six. She had a six on a necklace. Saint somebody. Patron of complicated situations, she said. Never checked.",
+    "Six. The double-six is the queen of the box. Play her the moment you can — like accepting a good invitation.",
+    "Six pips. Maximum. I've lived most of my life at maximum. Exhausting, and entirely worth it.",
+    "The six. I wore a little six on a chain for years — a saint of complicated situations. We understood each other.",
   ],
 };
 
 export function getPipFact(pip: number): string {
-  const facts = PIP_FACTS[pip] ?? ["A number. She had a view on it. She had a view on most things."];
+  const facts = PIP_FACTS[pip] ?? ["A number. I have a view on it. I have a view on most things, darling."];
   return facts[Math.floor(Math.random() * facts.length)];
 }
 
