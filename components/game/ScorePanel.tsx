@@ -15,8 +15,6 @@ interface ScorePanelProps {
   targetScore?: number;
 }
 
-const TARGET = 61;
-
 export default function ScorePanel({
   players,
   currentPlayerIndex,
@@ -24,7 +22,9 @@ export default function ScorePanel({
   round,
   lastScore,
   lastScoringPlayerId,
+  targetScore,
 }: ScorePanelProps) {
+  const TARGET = targetScore ?? 61;
   const scoreRefs = useRef<Record<string, HTMLSpanElement | null>>({});
 
   // Animate score change

@@ -28,6 +28,20 @@ const SCREWCAP_GAMES = [
     color: '#c49020',
     href: 'https://flymacropilot.vercel.app',
   },
+  {
+    id: 'dttau',
+    name: 'DTTAU',
+    tagline: 'Do Things That Add Up. A lifetime, tracked.',
+    color: '#5aa9e6',
+    href: 'https://dttau.app',
+  },
+  {
+    id: 'sutda',
+    name: 'SUTDA',
+    tagline: 'Korean card bluffing. Beautiful. Ruthless.',
+    color: '#d4507a',
+    href: 'https://www.sutda.games',
+  },
 ] as const;
 
 export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
@@ -41,11 +55,11 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
     >
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: compact ? '0.52rem' : '0.6rem',
+        fontSize: compact ? '0.72rem' : '0.85rem',
         letterSpacing: '0.28em',
-        color: 'rgba(196,144,32,0.45)',
+        color: 'rgba(232,184,64,0.82)',
         textAlign: 'center',
-        marginBottom: compact ? 10 : 14,
+        marginBottom: compact ? 12 : 18,
       }}>
         MORE FROM SCREWCAP
       </div>

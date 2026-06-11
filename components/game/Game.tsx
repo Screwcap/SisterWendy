@@ -9,7 +9,7 @@ import {
   GameState, GameMode, TileData, BoardEnd,
   initGame, nextRound, validEnds, canPlay, playOnBoard, scoreValue,
   boardIsEmpty, aiPickPlay, difficultyForMode,
-  calcRoundBonus, TARGET_SCORE, isDouble,
+  calcRoundBonus, isDouble,
 } from '@/lib/game';
 import { randQuote } from '@/lib/wendy';
 import type { WendyMood } from '@/lib/game';
@@ -131,7 +131,7 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
   });
 
   const current = updatedPlayers[playerIdx];
-  const gameWon = current.score >= TARGET_SCORE;
+  const gameWon = current.score >= state.targetScore;
   const roundWon = current.hand.length === 0;
 
   if (gameWon || roundWon) {
@@ -141,7 +141,7 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
       ? updatedPlayers.map((p, i) => i === playerIdx ? { ...p, score: p.score + pipBonus } : p)
       : updatedPlayers;
     const finalWinner = scoredPlayers[playerIdx];
-    const gameWonFinal = finalWinner.score >= TARGET_SCORE;
+    const gameWonFinal = finalWinner.score >= state.targetScore;
     const phase: GameState['phase'] = gameWonFinal ? 'gameOver' : 'roundOver';
     const pid = state.players.find(p => !p.isHuman)?.personalityId;
     const oppName = state.players.find(p => !p.isHuman)?.name ?? 'Sister Wendy';
@@ -326,7 +326,7 @@ export default function Game() {
               : p
           );
           const current = updatedPlayers[prev.currentPlayerIndex];
-          const gameWon = current.score >= TARGET_SCORE;
+          const gameWon = current.score >= prev.targetScore;
           const roundWon = current.hand.length === 0;
           const bonus = isDouble(play.tile);
           const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId);
@@ -342,7 +342,7 @@ export default function Game() {
             const scoredPlayers = pipBonus > 0
               ? updatedPlayers.map((p, i) => i === prev.currentPlayerIndex ? { ...p, score: p.score + pipBonus } : p)
               : updatedPlayers;
-            const gameWonFinal = scoredPlayers[prev.currentPlayerIndex].score >= TARGET_SCORE;
+            const gameWonFinal = scoredPlayers[prev.currentPlayerIndex].score >= prev.targetScore;
             return {
               ...prev, board: newBoard, players: scoredPlayers,
               phase: gameWonFinal ? 'gameOver' : 'roundOver',
@@ -434,18 +434,18 @@ export default function Game() {
     );
   }
 
-  if (!gs) return <GameSetup onStart={(m, daily, pid) => setGs(initGame(m, daily, pid))} />;
+  if (!gs) return <GameSetup onStart={(m, daily, pid, target) => setGs(initGame(m, daily, pid, target))} />;
 
   if (gs.phase === 'gameOver' && gs.gameWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode))} onReturnToMenu={() => setGs(null)} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode, false, oppPersonality(gs), gs.targetScore))} onReturnToMenu={() => setGs(null)} />
         <EndScreen
           players={gs.players}
           gameWinnerId={gs.gameWinnerId}
           mode={gs.mode}
           hintsUsed={gs.hintsUsed}
-          onPlayAgain={() => setGs(initGame(gs.mode))}
+          onPlayAgain={() => setGs(initGame(gs.mode, false, oppPersonality(gs), gs.targetScore))}
           onChangeDifficulty={() => setGs(null)}
         />
       </>
@@ -455,7 +455,7 @@ export default function Game() {
   if (gs.phase === 'roundOver' && gs.roundWinnerId) {
     return (
       <>
-        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode))} onReturnToMenu={() => setGs(null)} />
+        <GameUI gs={gs} dispatch={dispatch} artFact={artFact} setArtFact={setArtFact} latestTileId={latestTileId} setLatestTileId={setLatestTileId} shakeTileId={shakeTileId} setShakeTileId={setShakeTileId} isMuted={isMuted} onToggleMute={() => { setIsMuted(audio.toggleMute()); }} undoable={undoable} setUndoable={setUndoable} onNewGame={() => setGs(initGame(gs.mode, false, oppPersonality(gs), gs.targetScore))} onReturnToMenu={() => setGs(null)} />
         <RoundOverScreen
           players={gs.players}
           roundWinnerId={gs.roundWinnerId}
@@ -481,7 +481,7 @@ export default function Game() {
       undoable={undoable}
       setUndoable={setUndoable}
       onUndo={() => { if (undoable) { setGs(undoable); setUndoable(null); } }}
-      onNewGame={() => setGs(initGame(gs.mode))}
+      onNewGame={() => setGs(initGame(gs.mode, false, oppPersonality(gs), gs.targetScore))}
       onReturnToMenu={() => setGs(null)}
     />
   );
@@ -718,6 +718,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
               round={gs.roundCount}
               lastScore={gs.lastScore}
               lastScoringPlayerId={gs.lastScoringPlayerId}
+              targetScore={gs.targetScore}
             />
           </div>
 

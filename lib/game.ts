@@ -47,6 +47,7 @@ export type TurnPhase =
 
 export interface GameState {
   mode: GameMode;
+  targetScore: number;   // 61 Quick / 100 Long Lunch / 175 Sunday / 250 Full Wendy
   players: Player[];
   currentPlayerIndex: number;
   board: BoardState;
@@ -280,9 +281,17 @@ export function aiPickPlay(
 // ── Game Factory ────────────────────────────────────────────────────────────
 
 export const TARGET_SCORE = 61;
+
+// Extended game modes — score target chosen before Forgiving/Focused.
+export const SCORE_MODES: Array<{ target: number; label: string; sub: string; wendy: string }> = [
+  { target: 61,  label: 'Quick Match',    sub: 'First to 61',  wendy: 'A proper game. Five minutes, no excuses.' },
+  { target: 100, label: 'Long Lunch',     sub: 'First to 100', wendy: "Settling in, are we? Good. I'll open a bottle." },
+  { target: 175, label: 'Sunday Affair',  sub: 'First to 175', wendy: "Cancel your plans. We're going to be here a while." },
+  { target: 250, label: 'The Full Wendy', sub: 'First to 250', wendy: "Only the committed need apply. I hope you've eaten." },
+];
 export const HAND_SIZE = 7;
 
-export function initGame(mode: GameMode, daily = false, personalityId = 'wendy'): GameState {
+export function initGame(mode: GameMode, daily = false, personalityId = 'wendy', targetScore = TARGET_SCORE): GameState {
   // Daily Challenge: deterministic deal from today's date — same tiles for everyone.
   const tiles = daily ? createFullSet(makeRng(dailySeed())) : createFullSet();
   const opp = OPPONENTS[personalityId] ?? OPPONENTS.wendy;
@@ -300,6 +309,7 @@ export function initGame(mode: GameMode, daily = false, personalityId = 'wendy')
 
   return {
     mode,
+    targetScore,
     players: [humanPlayer, ...aiPlayers],
     currentPlayerIndex: 0,
     board: emptyBoard(),
