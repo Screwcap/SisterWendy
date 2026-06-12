@@ -224,6 +224,33 @@ export function scoreValue(board: BoardState): number {
   return sum % 5 === 0 ? sum : 0;
 }
 
+// Open-end breakdown for the scoring-explainer popup. `ends` are the live end values,
+// `sum` their total, `points` the score awarded (= sum when divisible by 5, else 0).
+// `nearMissOf` is the closest multiple of 5 within 2 (for the near-miss nudge), else null.
+export function scoreBreakdown(board: BoardState): { ends: number[]; sum: number; points: number; nearMissOf: number | null } {
+  if (board.chain.length === 0) return { ends: [], sum: 0, points: 0, nearMissOf: null };
+  const L = board.chain[0];
+  const R = board.chain[board.chain.length - 1];
+  let ends: number[];
+  if (board.chain.length === 1) {
+    ends = [isDouble(L) ? L.a * 2 : L.a + L.b];
+  } else {
+    ends = [
+      isDouble(L) ? L.a * 2 : (board.leftEnd ?? 0),
+      isDouble(R) ? R.a * 2 : (board.rightEnd ?? 0),
+    ];
+  }
+  const sum = ends.reduce((a, b) => a + b, 0);
+  const points = sum % 5 === 0 ? sum : 0;
+  const rem = sum % 5;
+  // Near-miss = you were ONE off a multiple of 5 (e.g. 21 → one past 20). Kept tight so it
+  // nudges only on a genuine "so close" moment, not every non-scoring play.
+  const nearMissOf = points === 0 && sum >= 6 && (rem === 1 || rem === 4)
+    ? (rem === 1 ? sum - 1 : sum + 1)
+    : null;
+  return { ends, sum, points, nearMissOf };
+}
+
 // ── AI ─────────────────────────────────────────────────────────────────────
 
 export interface AIPlay {

@@ -9,9 +9,11 @@ import {
   GameState, GameMode, TileData, BoardEnd,
   initGame, nextRound, validEnds, canPlay, playOnBoard, scoreValue,
   boardIsEmpty, aiPickPlay, difficultyForMode,
-  calcRoundBonus, isDouble,
+  calcRoundBonus, isDouble, scoreBreakdown,
 } from '@/lib/game';
 import { randQuote, wendyCommentary } from '@/lib/wendy';
+import { getStats } from '@/lib/stats';
+import ScoringExplainer, { type ExplainerData } from './ScoringExplainer';
 import type { WendyMood } from '@/lib/game';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 import { audio } from '@/lib/audio';
@@ -539,6 +541,45 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
     gsap.to(el, { opacity: 0, y: -48, duration: 0.55, delay: 0.95, ease: 'power1.in' });
   }, [scoreFlash]);
 
+  // ── CARL_SPEC §4 — scoring explainer (corner widget) ──
+  const [explainer, setExplainer] = useState<ExplainerData | null>(null);
+  const prevChainLen = useRef(gs.board.chain.length);
+  useEffect(() => {
+    const len = gs.board.chain.length;
+    const grew = len > prevChainLen.current;
+    prevChainLen.current = len;
+    if (!grew) return;                       // only when a new tile is placed
+    try { if (localStorage.getItem('sw-scoring-help') === 'off') return; } catch { /* */ }
+    const played = getStats().played;
+    if (played >= 10) return;                // after game 10: only via the "?" button
+    const bd = scoreBreakdown(gs.board);
+    if (gs.lastScore > 0) {
+      const scorerHuman = gs.lastScoringPlayerId === 'human';
+      if (played < 3 || scorerHuman) setExplainer({ kind: 'score', ends: bd.ends, sum: bd.sum, points: bd.points, nearMissOf: 0 });
+    } else if (played < 3 && gs.phase === 'aiThinking' && bd.nearMissOf) {
+      setExplainer({ kind: 'near', ends: bd.ends, sum: bd.sum, points: 0, nearMissOf: bd.nearMissOf });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gs.board.chain.length]);
+  useEffect(() => {
+    if (!explainer) return;
+    const t = setTimeout(() => setExplainer(null), 7000);
+    return () => clearTimeout(t);
+  }, [explainer]);
+  // Manual summon (the "?" — always available, esp. after game 10)
+  function summonExplainer() {
+    const bd = scoreBreakdown(gs.board);
+    if (bd.sum <= 0) {
+      // Empty/early board — show a canonical worked example of how scoring works.
+      setExplainer({ kind: 'score', ends: [10, 5], sum: 15, points: 15, nearMissOf: 0 });
+    } else if (bd.points > 0) {
+      setExplainer({ kind: 'score', ends: bd.ends, sum: bd.sum, points: bd.points, nearMissOf: 0 });
+    } else {
+      setExplainer({ kind: 'near', ends: bd.ends, sum: bd.sum, points: 0, nearMissOf: bd.nearMissOf ?? (bd.sum + (5 - (bd.sum % 5 || 5))) });
+    }
+    try { localStorage.removeItem('sw-scoring-help'); } catch { /* */ }
+  }
+
   // Run FLIP animation after board chain grows (human or AI play)
   useLayoutEffect(() => {
     if (!flipStateRef.current) return;
@@ -607,6 +648,14 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0d0a06', color: '#f5ead8' }}>
+      {/* CARL_SPEC §4 — scoring explainer + always-available "?" summon */}
+      {explainer
+        ? <ScoringExplainer data={explainer} onClose={() => setExplainer(null)}
+            onDisable={() => { try { localStorage.setItem('sw-scoring-help', 'off'); } catch { /* */ } setExplainer(null); }} />
+        : <button onClick={summonExplainer} aria-label="How does scoring work?"
+            style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 8900, width: 30, height: 30, borderRadius: '50%',
+              background: 'rgba(21,17,10,0.85)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'var(--font-mono), monospace' }}>?</button>}
+
 
       {/* Gear background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden>
