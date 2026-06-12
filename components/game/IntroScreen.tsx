@@ -199,7 +199,8 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       {/* ── Phase 2: Portrait + speech ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18, marginBottom: 12, marginTop: 8 }}>
         <div ref={portraitRef} style={{ opacity: 0, flexShrink: 0 }}>
-          <NunSilhouette />
+          <img src="/wendy-neutral.webp" alt="Sister Wendy" width="72" height="90"
+            style={{ width: 72, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(196,144,32,0.45)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }} />
         </div>
         <div
           ref={speechRef}
@@ -308,22 +309,3 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
   );
 }
 
-// Simplified nun silhouette for the intro
-function NunSilhouette() {
-  return (
-    <svg viewBox="0 0 176 220" width="72" height="90" aria-hidden>
-      <ellipse cx="88" cy="90" rx="74" ry="88" fill="#1a1408" />
-      <ellipse cx="88" cy="90" rx="60" ry="74" fill="#0d0a06" />
-      <ellipse cx="88" cy="110" rx="46" ry="62" fill="#f5ead8" />
-      <ellipse cx="88" cy="95" rx="36" ry="40" fill="#e8d4b8" />
-      <ellipse cx="78" cy="63" rx="4" ry="4" fill="#2c1a0e" />
-      <ellipse cx="98" cy="63" rx="4" ry="4" fill="#2c1a0e" />
-      <circle cx="78" cy="63" r="8" fill="none" stroke="#e8b840" strokeWidth="1.5" opacity="0.7" />
-      <circle cx="98" cy="63" r="8" fill="none" stroke="#e8b840" strokeWidth="1.5" opacity="0.7" />
-      <line x1="86" y1="63" x2="90" y2="63" stroke="#e8b840" strokeWidth="1" opacity="0.7" />
-      <path d="M 78 81 Q 88 87 98 81" fill="none" stroke="#8b4a2a" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="88" y1="148" x2="88" y2="168" stroke="#c49020" strokeWidth="1.5" />
-      <line x1="82" y1="156" x2="94" y2="156" stroke="#c49020" strokeWidth="1.5" />
-    </svg>
-  );
-}
