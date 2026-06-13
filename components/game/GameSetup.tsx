@@ -308,6 +308,8 @@ export default function GameSetup({ onStart }: GameSetupProps) {
             © 2026{' '}
             <a href="https://screwcap.games" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Screwcap Games, LLC</a>
             <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
+            <a href="/research" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Research</a>
+            <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
             <a href="/terms" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Terms</a>
             <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
             <a href="/privacy" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Privacy</a>

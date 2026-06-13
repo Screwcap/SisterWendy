@@ -287,17 +287,20 @@ export default function Game() {
   useEffect(() => {
     if (!gs) return;
     const boardLen = gs.board.chain.length;
-    // Tile placed
+    // Tile placed — Wendy's tiles sound heavier/deliberate (idx 0 = her turn now ⇒ she just played)
     if (boardLen > prevBoardLen.current) {
-      audio.play('place');
+      audio.play(gs.currentPlayerIndex === 0 ? 'place-wendy' : 'place');
+      // Near-miss: landed one off a multiple of 5 without scoring
+      if (gs.lastScore === 0 && scoreBreakdown(gs.board).nearMissOf) setTimeout(() => audio.play('near-miss'), 180);
     }
-    // Scored
+    // Scored — big chime for a 15+ play
     if (gs.lastScore > 0 && gs.lastScore !== prevLastScore.current) {
-      setTimeout(() => audio.play('score'), 180);
+      setTimeout(() => audio.play(gs.lastScore >= 15 ? 'score-big' : 'score'), 180);
     }
-    // Round or game over
+    // Game over → win/lose; round over → clear sweep
     if ((gs.phase === 'roundOver' || gs.phase === 'gameOver') && prevPhase.current !== gs.phase) {
-      setTimeout(() => audio.play('clear'), 300);
+      if (gs.phase === 'gameOver') setTimeout(() => audio.play(gs.gameWinnerId === 'human' ? 'win' : 'lose'), 350);
+      else setTimeout(() => audio.play('clear'), 300);
     }
     prevBoardLen.current = boardLen;
     prevPhase.current = gs.phase;
