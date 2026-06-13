@@ -1,154 +1,31 @@
-# Sister Wendy's Dominoes
+# Sister Wendy Dominoes
 
-A browser-based All-Fives / Horse Race dominoes game featuring Sister Wendy Beckett as your opponent — equal parts art critic, theologian, and ruthless domino player.
+**Live:** [sisterwendy.com](https://sisterwendy.com) · A [Screwcap Games](https://screwcap.games) property
 
-**Single HTML file. No build step. No dependencies.**
+> *"Sit down, darling. Let's see what you're made of."* — Sister Wendy Calhoun
 
----
+All-Fives dominoes against a sharp, preppy-Southern nun who knows her wine, has travelled, grew up rural, and judges your every tile with the warmth of a maître d' and the mercy of a margin clerk. A stylish table game on the surface; underneath, a compact behavioural-economics machine (see the in-app [Research essay](https://sisterwendy.com/research): *The Nun, the Boneyard, and the Roast Chicken*).
 
-## How to Play
+## What it does
+- **All-Fives / Horse Race scoring** to a target you choose — Quick Match (61), Long Lunch (100), Sunday Affair (175), or **The Full Wendy** (250).
+- **Three opponents, three voices** — Sister Wendy (the competitor), Sister Patricia (the snap queen), Abbess Hildegard (the deadpan superior) — each with a distinct dialogue bank and accent colour.
+- **Calhoun voice** — 60+ context-aware lines: she reacts to your confidence band, blow-out leads, nail-biters, and the occasional rare zinger.
+- **Scoring explainer** — a corner pop-up teaches All-Fives scoring with the live math (gated by games played, with a near-miss nudge).
+- **Streak shields**, **daily challenge** (seeded deal), **undo** (forgiving mode), **share card**, **sound effects**, **Forgiving/Focused** difficulty, art-history tile facts, and a cinematic intro.
 
-Standard All-Fives (Horse Race) rules:
+## The journey
+Started as a polished dominoes engine with a single grumpy nun. Then the personality became the product: Patricia & Hildegard got their own voices and a "choose your opponent" picker; the character was reimagined as **Sister Wendy Calhoun** and her whole dialogue + tile-fact voice was rewritten preppy-Southern; extended game lengths, a scoring-explainer, and streak shields followed; an ElevenLabs sound set was integrated; the intro's old hand-drawn "egg" nun-face was swapped for the real portrait; and the behavioural-strategy thesis was published as an in-app research essay. Design specs by the team; built by Claude Code (Carl).
 
-- First to **61 points** wins the game (across multiple rounds)
-- Score points when the **sum of both open ends** is a multiple of 5
-- **Doubles** count both pips on that end (e.g. [5|5] on an end = 10 points)
-- Playing a **double** or **scoring** earns a bonus turn
-- If you can't play, draw from the boneyard until you can (or must pass)
+## Tech
+Next.js 16 / React 19 (App Router), GSAP (Flip animations + intro), Howler (audio), localStorage persistence, Vercel. `lib/wendy.ts` holds the dialogue system; `lib/game.ts` the engine.
 
----
-
-## Running Locally
-
+## Run & deploy
 ```bash
-npx http-server . -p 7777
-# then open http://localhost:7777
+npm install
+npm run dev      # local
+npm run build && npm start
+vercel --prod --yes   # deploy (retry --force if a next/font fetch flakes)
 ```
 
----
-
-## Architecture
-
-Everything lives in `index.html` — one file, ~5000 lines. No framework, no build.
-
-### Key Classes
-
-| Class | Purpose |
-|---|---|
-| `Tile` | Immutable domino tile with `a`, `b` pips and `flipped` state |
-| `Board` | Chain of played tiles; tracks `leftEnd`/`rightEnd`; scores via `scoreValue()` |
-| `Game` | All game state and UI logic |
-| `DragDropHandler` | Touch + pointer drag-to-board support |
-| `AudioSystem` | Web Audio API sound effects |
-| `DailyChallenge` | Seeded daily tile draw — same tiles for everyone |
-| `StatsManager` | localStorage win/loss/streak tracking |
-| `AchievementManager` | 20+ badge definitions |
-
-### Board Logic
-
-`Board.validEnds(tile)` returns which ends a tile can play to:
-
-| Return value | Meaning |
-|---|---|
-| `['first']` | Board is empty — this is the opening tile |
-| `['left']` | Only fits the left end |
-| `['right']` | Only fits the right end |
-| `['left', 'right']` | Fits both ends — player must choose |
-| `['middle']` | Both ends same value, no spinner — auto-plays as right |
-| `['top']` / `['bottom']` | Fits a spinner arm |
-| `[]` | Can't play this tile |
-
-#### Spinner doubles
-
-The first double played becomes the **spinner**. It has four playable arms: left, right, top, bottom. Drop zones appear for each open arm. Once all four sides are covered that pip value is closed. Spinner arm end-pips count toward scoring once tiles are played there.
-
-### Turn Flow
-
-```
-Player clicks tile
-  → playerSelectTile()
-    → if one valid end: playerPlayTile(tile, end)
-    → if two ends: show drop zones, wait for playerSelectEnd()
-      → playerPlayTile(tile, end)
-        → score, render, check win
-        → if scored or double: bonus turn (player plays again)
-        → else: doWendyTurn()
-
-doWendyTurn()
-  → _executeWendyTurn() [synchronous, all draws in-loop]
-    → _wendyPlayTile(play)
-      → score, render, check win
-      → if scored or double: setTimeout(_executeWendyTurn, 1500ms)
-      → else: _handToPlayer()
-```
-
-### AI (Sister Wendy)
-
-`aiPickPlay(hand, board, difficulty)` in `difficulty` modes:
-
-- **easy** — picks randomly from valid plays, weighted slightly toward scoring moves
-- **medium** — picks the highest-scoring play; ties broken by pip count (lower = better)
-- **hard** — scores maximally AND uses number-frequency analysis to block the player's likely tiles
-
----
-
-## Bug Fixes (this session)
-
-### The `renderBoard` crash — root cause + fix
-
-**Symptom:** Game crashed after the first tile was played by either player.
-
-```
-TypeError: Cannot read properties of null (reading 'style')
-    at Game.renderBoard
-```
-
-**Root cause — two-part:**
-
-1. **HTML structure:** `board-empty-msg` was originally nested *inside* `board-chain` in the HTML. The browser also parses it this way (confirmed via `MutationObserver` + DOM inspection). The previous fix attempt moved the element to be a sibling in the HTML source, but the browser's HTML parser re-nests it back inside `board-chain` anyway.
-
-2. **JS destroying the element:** The old `renderBoard` code explicitly moved `board-empty-msg` back into `board-chain` via `chain.appendChild(emptyMsg)` (when board was empty). When the board became non-empty, `chain.innerHTML = ''` then permanently destroyed `board-empty-msg`. All subsequent renders crashed trying to access `.style` on `null`.
-
-**Fix:**
-
-```js
-// OLD — destroys board-empty-msg
-chain.innerHTML = '';
-
-// NEW — removes only tile elements, preserves anything else in the chain
-chain.querySelectorAll('.board-tile').forEach(t => t.remove());
-```
-
-Added null guards on `emptyMsg` throughout, and removed the `chain.appendChild(emptyMsg)` call. The element is now controlled purely via `display: none/block` regardless of where it lives in the DOM.
-
-### Multi-end tile selection
-
-**Symptom:** When a tile fit both the left and right end, the game silently picked an end (often costing points the player didn't intend to sacrifice).
-
-**Fix:** `playerSelectTile()` now shows interactive drop zones (`← PLAY LEFT` / `PLAY RIGHT →`) and waits for the player to choose. A 12-second watchdog auto-picks `ends[0]` if the player doesn't respond (prevents lock-up).
-
----
-
-## File Structure
-
-```
-sister-wendy/
-├── index.html          # The entire game
-├── assets/
-│   ├── audio/
-│   │   ├── place.mp3   # Tile-laid sound effect
-│   │   └── score.mp3   # Scoring point sound effect
-│   ├── images/
-│   │   └── avatar.jpg  # Sister Wendy portrait
-│   └── videos/         # Optional MP4s (wendy-main, wendy-frustration, etc.)
-│                       # Game works fine without these — falls back to static image
-└── static-backup/      # Snapshot of a known-good version
-```
-
----
-
-## Notes
-
-- **Videos are optional.** The game works fully without `assets/videos/`. The 404 errors in the console are expected on setups without the video files.
-- **Daily Challenge** uses a seeded PRNG based on today's date — same tile draw for all players on the same day.
-- **One round ≠ one game.** Rounds continue until someone reaches 61 total points.
+## Status
+Live. Spec backlog (`CARL_SPEC_JUNE10.md`): post-game stats screen, win-streak milestones + title progression (lights up the streak sound), the customization suite (felts/tiles/ambient soundscapes), save/resume for long games, and a refreshed icon/portrait set.
