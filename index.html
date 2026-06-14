@@ -1024,7 +1024,7 @@ body.theme-royal  { --tile-face:#0d1b3e; --tile-pip:#c9a84c; --tile-border:#c9a8
 /* Stuck nudge */
 #stuck-nudge {
   position: fixed;
-  bottom: 22px; right: 22px;
+  bottom: 60px; right: 16px;
   background: linear-gradient(135deg, #c8963c, #a07020);
   color: #0a0600;
   border: 1px solid var(--gold);
@@ -1403,7 +1403,10 @@ body.theme-royal  { --tile-face:#0d1b3e; --tile-pip:#c9a84c; --tile-border:#c9a8
   border-radius: 20px;
   font-family: var(--font-display); font-size:0.82rem; letter-spacing:0.5px;
   color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.5s ease-out 0.6s;
 }
+.streak-display.revealed { opacity: 1; }
 .streak-display .fire { font-size:1.1rem; }
 .streak-display.no-streak { opacity:0.5; border-style:dashed; }
 
@@ -4376,8 +4379,8 @@ class Game {
     if (!el) return;
     const { currentStreak:cs, bestStreak:bs, gamesWon:gw, gamesPlayed:gp } = this.stats.stats;
     if (gp===0)    el.innerHTML='<div class="streak-display no-streak"><span class="fire">🎲</span> First time? Good luck!</div>';
-    else if (cs>=1) el.innerHTML=`<div class="streak-display"><span class="fire">🔥</span> Win Streak: ${cs} ${cs===bs&&cs>1?'(Best!)':''}</div>`;
-    else           el.innerHTML=`<div class="streak-display no-streak"><span class="fire">📊</span> ${gw}W/${gp-gw}L • Best Streak: ${bs}</div>`;
+    else if (cs>=1) el.innerHTML=`<div class="streak-display revealed"><span class="fire">🔥</span> Win Streak: ${cs} ${cs===bs&&cs>1?'(Best!)':''}</div>`;
+    else           el.innerHTML='<div class="streak-display no-streak"><span class="fire">📊</span> ${gw}W/${gp-gw}L • Best Streak: ${bs}</div>';
   }
 
   _updateDailyBanner() {
