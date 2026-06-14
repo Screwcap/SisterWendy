@@ -91,7 +91,6 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   cursor: default;
-  padding: 3px;
 }
 
 /* Animated ambient background glow */
@@ -444,7 +443,6 @@ body::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3px;
   scroll-behavior: smooth;
 }
 #board-area::-webkit-scrollbar { height: 3px; }
@@ -493,7 +491,7 @@ body::before {
 /* Boneyard badge */
 #boneyard-badge {
   position: absolute;
-  top: 10px; right: 52px;
+  top: 10px; right: 10px;
   font-family: var(--font-display);
   font-size: 0.6rem;
   letter-spacing: 1px;
@@ -1007,7 +1005,7 @@ body.theme-royal  { --tile-face:#0d1b3e; --tile-pip:#c9a84c; --tile-border:#c9a8
 /* Audio toggle */
 #audio-toggle {
   position: absolute;
-  bottom: 60px; left: 14px;
+  bottom: 10px; left: 12px;
   background: rgba(6,10,14,0.7);
   border: 1px solid rgba(201,168,76,0.25);
   border-radius: 6px;
@@ -1024,7 +1022,7 @@ body.theme-royal  { --tile-face:#0d1b3e; --tile-pip:#c9a84c; --tile-border:#c9a8
 /* Stuck nudge */
 #stuck-nudge {
   position: fixed;
-  bottom: 60px; right: 16px;
+  bottom: 22px; right: 22px;
   background: linear-gradient(135deg, #c8963c, #a07020);
   color: #0a0600;
   border: 1px solid var(--gold);
@@ -1403,10 +1401,7 @@ body.theme-royal  { --tile-face:#0d1b3e; --tile-pip:#c9a84c; --tile-border:#c9a8
   border-radius: 20px;
   font-family: var(--font-display); font-size:0.82rem; letter-spacing:0.5px;
   color: var(--text-muted);
-  opacity: 0;
-  transition: opacity 0.5s ease-out 0.6s;
 }
-.streak-display.revealed { opacity: 1; }
 .streak-display .fire { font-size:1.1rem; }
 .streak-display.no-streak { opacity:0.5; border-style:dashed; }
 
@@ -1863,7 +1858,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
       <!-- tiles inserted by JS -->
       <button id="draw-btn" class="hand-btn" onclick="game.playerDraw()" title="Draw from boneyard (D)"><span class="btn-icon">🃏</span><span>Draw</span><span style="font-size:0.6rem;opacity:0.7;">(<span id="draw-count">14</span>)</span></button>
       <button id="pass-btn" class="hand-btn" onclick="game.playerPass()" style="display:none;" title="Pass your turn"><span class="btn-icon">🚫</span><span>Pass</span></button>
-      <button id="undo-btn" onclick="game.undoLastPlay()" title="Retry last tile (only within your bonus turn)">↩️<br><span style="font-size:0.7rem;">Retry</span></button>
+      <button id="undo-btn" onclick="game.undoLastPlay()" title="Undo your last tile (only within your bonus turn)">↩️<br><span style="font-size:0.7rem;">UNDO</span></button>
       <button id="help-btn" class="hand-btn" onclick="game.helpMe()" title="Auto-play the best tile"><span class="btn-icon">🆘</span><span>Best Play</span></button>
       <button id="hint-btn" class="hand-btn" onclick="game.showHint()" title="Highlight best move (H)"><span class="btn-icon">💡</span><span>Hint</span></button>
     </div>
@@ -1933,7 +1928,7 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
     </div>
     
     <p style="font-size:0.75rem;opacity:0.5;margin-top:16px">Made with equal parts love and guilt</p>
-    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.3 • Screwcap Productions</p>
+    <p style="font-size:0.65rem;opacity:0.3;margin-top:8px">v0.9.2 • Screwcap Productions</p>
   </div>
 </div>
 
@@ -2047,14 +2042,14 @@ button:focus-visible { outline:2px solid var(--highlight); outline-offset:2px; }
 <!-- KEYBOARD HELP OVERLAY -->
 <div id="help-overlay">
   <div id="help-box">
-    <h3>💡 Hints</h3>
+    <h3>⌨️ Keyboard Shortcuts</h3>
     <table>
       <tr><td>D</td><td>Draw from boneyard</td></tr>
       <tr><td>1-7</td><td>Select tile by position</td></tr>
       <tr><td>← →</td><td>Choose left/right end</td></tr>
       <tr><td>Space</td><td>Continue / Next round</td></tr>
       <tr><td>M</td><td>Toggle sound</td></tr>
-      <tr><td>H</td><td>Show this help</td></tr>
+      <tr><td>H / ?</td><td>Show this help</td></tr>
       <tr><td>Esc</td><td>Close overlay</td></tr>
       <tr><td>N</td><td>New game</td></tr>
     </table>
@@ -3170,11 +3165,6 @@ class Game {
 
   handleTileClick(tile) {
     if (this._busy || this.turn !== 'player') return;
-    
-    // Guard against double-clicks / rapid taps
-    if (this._clickLock) return;
-    this._clickLock = true;
-    setTimeout(() => { this._clickLock = false; }, 150);
 
     // If already awaiting an end choice for a DIFFERENT tile → cancel old, select new
     if (this.awaitingEnd && this.selectedTile !== tile) {
@@ -3187,14 +3177,7 @@ class Game {
       return;
     }
 
-    // Validate tile is still in hand (prevents ghost plays)
-    if (!this.playerHand.includes(tile)) {
-      console.warn('[handleTileClick] Tile not in hand:', tile.id);
-      this._clearSelection();
-      return;
-    }
-
-    // Validate playability
+    // Validate
     if (!this.board.isEmpty() && !this.board.canPlay(tile)) {
       this._setAction("That tile doesn't fit here. Try another.");
       audio.play('error');
@@ -3233,19 +3216,7 @@ class Game {
 
   _playTile(tile, end) {
     const idx = this.playerHand.indexOf(tile);
-    if (idx < 0) {
-      console.warn('[_playTile] Tile not found in hand - aborting:', tile?.id);
-      this._clearSelection();
-      this._renderAll();
-      return;
-    }
-
-    // Lock to prevent double-execution
-    if (this._playingTile) {
-      console.warn('[_playTile] Already playing a tile - ignoring');
-      return;
-    }
-    this._playingTile = true;
+    if (idx < 0) return;
 
     this._hideFirstTurnHint();
     this._hideBoardEndZones();
@@ -3293,8 +3264,8 @@ class Game {
     }
 
     // ── Win / round end check ──
-    if (this.playerHand.length === 0) { this._playingTile = false; this._endRound('player'); return; }
-    if (this._checkGameWin()) { this._playingTile = false; return; }
+    if (this.playerHand.length === 0) { this._endRound('player'); return; }
+    if (this._checkGameWin()) return;
 
     // ── Bonus turn or hand to Wendy ──
     const bonus = scored > 0 || tile.isDouble();
@@ -3315,13 +3286,11 @@ class Game {
         this._setSpeech(randQ('playerDouble'));
         this._setAction("Double! Play again — still your turn.");
       }
-      // Turn STAYS with player — clear lock, wait for next click
-      this._playingTile = false;
+      // Turn STAYS with player — no lock needed, just wait for next click
       this._resetInactivity();
     } else {
       this.playerCombo = 0;
       this._clearUndoSnapshot();  // can't undo once Wendy plays
-      this._playingTile = false;
       if (Math.random() < 0.3) this._setSpeech(randQ(['commentary','smug','angry'][Math.floor(Math.random()*3)]));
       else                     this._setSpeech(randQ('herTurn'));
       this._setAction("Sister Wendy's turn...");
@@ -3430,7 +3399,12 @@ class Game {
   _doWendyTurn() {
     if (this.turn !== 'wendy') { this._busy = false; return; }
     this._busy = true;
-    clearTimeout(this._wendyQueue);
+    this._setTurnIndicator('wendy-thinking');
+    vfx.wendyMood('thinking');
+    wendyVideo.set('thinking');
+    this._setAction("Sister Wendy plays...");
+    
+    // Watchdog: if Wendy's turn takes > 8 seconds, force handoff to player
     clearTimeout(this._wendyWatchdog);
     this._wendyWatchdog = setTimeout(() => {
       if (this._busy && this.turn === 'wendy') {
@@ -3438,16 +3412,12 @@ class Game {
         this._handToPlayer();
       }
     }, 8000);
-    this._setTurnIndicator('wendy-thinking');
-    vfx.wendyMood('thinking');
-    wendyVideo.set('thinking');
-    this._setAction("Sister Wendy plays...");
+    
     this._wendyLoop(0);
   }
 
   _wendyLoop(iterations) {
     if (iterations > 28) { this._wendyPass(); return; } // safety
-    if (this.turn !== 'wendy' || !this._busy) return;     // guard against stale queue
     const play = aiPickPlay(this.wendyHand, this.board, this.difficulty || 'normal');
     if (play) { this._wendyPlayTile(play); return; }
     if (this.boneyard.length > 0) {
@@ -3476,54 +3446,51 @@ class Game {
       if (deficit > this.maxDeficit) this.maxDeficit = deficit;
     }
 
-    this._renderAll();
-    audio.play('place');
-    vfx.haptic([15]);
+    // Wendy tile-flip reveal animation, then render + audio
+    vfx.wendyFlipReveal(play.tile.a, play.tile.b, idx, () => {
+      this._renderAll();
+      audio.play('place');
+      vfx.haptic([15]);
 
-    // Fire animation but don't wait for it
-    vfx.wendyFlipReveal(play.tile.a, play.tile.b, idx, () => {});
+      if (play.tile.isDouble()) {
+        audio.play('double');
+        vfx.haptic([10, 8, 10]);
+        this._setSpeech(play.tile.a===6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
+          : play.tile.a===5 ? "A [5|5]! Fitting — five is the number of grace."
+          : randQ('herDouble'));
+        vfx.wendyMood('smug'); wendyVideo.set('smirk', true);
+      }
+      if (scored > 0) {
+        const prevW = this.wendyTotal - scored;
+        const scoreEl = document.getElementById('wendy-score-val');
+        vfx.animateScore(scoreEl, prevW, this.wendyTotal, 600);
+        this._updateScoreDisplay();
+        this._flashScore('wendy');
+        showScorePopup(scored, scoreEl);
+        scored >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
+        if (scored >= 15) vfx.haptic([30, 20, 30]);
+        vfx.wendyMood('smug');
+        vfx.celebrateScore('wendy', scored);
+        this._setSpeech(scored >= 20 ? randQ('herBigScore') : randQ('herScores'));
+      }
+      if (this.wendyHand.length <= 2 && this.wendyHand.length > 0) {
+        setTimeout(() => this._setSpeech(randQ('wendyPanic')), 400);
+      }
 
-    if (play.tile.isDouble()) {
-      audio.play('double');
-      vfx.haptic([10, 8, 10]);
-      this._setSpeech(play.tile.a===6 ? "The [6|6]! The crown of dominoes. Mine, obviously."
-        : play.tile.a===5 ? "A [5|5]! Fitting — five is the number of grace."
-        : randQ('herDouble'));
-      vfx.wendyMood('smug'); wendyVideo.set('smirk', true);
-    }
-    if (scored > 0) {
-      const prevW = this.wendyTotal - scored;
-      const scoreEl = document.getElementById('wendy-score-val');
-      vfx.animateScore(scoreEl, prevW, this.wendyTotal, 600);
-      this._updateScoreDisplay();
-      this._flashScore('wendy');
-      showScorePopup(scored, scoreEl);
-      scored >= 15 ? audio.play('wendyScore') : audio.play('wendySmug');
-      if (scored >= 15) vfx.haptic([30, 20, 30]);
-      vfx.wendyMood('smug');
-      vfx.celebrateScore('wendy', scored);
-      this._setSpeech(scored >= 20 ? randQ('herBigScore') : randQ('herScores'));
-    }
-    if (this.wendyHand.length <= 2 && this.wendyHand.length > 0) {
-      this._setSpeech(randQ('wendyPanic'));
-    }
+      if (this.wendyHand.length === 0) { this._endRound('wendy'); return; }
+      if (this._checkGameWin()) return;
 
-    if (this.wendyHand.length === 0) return this._endRound('wendy');
-    if (this._checkGameWin()) return;
-    if (this.turn !== 'wendy' || !this._busy) return; // guard: player may have won or state flipped
-
-    const bonus = scored > 0 || play.tile.isDouble();
-    if (bonus) {
-      this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
-      clearTimeout(this._wendyQueue);
-      this._wendyQueue = setTimeout(() => this._wendyLoop(0), this._wendySpeedMs || 250);
-    } else {
-      this._handToPlayer();
-    }
+      const bonus = scored > 0 || play.tile.isDouble();
+      if (bonus) {
+        this._setAction(`Sister Wendy ${scored > 0 ? 'scores '+scored : 'plays a double'}! She plays again...`);
+        setTimeout(() => this._wendyLoop(0), this._wendySpeedMs || 350);
+      } else {
+        this._handToPlayer();
+      }
+    });
   }
 
   _wendyPass() {
-    clearTimeout(this._wendyQueue);
     this._setSpeech(randQ('herCantPlay'));
     audio.play('wendyAngry'); vfx.wendyMood('angry'); wendyVideo.set('frustration', true);
     const pCan = this.playerHand.some(t => this.board.canPlay(t));
@@ -3879,8 +3846,6 @@ class Game {
     this._setTurnIndicator(this.turn);
     this._updateRoundIndicator();
     document.getElementById('daily-mode-badge').style.display = this.isDaily ? 'block' : 'none';
-    // Restore drop zones after full re-render if we're mid-choice
-    if (this.awaitingEnd && this.selectedTile) this._showBoardEndZones(true);
   }
 
   _renderBoard() {
@@ -4165,8 +4130,8 @@ class Game {
   }
 
   // ── DROP ZONES for left/right choice ──
-  _showBoardEndZones(preserveExisting = false) {
-    if (!preserveExisting) this._hideBoardEndZones();
+  _showBoardEndZones() {
+    this._hideBoardEndZones();
     const boardArea = document.getElementById('board-area');
     if (!boardArea) return;
 
@@ -4190,19 +4155,8 @@ class Game {
       const z = document.createElement('div');
       z.className = `board-drop-zone ${cls}`;
       z.innerHTML = `<div class="drop-label">${label}<br><span class="drop-value">[${val}]</span>${scoreHTML}</div>`;
-
-      // Use pointerup only — avoids double-fire on touch (touchend + click)
-      // and lets us guard against phantom click-after-tap the same way as hand tiles.
-      const handleActivate = (e) => {
-        if (Date.now() - (window.__lastPointerTap || 0) < 350) return;
-        window.__lastPointerTap = Date.now();
-        this._commitEnd(end);
-      };
-      z.addEventListener('pointerup', handleActivate);
-      z.addEventListener('touchend', (e) => {
-        // Keep pointer path; suppress legacy mouse-path fallback
-        window.__lastPointerTap = Date.now();
-      });
+      z.addEventListener('click', e => { e.stopPropagation(); this._commitEnd(end); });
+      z.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); this._commitEnd(end); });
       boardArea.appendChild(z);
     };
 
@@ -4379,8 +4333,8 @@ class Game {
     if (!el) return;
     const { currentStreak:cs, bestStreak:bs, gamesWon:gw, gamesPlayed:gp } = this.stats.stats;
     if (gp===0)    el.innerHTML='<div class="streak-display no-streak"><span class="fire">🎲</span> First time? Good luck!</div>';
-    else if (cs>=1) el.innerHTML=`<div class="streak-display revealed"><span class="fire">🔥</span> Win Streak: ${cs} ${cs===bs&&cs>1?'(Best!)':''}</div>`;
-    else           el.innerHTML='<div class="streak-display no-streak"><span class="fire">📊</span> ${gw}W/${gp-gw}L • Best Streak: ${bs}</div>';
+    else if (cs>=1) el.innerHTML=`<div class="streak-display"><span class="fire">🔥</span> Win Streak: ${cs} ${cs===bs&&cs>1?'(Best!)':''}</div>`;
+    else           el.innerHTML=`<div class="streak-display no-streak"><span class="fire">📊</span> ${gw}W/${gp-gw}L • Best Streak: ${bs}</div>`;
   }
 
   _updateDailyBanner() {
