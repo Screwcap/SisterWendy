@@ -232,6 +232,61 @@ export function wendyCommentary(humanScore: number, wendyScore: number, personal
   return randQuote('commentary', 'wendy');
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// RELATIONSHIP TIERS (Epley: depth > breadth — the relationship deepens with time)
+// Wendy evolves from surface snark → genuine connection as you keep coming back.
+// Keyed off total games played (lib/stats). Tier 4 stays RARE even past 61 games.
+// These are occasional, earned interjections layered ON TOP of her normal play
+// dialogue — never replacing it. Wendy only (Patricia/Hildegard keep their banks).
+// ────────────────────────────────────────────────────────────────────────────
+const RELATIONSHIP_LINES: Record<1 | 2 | 3 | 4, string[]> = {
+  // Tier 1 — Surface (games 1–10): standard snark, no personal questions
+  1: [
+    "Drawing again? The boneyard isn't a buffet, dear.",
+    "We've only just met. Don't expect mercy.",
+    "Sit up straight. We're playing dominoes, not waiting for a bus.",
+  ],
+  // Tier 2 — Curious (11–30): she notices patterns in YOUR play
+  2: [
+    "You always play your doubles early. Interesting strategy. Reminds me of someone.",
+    "You get more aggressive when you're behind. I respect that. I also intend to punish it.",
+    "Back again. You're starting to play like someone who means it.",
+    "I'm beginning to learn your tells, dear. That should worry you.",
+  ],
+  // Tier 3 — Personal (31–60): she shares small details. It's deepening.
+  3: [
+    "I played this game with my sister every Sunday for thirty years. She cheated. I let her.",
+    "You remind me of someone I used to know in Charleston. They were stubborn too.",
+    "My mother taught me dominoes on a porch in the heat. She never once let me win. Neither will I.",
+    "Thirty-odd games now. I've had parishioners I knew less well.",
+  ],
+  // Tier 4 — Real (61+): rare moments of genuine warmth. Earned.
+  4: [
+    "I'm glad you keep coming back. Not everyone does.",
+    "You've gotten better. Don't let it go to your head — but you have.",
+    "It's good company, this. I won't say it twice, so don't make me.",
+  ],
+};
+
+export function wendyTier(played: number): 1 | 2 | 3 | 4 {
+  if (played >= 61) return 4;
+  if (played >= 31) return 3;
+  if (played >= 11) return 2;
+  return 1;
+}
+
+/** An occasional, tier-appropriate relationship line. Tier 4 stays rare (≈1 in 5)
+ *  even once unlocked — warmth has to feel earned, not automatic. Returns '' for
+ *  non-Wendy personalities (they keep their own character banks). */
+export function wendyRelationshipLine(played: number, personalityId = 'wendy'): string {
+  if (personalityId !== 'wendy') return '';
+  const tier = wendyTier(played);
+  // at tier 4, only ~20% of the time is it actually a tier-4 line; else tier 2/3
+  let pool = RELATIONSHIP_LINES[tier];
+  if (tier === 4 && Math.random() > 0.2) pool = RELATIONSHIP_LINES[Math.random() < 0.5 ? 2 : 3];
+  return _pick(pool);
+}
+
 // Tile facts — Sister Wendy's grocery-store-era wisdom, keyed by pip value (0–6)
 export const PIP_FACTS: Record<number, string[]> = {
   0: [

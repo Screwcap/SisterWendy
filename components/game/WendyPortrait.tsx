@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { WendyMood } from '@/lib/game';
 import { PERSONALITIES } from '@/lib/wendy';
+import { speak, voiceEnabled, voiceSupported } from '@/lib/voice';
 import gsap from 'gsap';
 
 // Sister Wendy — full set of distinct mood portraits (pleased reuses the amused art).
@@ -109,7 +110,9 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
       { opacity: 0, y: 6 },
       { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
     );
-  }, [speech]);
+    // Voice effect (Epley): speak her line aloud when the player has opted in.
+    if (speech && voiceEnabled()) speak(speech, personalityId);
+  }, [speech, personalityId]);
 
   useEffect(() => {
     if (!portraitRef.current) return;
@@ -186,9 +189,26 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
           fontSize: '0.9rem', fontStyle: 'italic',
           color: 'rgba(245,234,216,0.88)',
           lineHeight: 1.5,
+          paddingRight: 22,
         }}>
           "{speech}"
         </p>
+        {/* Hear her say it (Epley voice effect). Tap to play this line. */}
+        {voiceSupported() && speech && (
+          <button
+            onClick={() => speak(speech, personalityId)}
+            aria-label="Hear Sister Wendy say this"
+            title="Hear it"
+            style={{
+              position: 'absolute', top: 6, right: 6,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              fontSize: '0.95rem', lineHeight: 1, opacity: 0.55, padding: 2,
+              color: accentColor,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '0.55')}
+          >🔊</button>
+        )}
       </div>
 
       {/* Art fact pill (shown on tile hover) */}

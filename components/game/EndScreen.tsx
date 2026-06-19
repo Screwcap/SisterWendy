@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Player, GameMode } from '@/lib/game';
-import { calcGrade, getVerdictText } from '@/lib/wendy';
+import { calcGrade, getVerdictText, wendyRelationshipLine } from '@/lib/wendy';
 import { recordResult, type SWStats } from '@/lib/stats';
+import { speak, voiceEnabled, setVoiceEnabled, voiceSupported } from '@/lib/voice';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 import gsap from 'gsap';
@@ -38,6 +39,8 @@ export default function EndScreen({
   const recordedRef = useRef(false);
   const [stats, setStats] = useState<SWStats | null>(null);
   const [copied, setCopied] = useState(false);
+  const [relLine, setRelLine] = useState('');
+  const [voiceOn, setVoiceOn] = useState(false);
 
   function handleShare() {
     const line = humanWon
@@ -55,9 +58,15 @@ export default function EndScreen({
     }
   }
   useEffect(() => {
+    setVoiceOn(voiceEnabled());
     if (recordedRef.current) return;
     recordedRef.current = true;
-    setStats(recordResult({ won: humanWon, score: human.score, grade }));
+    const s = recordResult({ won: humanWon, score: human.score, grade });
+    setStats(s);
+    // The relationship deepens with games played (Epley depth>breadth)
+    const rel = wendyRelationshipLine(s.played, opponent?.personalityId);
+    setRelLine(rel);
+    if (rel && voiceEnabled()) speak(rel, opponent?.personalityId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -149,6 +158,36 @@ export default function EndScreen({
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.44rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)', textAlign: 'center', marginTop: 8 }}>
             — SISTER WENDY
           </div>
+          {/* Voice effect (Epley): let her say it aloud */}
+          {voiceSupported() && (
+            <div style={{ textAlign: 'center', marginTop: 10 }}>
+              <button
+                onClick={() => { const on = !voiceOn; setVoiceOn(on); setVoiceEnabled(on); if (on) speak(relLine || verdict, opponent?.personalityId); }}
+                style={{ background: 'transparent', border: '1px solid rgba(196,144,32,0.3)', color: 'rgba(196,144,32,0.8)', borderRadius: 999, padding: '4px 12px', fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.12em', cursor: 'pointer' }}
+              >
+                {voiceOn ? '🔊 WENDY’S VOICE: ON' : '🔇 HEAR WENDY’S VOICE'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* The relationship deepens (Epley) — an earned, tier-based aside */}
+        {relLine && (
+          <div className="rounded-xl p-4 mb-5"
+            style={{ background: 'rgba(74,154,143,0.06)', border: '1px solid rgba(74,154,143,0.18)' }}>
+            <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.92rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.9)', lineHeight: 1.6, textAlign: 'center' }}>
+              "{relLine}"
+            </p>
+          </div>
+        )}
+
+        {/* Post-game social nudge (Epley 2.3) — connection, not a growth hack */}
+        <div style={{ textAlign: 'center', margin: '0 0 18px' }}>
+          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.82rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.6)', lineHeight: 1.5 }}>
+            {humanWon
+              ? 'That was a good one. Know someone who’d give me more of a challenge?'
+              : 'Don’t sulk alone. Tell someone about the game you just lost — they’ll care more than you think.'}
+          </p>
         </div>
 
         {/* Your record — the meta-loop */}
