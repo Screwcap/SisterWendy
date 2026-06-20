@@ -5,6 +5,8 @@ import { Player, GameMode } from '@/lib/game';
 import { calcGrade, getVerdictText, wendyRelationshipLine } from '@/lib/wendy';
 import { recordResult, type SWStats } from '@/lib/stats';
 import { speak, voiceEnabled, setVoiceEnabled, voiceSupported } from '@/lib/voice';
+import { adsConfigured, isAdFree, goAdFree, redeem, ADS } from '@/lib/ads';
+import AdSlot from '@/components/AdSlot';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 import gsap from 'gsap';
@@ -41,6 +43,7 @@ export default function EndScreen({
   const [copied, setCopied] = useState(false);
   const [relLine, setRelLine] = useState('');
   const [voiceOn, setVoiceOn] = useState(false);
+  const [adFree, setAdFreeState] = useState(true); // default true → no purchase-UI flash pre-hydration
 
   function handleShare() {
     const line = humanWon
@@ -59,6 +62,7 @@ export default function EndScreen({
   }
   useEffect(() => {
     setVoiceOn(voiceEnabled());
+    setAdFreeState(isAdFree());
     if (recordedRef.current) return;
     recordedRef.current = true;
     const s = recordResult({ won: humanWon, score: human.score, grade });
@@ -270,6 +274,34 @@ export default function EndScreen({
         <div className="mt-4">
           <SponsorBanner />
         </div>
+
+        {/* Non-intrusive ad (game-over only, never during play) + ad-free unlock */}
+        {!adFree && adsConfigured() && (
+          <div className="mt-4">
+            <AdSlot />
+            <div style={{ textAlign: 'center', marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'rgba(245,234,216,0.5)' }}>
+              <button
+                onClick={goAdFree}
+                style={{ background: 'transparent', border: '1px solid rgba(196,144,32,0.35)', color: 'rgba(196,144,32,0.85)', borderRadius: 999, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.62rem', letterSpacing: '0.06em' }}
+              >
+                ✦ Wendy&apos;s Blessing Pack — remove ads ({ADS.price})
+              </button>
+              <span style={{ opacity: 0.4 }}> · </span>
+              <button
+                onClick={async () => {
+                  const code = window.prompt('Bought the Blessing Pack? Paste your Gumroad license key:');
+                  if (code == null) return;
+                  const ok = await redeem(code);
+                  if (ok) setAdFreeState(true);
+                  alert(ok ? 'Bless you. Ads removed. ✦' : 'Couldn’t verify that key — check it, or email play@screwcapholdings.com.');
+                }}
+                style={{ background: 'transparent', border: 'none', color: 'rgba(196,144,32,0.6)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.62rem', textDecoration: 'underline' }}
+              >
+                redeem code
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* SPONSOR_HOOK: post-game partner attribution */}
         {sponsor && (
