@@ -9,8 +9,8 @@
  * free game first, then offer to remove ads once the player has bonded with Wendy.
  */
 export const ADS = {
-  client:           'ca-pub-XXXXXXXXXXXXXXXX', // ← AdSense publisher id
-  slot:             '',                         // ← ad unit slot id (blank = auto)
+  client:           'ca-pub-2067975098656294',  // ← AdSense publisher id
+  slot:             '',                         // ← create a Display ad unit → paste its slot # here
   gumroadUrl:       '',                         // ← Gumroad product URL ("Wendy's Blessing Pack")
   gumroadPermalink: '',                         // ← Gumroad permalink (for license verify)
   price:            '$2.99',
