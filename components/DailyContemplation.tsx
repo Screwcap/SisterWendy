@@ -52,8 +52,8 @@ export default function DailyContemplation() {
             <div className="skeleton h-4 w-1/2 rounded" />
             <div className="skeleton h-4 w-1/3 rounded" />
             <div className="mt-6 space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="skeleton h-4 rounded" style={{ width: `${80 + Math.random() * 20}%` }} />
+              {[92, 85, 97, 80, 88, 95, 83, 90].map((w, i) => (
+                <div key={i} className="skeleton h-4 rounded" style={{ width: `${w}%` }} />
               ))}
             </div>
           </div>
