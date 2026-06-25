@@ -251,20 +251,26 @@ function loadSavedGame(): GameState | null {
 }
 
 export default function Game() {
-  const [gs, setGs] = useState<GameState | null>(loadSavedGame);
+  // NOTE: initialise localStorage-derived state to the SERVER value (null/false) so
+  // the first client render matches the server HTML, then hydrate the real values in
+  // an effect after mount. Reading localStorage in a useState initialiser renders
+  // differently server vs client → React #418 hydration mismatch.
+  const [gs, setGs] = useState<GameState | null>(null);
   const [artFact, setArtFact] = useState<string | undefined>(undefined);
   const [latestTileId, setLatestTileId] = useState<string | undefined>(undefined);
   const [shakeTileId, setShakeTileId] = useState<string | undefined>(undefined);
   const [isMuted, setIsMuted] = useState(false);
   const [undoable, setUndoable] = useState<GameState | null>(null);
-  const [showIntro, setShowIntro] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !localStorage.getItem('sw-intro-seen');
-  });
+  const [showIntro, setShowIntro] = useState(false);
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync mute button state with audio singleton on mount
-  useEffect(() => { setIsMuted(audio.muted); }, []);
+  // Hydrate client-only state after mount (keeps SSR/CSR first render identical)
+  useEffect(() => {
+    setIsMuted(audio.muted);
+    const saved = loadSavedGame();
+    if (saved) setGs(saved);
+    try { setShowIntro(!localStorage.getItem('sw-intro-seen')); } catch { /* */ }
+  }, []);
 
   // Persist game state to localStorage
   useEffect(() => {
