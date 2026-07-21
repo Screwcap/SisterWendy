@@ -82,6 +82,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             strategy="afterInteractive"
           />
         )}
+
+        {/* Deck beacon — privacy-safe portfolio telemetry. Wrapped so it can never break the app. */}
+        <Script src="/deck-beacon.js" strategy="afterInteractive" />
+        <Script id="deck-beacon-init" strategy="afterInteractive">
+          {`(function(){try{if(typeof DeckBeacon==='undefined')return;var d=DeckBeacon.init({title:'sister-wendy',collect:'/api/deck-collect'});window.deck=d;var _s=localStorage.setItem.bind(localStorage),_t=0;localStorage.setItem=function(k,v){_s(k,v);try{if(/premium|adfree|unlock/i.test(k)&&v&&v!=='false'&&v!=='0'){d.revenue(1.99,'adfree');}else if(/win|round|game|score|hand|play/i.test(k)){var n=Date.now();if(n-_t>2000){_t=n;d.event('round_played');}}}catch(e){}};}catch(e){}})();`}
+        </Script>
       </head>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
