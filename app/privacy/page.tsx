@@ -35,23 +35,39 @@ export default function PrivacyPage() {
         play. We do not sell personal data.</p>
 
         <h2 style={h2}>3. Analytics</h2>
-        <p>We may use privacy-respecting, aggregate analytics to understand how the Game is used (for
-        example, page views and feature usage). Where used, such analytics are designed to avoid
-        collecting personally identifying information.</p>
+        <p>We use <a style={link} href="https://plausible.io/data-policy" target="_blank" rel="noopener noreferrer">Plausible</a>,
+        which is cookieless and aggregate-only. We also use <strong>Google Analytics</strong> and the{' '}
+        <strong>Meta (Facebook) pixel</strong>, which do set cookies, measure at the level of an
+        individual browser, and tell us whether an ad we ran actually sent anyone here. We would
+        rather name them than file them under &ldquo;privacy-respecting analytics.&rdquo;</p>
 
-        <h2 style={h2}>4. Third-Party Links</h2>
+        <h2 style={h2}>4. Advertising</h2>
+        <p>The free version of the Game carries <strong>Google AdSense</strong>. AdSense sets its own
+        cookies and may personalise what it shows you, under{' '}
+        <a style={link} href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">Google&apos;s policies</a>,
+        not ours. Ads appear on menus and end screens only — never during a hand. Buying the
+        premium unlock removes them entirely.</p>
+        <p>You can opt out at the source via{' '}
+        <a style={link} href="https://myadcenter.google.com" target="_blank" rel="noopener noreferrer">Google&apos;s Ad Settings</a> or{' '}
+        <a style={link} href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">Meta&apos;s ad preferences</a>,
+        or with any decent content blocker. We are not going to sulk about it.</p>
+        <p>What we don&apos;t do: sell or rent your data, build profiles of you as a product, or track you
+        across unrelated sites for our own purposes. The ads pay for hosting and the odd commissioned
+        illustration. Sister Wendy is not funding a yacht.</p>
+
+        <h2 style={h2}>5. Third-Party Links</h2>
         <p>The Game links to other Screwcap Games properties and external sites. We are not responsible
         for the privacy practices of sites we do not operate.</p>
 
-        <h2 style={h2}>5. Children</h2>
+        <h2 style={h2}>6. Children</h2>
         <p>The Game is suitable for general audiences and does not knowingly collect personal
         information from children.</p>
 
-        <h2 style={h2}>6. Changes</h2>
+        <h2 style={h2}>7. Changes</h2>
         <p>We may update this policy from time to time. The &ldquo;last updated&rdquo; date above reflects the
         current version.</p>
 
-        <h2 style={h2}>7. Contact</h2>
+        <h2 style={h2}>8. Contact</h2>
         <p>Questions about privacy? Reach us via <a style={link} href="https://screwcap.games" target="_blank" rel="noopener noreferrer">screwcap.games</a>.</p>
 
         <p style={{ marginTop: '3rem' }}>
