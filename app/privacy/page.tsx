@@ -51,9 +51,16 @@ export default function PrivacyPage() {
         <a style={link} href="https://myadcenter.google.com" target="_blank" rel="noopener noreferrer">Google&apos;s Ad Settings</a> or{' '}
         <a style={link} href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">Meta&apos;s ad preferences</a>,
         or with any decent content blocker. We are not going to sulk about it.</p>
+        <p><strong>Paying means less of this.</strong> The premium unlock removes Google AdSense and
+        every cookie it sets — so a paid game is not just ad-free, it&apos;s lighter to load and less
+        tracked. Free is ad-supported and more heavily measured; paying makes your experience cleaner
+        in both senses.</p>
         <p>What we don&apos;t do: sell or rent your data, build profiles of you as a product, or track you
         across unrelated sites for our own purposes. The ads pay for hosting and the odd commissioned
         illustration. Sister Wendy is not funding a yacht.</p>
+        <p>This list of tools isn&apos;t fixed forever — as the studio grows we may add, swap or drop a
+        vendor. When we do we&apos;ll update this page and the date on it, so it always names what is
+        actually running.</p>
 
         <h2 style={h2}>5. Third-Party Links</h2>
         <p>The Game links to other Screwcap Games properties and external sites. We are not responsible
