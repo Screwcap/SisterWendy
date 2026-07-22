@@ -83,6 +83,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
 
+        {/* Portfolio kill-switch / flags (fail-open — a Deck outage can never brick the app). */}
+        <Script id="screwcap-flags-title" strategy="afterInteractive">
+          {`window.SCREWCAP_TITLE='sister-wendy';`}
+        </Script>
+        <Script src="/screwcap-flags.js" strategy="afterInteractive" />
         {/* Deck beacon — privacy-safe portfolio telemetry. Wrapped so it can never break the app. */}
         <Script src="/deck-beacon.js" strategy="afterInteractive" />
         <Script id="deck-beacon-init" strategy="afterInteractive">
