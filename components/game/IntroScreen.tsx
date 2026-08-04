@@ -27,6 +27,14 @@ function clack(freq = 300) {
   } catch { /* */ }
 }
 
+// PLAY button depth: inner top highlight, contact shadow, ambient gold bloom.
+const PLAY_SHADOW =
+  'inset 0 1px 0 rgba(255,246,214,0.55), inset 0 -2px 0 rgba(90,64,10,0.35), 0 3px 6px rgba(0,0,0,0.5), 0 0 26px rgba(196,144,32,0.32)';
+const PLAY_SHADOW_HOVER =
+  'inset 0 1px 0 rgba(255,246,214,0.65), inset 0 -2px 0 rgba(90,64,10,0.35), 0 6px 14px rgba(0,0,0,0.55), 0 0 34px rgba(232,184,64,0.45)';
+const PLAY_SHADOW_ACTIVE =
+  'inset 0 2px 5px rgba(70,48,6,0.55), 0 1px 2px rgba(0,0,0,0.5), 0 0 18px rgba(196,144,32,0.28)';
+
 // Small domino SVG
 function DominoSVG({ a, b, style }: { a: number; b: number; style?: React.CSSProperties }) {
   const PIP_POS: Record<number, Array<[number, number]>> = {
@@ -281,27 +289,41 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       <button
         ref={playRef}
         onClick={(e) => { e.stopPropagation(); dismiss(); }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.boxShadow = PLAY_SHADOW_HOVER;
+          (e.currentTarget as HTMLElement).style.filter = 'brightness(1.06)';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.boxShadow = PLAY_SHADOW;
+          (e.currentTarget as HTMLElement).style.filter = 'none';
+        }}
+        onMouseDown={e => { (e.currentTarget as HTMLElement).style.boxShadow = PLAY_SHADOW_ACTIVE; }}
+        onMouseUp={e => { (e.currentTarget as HTMLElement).style.boxShadow = PLAY_SHADOW_HOVER; }}
         style={{
           opacity: 0,
           fontFamily: 'var(--font-bebas)',
           fontSize: '1.4rem',
           letterSpacing: '0.18em',
-          background: '#c49020',
-          color: '#0d0a06',
-          border: 'none',
-          padding: '12px 48px',
+          // Brushed gold rather than a flat block: highlight at the top, shadow
+          // at the bottom, so it reads as struck metal under a light.
+          background: 'linear-gradient(180deg, #f0cf6a 0%, #d8a92e 42%, #a87c18 100%)',
+          color: '#1a1206',
+          border: '1px solid #8b6d1e',
+          padding: '13px 50px',
           borderRadius: 12,
           cursor: 'pointer',
-          boxShadow: '0 0 24px rgba(196,144,32,0.4)',
+          textShadow: '0 1px 1px rgba(255,240,200,0.35)',
+          boxShadow: PLAY_SHADOW,
         }}
       >
         PLAY
       </button>
 
       <div style={{
-        position: 'absolute', bottom: 16,
-        fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
-        letterSpacing: '0.2em', color: 'rgba(196,144,32,0.25)',
+        position: 'absolute', bottom: 18,
+        fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
+        letterSpacing: '0.12em', color: 'rgba(226,188,96,0.72)',
+        textShadow: '0 1px 4px rgba(0,0,0,0.85)',
       }}>
         CLICK ANYWHERE TO CONTINUE
       </div>

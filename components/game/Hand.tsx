@@ -62,7 +62,7 @@ export default function Hand({
 
       {/* Tile count */}
       <div className="flex justify-center mt-1">
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.18em', color: 'rgba(196,144,32,0.45)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.16em', color: 'rgba(230,192,102,0.85)', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
           {tiles.length} TILE{tiles.length !== 1 ? 'S' : ''} IN HAND
         </span>
       </div>

@@ -32,11 +32,33 @@ function init() {
   });
 }
 
+/**
+ * Heavier tiles should land heavier. Maps a tile's pip total to a playback
+ * rate: a 6|6 thuds, a 0|1 ticks. Deliberately narrow (0.88–1.12) — enough to
+ * feel, not enough to sound like a broken sample.
+ */
+export function rateForTile(a: number, b: number): number {
+  const weight = (a + b) / 12;            // 0 (blank|blank) … 1 (six|six)
+  return +(1.12 - weight * 0.24).toFixed(3);
+}
+
 export const audio = {
-  play(name: SoundName) {
+  /**
+   * @param opts.rate  playback rate (see rateForTile)
+   * @param opts.pan   stereo position, -1 left … 1 right. Sister Wendy's
+   *                   portrait sits on the left of the table, so her tiles are
+   *                   nudged left — the honest version of "spatialised voice"
+   *                   (Web Speech TTS can't be routed through a Web Audio
+   *                   panner, so the brief's HRTF approach doesn't apply here).
+   */
+  play(name: SoundName, opts?: { rate?: number; pan?: number }) {
     if (_muted) return;
     init();
-    _sounds[name]?.play();
+    const s = _sounds[name];
+    if (!s) return;
+    if (opts?.rate !== undefined) s.rate(opts.rate);
+    if (opts?.pan !== undefined) s.stereo(opts.pan);
+    s.play();
   },
   get muted() { return _muted; },
   toggleMute(): boolean {

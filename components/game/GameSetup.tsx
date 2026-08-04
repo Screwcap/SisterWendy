@@ -141,7 +141,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
 
         {/* Header */}
         <div className="text-center mb-10">
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.35em', color: 'rgba(196,144,32,0.5)', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.32em', color: 'rgba(226,188,96,0.85)', marginBottom: 12 }}>
             SCREWCAP PRESENTS
           </div>
           <h1 style={{
@@ -166,7 +166,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
 
         {/* Opponent picker — choose which sister judges you */}
         <div className="mb-8">
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.22em', color: 'rgba(245,234,216,0.45)', textAlign: 'center', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', letterSpacing: '0.2em', color: 'rgba(245,234,216,0.8)', textAlign: 'center', marginBottom: 12 }}>
             CHOOSE YOUR OPPONENT
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -182,20 +182,20 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                     opacity: sel ? 1 : 0.7,
                   }}>
                   <div style={{ fontSize: '1.6rem', lineHeight: 1, marginBottom: 6 }}>{p.emoji}</div>
-                  <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.05rem', letterSpacing: '0.05em', color: p.accentColor, lineHeight: 1.05 }}>{p.name}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5rem', letterSpacing: '0.14em', color: 'rgba(245,234,216,0.5)', marginTop: 3 }}>{p.title}</div>
+                  <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.05rem', letterSpacing: '0.05em', color: p.textColor, lineHeight: 1.05 }}>{p.name}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.56rem', letterSpacing: '0.12em', color: 'rgba(245,234,216,0.78)', marginTop: 3 }}>{p.title}</div>
                 </button>
               );
             })}
           </div>
-          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.85rem', fontStyle: 'italic', color: `${opp.accentColor}dd`, textAlign: 'center', marginTop: 12, minHeight: '2.4em', lineHeight: 1.4 }}>
+          <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.85rem', fontStyle: 'italic', color: opp.textColor, textAlign: 'center', marginTop: 12, minHeight: '2.4em', lineHeight: 1.4 }}>
             {opp.blurb}
           </p>
         </div>
 
         {/* Length picker — how long a game (chosen before Forgiving/Focused) */}
         <div className="mb-8">
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.22em', color: 'rgba(245,234,216,0.45)', textAlign: 'center', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', letterSpacing: '0.2em', color: 'rgba(245,234,216,0.8)', textAlign: 'center', marginBottom: 12 }}>
             HOW LONG ARE YOU STAYING?
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -210,7 +210,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                     cursor: 'pointer', padding: '0.85rem 0.5rem', opacity: sel ? 1 : 0.72,
                   }}>
                   <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1rem', letterSpacing: '0.04em', color: '#e8b840', lineHeight: 1.05 }}>{sm.label}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.52rem', letterSpacing: '0.1em', color: 'rgba(245,234,216,0.5)', marginTop: 4 }}>{sm.sub}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.58rem', letterSpacing: '0.09em', color: 'rgba(245,234,216,0.78)', marginTop: 4 }}>{sm.sub}</div>
                 </button>
               );
             })}
@@ -266,22 +266,22 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                   {mode.label}
                 </span>
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem',
-                  letterSpacing: '0.18em', color: 'rgba(245,234,216,0.45)',
+                  fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
+                  letterSpacing: '0.16em', color: 'rgba(245,234,216,0.78)',
                 }}>
                   {mode.subtitle}
                 </span>
               </div>
               <p style={{
                 fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
-                letterSpacing: '0.08em', color: 'rgba(245,234,216,0.65)',
+                letterSpacing: '0.08em', color: 'rgba(245,234,216,0.85)',
                 marginBottom: 14, lineHeight: 1.6,
               }}>
                 {mode.desc}
               </p>
               <p style={{
                 fontFamily: 'var(--font-garamond)', fontSize: '0.95rem',
-                fontStyle: 'italic', color: `${mode.color}dd`,
+                fontStyle: 'italic', color: mode.color,
                 lineHeight: 1.5,
               }}>
                 {mode.wendy}
@@ -322,17 +322,17 @@ export default function GameSetup({ onStart }: GameSetupProps) {
 
         {/* Footer */}
         <div className="text-center" style={{ marginTop: 32, paddingTop: 18, paddingBottom: 14, borderTop: '1px solid rgba(196,144,32,0.12)' }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.56rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.5)', marginBottom: 10 }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.18em', color: 'rgba(226,188,96,0.82)', marginBottom: 10 }}>
             ALL-FIVES SCORING · FIRST TO 61 WINS
           </p>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.1em', color: 'rgba(196,144,32,0.45)', lineHeight: 1.6 }}>
             © 2026{' '}
             <a href="https://screwcap.games" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Screwcap Games, LLC</a>
-            <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
+            <span style={{ opacity: 0.8 }}>{'  ·  '}</span>
             <a href="/research" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Research</a>
-            <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
+            <span style={{ opacity: 0.8 }}>{'  ·  '}</span>
             <a href="/terms" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Terms</a>
-            <span style={{ opacity: 0.5 }}>{'  ·  '}</span>
+            <span style={{ opacity: 0.8 }}>{'  ·  '}</span>
             <a href="/privacy" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Privacy</a>
           </p>
         </div>

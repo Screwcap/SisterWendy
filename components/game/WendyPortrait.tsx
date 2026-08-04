@@ -160,7 +160,7 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
       {/* Name plate */}
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
-        letterSpacing: '0.18em', color: `${accentColor}99`,
+        letterSpacing: '0.16em', color: personality.textColor,
         textTransform: 'uppercase',
       }}>
         {displayName}

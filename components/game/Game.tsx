@@ -16,7 +16,7 @@ import { getStats } from '@/lib/stats';
 import ScoringExplainer, { type ExplainerData } from './ScoringExplainer';
 import type { WendyMood } from '@/lib/game';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
-import { audio } from '@/lib/audio';
+import { audio, rateForTile } from '@/lib/audio';
 import Board from './Board';
 import Hand from './Hand';
 import WendyPortrait from './WendyPortrait';
@@ -26,10 +26,12 @@ import GameSetup from './GameSetup';
 import IntroScreen from './IntroScreen';
 import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 
+// Lightened from each game's brand colour: at 0.8rem on the near-black HUD the
+// source hues read at ~2:1. Same hue, legible as type.
 const SCREWCAP_FOOTER_GAMES = [
-  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#d4507a', href: 'https://screwcap.games' },
-  { id: 'the-chair',   name: 'THE CHAIR',    color: '#4a9a8f', href: 'https://thechair.vercel.app' },
-  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#c49020', href: 'https://flymacropilot.vercel.app' },
+  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#e8809f', href: 'https://screwcap.games' },
+  { id: 'the-chair',   name: 'THE CHAIR',    color: '#74c7bb', href: 'https://thechair.vercel.app' },
+  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#e8b840', href: 'https://flymacropilot.vercel.app' },
 ] as const;
 
 // ── State machine actions ───────────────────────────────────────────────────
@@ -295,7 +297,12 @@ export default function Game() {
     const boardLen = gs.board.chain.length;
     // Tile placed — Wendy's tiles sound heavier/deliberate (idx 0 = her turn now ⇒ she just played)
     if (boardLen > prevBoardLen.current) {
-      audio.play(gs.currentPlayerIndex === 0 ? 'place-wendy' : 'place');
+      const landed = gs.board.chain[gs.board.chain.length - 1];
+      const hers = gs.currentPlayerIndex === 0;
+      audio.play(hers ? 'place-wendy' : 'place', {
+        rate: landed ? rateForTile(landed.a, landed.b) : undefined,
+        pan: hers ? -0.35 : 0,   // her tiles come from her side of the table
+      });
       // Near-miss: landed one off a multiple of 5 without scoring
       if (gs.lastScore === 0 && scoreBreakdown(gs.board).nearMissOf) setTimeout(() => audio.play('near-miss'), 180);
     }
@@ -500,6 +507,31 @@ export default function Game() {
 
 // ── GameUI ──────────────────────────────────────────────────────────────────
 
+/**
+ * Gold bloom over the tile that just landed. Fixed-positioned against the
+ * viewport so it needs no positioned ancestor and can never disturb the
+ * board's flex layout, and it removes itself when the animation ends.
+ */
+function flashWhereTileLanded(tileId?: string) {
+  if (!tileId || typeof document === 'undefined') return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  const el = document.querySelector(`[data-flip-id="tile-${tileId}"]`);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const flash = document.createElement('div');
+  flash.style.cssText = [
+    'position:fixed',
+    `left:${r.left + r.width / 2}px`,
+    `top:${r.top + r.height / 2}px`,
+    'width:64px', 'height:64px', 'border-radius:50%',
+    'background:radial-gradient(circle, rgba(232,184,64,0.55) 0%, rgba(232,184,64,0) 70%)',
+    'pointer-events:none', 'z-index:40',
+    'animation:endFlash 320ms ease-out forwards',
+  ].join(';');
+  document.body.appendChild(flash);
+  flash.addEventListener('animationend', () => flash.remove(), { once: true });
+}
+
 interface GameUIProps {
   onNewGame: () => void;
   onReturnToMenu: () => void;
@@ -600,6 +632,8 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
       absolute: true,
       scale: true,
       nested: true,
+      // A tile landing should be felt, not just seen — bloom where it settled.
+      onComplete: () => flashWhereTileLanded(latestTileId),
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gs.board.chain.length]);
@@ -694,7 +728,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.4rem', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1 }}>
             SISTER WENDY
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.64rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.45)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.16em', color: 'rgba(226,188,96,0.82)' }}>
             {gs.mode.toUpperCase()} MODE · ROUND {gs.roundCount} · TURN {gs.turnCount}
           </div>
         </div>
@@ -706,7 +740,8 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
           >
             {isMuted ? '🔇' : '🔊'}
           </button>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', letterSpacing: '0.14em', color: 'rgba(196,144,32,0.4)' }}>
+          <span className={isPlayerTurn ? 'turn-live' : undefined}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', color: 'rgba(232,184,64,0.92)' }}>
             {isPlayerTurn ? '▶ YOUR TURN' : `⏳ ${gs.players.find(p => !p.isHuman)?.name?.split(' ')[1] ?? 'WENDY'}`}
           </span>
         </div>
@@ -754,15 +789,13 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
         className="relative z-10 flex-1 w-full"
         style={{
           background: 'linear-gradient(160deg, #1e5c2e 0%, #174d25 60%, #123f1e 100%)',
-          boxShadow: 'inset 0 4px 24px rgba(0,0,0,0.35)',
+          // last inset = vignette, so the empty middle of the table isn't flat
+          boxShadow: 'inset 0 4px 24px rgba(0,0,0,0.35), inset 0 0 140px 50px rgba(0,0,0,0.30)',
           minHeight: '60vh',
         }}
       >
-        {/* Felt texture */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px)',
-        }} />
+        {/* Felt grain (see globals.css) */}
+        <div className="absolute inset-0 pointer-events-none felt-grain" />
 
         <div className="relative flex flex-col md:flex-row h-full" style={{ minHeight: '60vh' }}>
 
@@ -819,15 +852,15 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
               </div>
             )}
             {gs.bonusTurn && gs.phase === 'selecting' && (
-              <div className="text-center py-3 rounded-lg"
-                style={{ background: 'rgba(232,184,64,0.08)', border: '1px solid rgba(232,184,64,0.3)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.15em', color: '#e8b840' }}>
+              <div className="text-center py-3 rounded-lg fade-up"
+                style={{ background: 'rgba(232,184,64,0.1)', border: '1px solid rgba(232,184,64,0.45)', boxShadow: '0 4px 16px rgba(0,0,0,0.4), 0 0 22px rgba(232,184,64,0.14)', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', letterSpacing: '0.15em', color: '#f0cf6a' }}>
                 ⚡ BONUS TURN — PLAY AGAIN
               </div>
             )}
 
             {/* Player hand — overlaid on felt at bottom */}
             <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', letterSpacing: '0.2em', color: 'rgba(200,240,200,0.45)', marginBottom: 6, textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.76rem', letterSpacing: '0.18em', color: 'rgba(222,247,224,0.88)', textShadow: '0 1px 3px rgba(0,0,0,0.8)', marginBottom: 6, textAlign: 'center' }}>
                 YOUR HAND
               </div>
               <Hand
@@ -906,7 +939,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
                 fontFamily: 'var(--font-bebas)',
                 fontSize: '0.8rem',
                 letterSpacing: '0.1em',
-                color: `${g.color}88`,
+                color: g.color,
                 textDecoration: 'none',
                 border: `1px solid ${g.color}22`,
                 borderRadius: 6,
@@ -918,7 +951,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
                 (e.currentTarget as HTMLElement).style.borderColor = `${g.color}66`;
               }}
               onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.color = `${g.color}88`;
+                (e.currentTarget as HTMLElement).style.color = g.color;
                 (e.currentTarget as HTMLElement).style.borderColor = `${g.color}22`;
               }}
             >

@@ -347,7 +347,11 @@ export interface WendyPersonality {
   title: string;
   emoji: string;        // shown on the character-select card
   blurb: string;        // one-line pitch on the select screen
-  accentColor: string;  // portrait + card theming
+  accentColor: string;  // portrait + card theming (borders, washes)
+  /** Legible-on-dark variant of accentColor, for text. The deep purple and
+   *  forest green read at ~2.3:1 as type on the near-black cards; these keep
+   *  the character's hue and clear 4.5:1. */
+  textColor: string;
   scores: string[];
   wins: string[];
   blocks: string[];
@@ -361,6 +365,7 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
     emoji: '👁',
     blurb: 'Plays to win. The original. You know her. You fear her.',
     accentColor: '#c49020',
+    textColor: '#e8b840',
     scores: ["Fifteen. I'll take it.", "Points. Mine. Moving on."],
     wins: ["Ha. And there it is.", "Beaten by a woman in a nun's habit. Write that down."],
     blocks: ["I see what you're doing. Bold.", "Blocked. You're welcome."],
@@ -372,6 +377,7 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
     emoji: '⚡',
     blurb: 'Quick wit, zero patience. Whoopi Goldberg in a habit. She sees through you.',
     accentColor: '#6B2FA0',
+    textColor: '#c48ce8',
     scores: ["That's mine.", "As expected.", "Record that."],
     wins: ["Called it.", "See? Effortless.", "Next."],
     blocks: ["Honey, no.", "Not today.", "Sit with that."],
@@ -383,6 +389,7 @@ export const PERSONALITIES: Record<WendyPersonalityId, WendyPersonality> = {
     emoji: '🕯️',
     blurb: "Seventy years of disappointment. She thinks she's above this. She isn't.",
     accentColor: '#1A5C3A',
+    textColor: '#6dc79a',
     scores: ["Correct.", "As it should be.", "Order is restored briefly."],
     wins: ["As expected.", "Order restored.", "The younger ones get excited. I don't need to."],
     blocks: ["A wall. How biblical.", "Reflect on that.", "The tile speaks for itself."],
