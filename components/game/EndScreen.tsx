@@ -284,16 +284,16 @@ export default function EndScreen({
                 onClick={goAdFree}
                 style={{ background: 'transparent', border: '1px solid rgba(196,144,32,0.35)', color: 'rgba(196,144,32,0.85)', borderRadius: 999, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.62rem', letterSpacing: '0.06em' }}
               >
-                ✦ Wendy&apos;s Blessing Pack — remove ads ({ADS.price})
+                ✦ Wendy&apos;s Blessing — Ad-Free + Hard Mode ({ADS.price})
               </button>
               <span style={{ opacity: 0.4 }}> · </span>
               <button
                 onClick={async () => {
-                  const code = window.prompt('Bought the Blessing Pack? Paste your Gumroad license key:');
+                  const code = window.prompt('Bought Wendy’s Blessing? Paste your Gumroad license key:');
                   if (code == null) return;
                   const ok = await redeem(code);
                   if (ok) setAdFreeState(true);
-                  alert(ok ? 'Bless you. Ads removed. ✦' : 'Couldn’t verify that key — check it, or email play@screwcapholdings.com.');
+                  alert(ok ? 'Bless you. Premium unlocked — ads gone, Hard mode open. ✦' : 'Couldn’t verify that key — check it, or email play@screwcapholdings.com.');
                 }}
                 style={{ background: 'transparent', border: 'none', color: 'rgba(196,144,32,0.6)', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.62rem', textDecoration: 'underline' }}
               >
