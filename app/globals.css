@@ -14,7 +14,15 @@
   --foreground: #f5ead8;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* NOTE: this rule must NOT set margin/padding.
+ *
+ * It is unlayered, and Tailwind's utilities live in a cascade layer — unlayered
+ * CSS beats layered CSS no matter the specificity. So `* { padding: 0 }` here
+ * silently killed EVERY padding and margin utility in the app: the score panel's
+ * p-5, the board's px-4 py-5, the hand's p-3. That is why text sat flush against
+ * the edge of every box. Tailwind's own preflight already zeroes margin and
+ * padding in its base layer, where utilities can override it. */
+* { box-sizing: border-box; }
 
 html { color-scheme: dark; }
 

@@ -42,6 +42,13 @@ const SCREWCAP_GAMES = [
     color: '#e8809f',
     href: 'https://www.sutda.games',
   },
+  {
+    id: 'gold-digger',
+    name: 'GOLD DIGGER',
+    tagline: 'Judgement under pressure. Dig or fold.',
+    color: '#e8b840',
+    href: 'https://golddigger.trade',
+  },
 ] as const;
 
 export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {

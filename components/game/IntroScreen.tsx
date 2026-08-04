@@ -196,10 +196,12 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         </div>
         <div ref={text1Ref} style={{ opacity: 0, textAlign: 'left' }}>
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.1rem, 3vw, 1.6rem)', color: '#e8b840', letterSpacing: '0.08em', lineHeight: 1.2 }}>
-            Sister Wendy Beckett
+            Sister Wendy Calhoun
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'rgba(196,144,32,0.55)', letterSpacing: '0.2em', marginTop: 4 }}>
-            1930 – 2018
+          {/* Was "1930 – 2018" (the real art critic). She is her own character,
+              she is alive, and her age stays undefined — Andrew, 4 Aug. */}
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'rgba(226,188,96,0.75)', letterSpacing: '0.2em', marginTop: 4 }}>
+            STILL PLAYING
           </div>
         </div>
       </div>

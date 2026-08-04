@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { ScrewcapGamesStrip } from './ScrewcapPromo';
 import PremiumModal from './PremiumModal';
 import { focusedLocked, ADS } from '@/lib/ads';
+import AdSlot from '@/components/AdSlot';
 
 interface GameSetupProps {
   onStart: (mode: GameMode, daily?: boolean, personalityId?: string, targetScore?: number) => void;
@@ -66,8 +67,10 @@ function HeroPortrait() {
         <div style={{ fontFamily: 'var(--font-bebas), monospace', fontSize: '1.05rem', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1.02 }}>
           SISTER WENDY CALHOUN
         </div>
+        {/* No dates, by Andrew's instruction (4 Aug): she is alive and her age
+            is nobody's business. Leaves room to give her a real voice later. */}
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.22em', color: 'rgba(196,144,32,0.85)', marginTop: 4 }}>
-          1945 &ndash; 2019
+          STILL PLAYING
         </div>
         <div style={{ fontFamily: 'Georgia, serif', fontSize: '0.66rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.62)', marginTop: 5, lineHeight: 1.3 }}>
           Critic of Life, Friends &amp; Family alike
@@ -319,6 +322,10 @@ export default function GameSetup({ onStart }: GameSetupProps) {
         <div className="mb-6">
           <ScrewcapGamesStrip />
         </div>
+
+        {/* Non-intrusive ad — menu only, never during play. Renders nothing
+            until ADS.slot is set (see lib/ads.ts). */}
+        <AdSlot />
 
         {/* Footer */}
         <div className="text-center" style={{ marginTop: 32, paddingTop: 18, paddingBottom: 14, borderTop: '1px solid rgba(196,144,32,0.12)' }}>

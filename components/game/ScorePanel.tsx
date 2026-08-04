@@ -48,12 +48,14 @@ export default function ScorePanel({
         border: '1px solid rgba(196,144,32,0.2)',
       }}
     >
-      {/* Round info */}
-      <div className="flex justify-between items-center mb-3">
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.18em', color: 'rgba(230,192,102,0.88)' }}>
+      {/* Round info. nowrap + wrap on the row: with the panel's padding
+          restored there isn't always room for both on one line, and without
+          this each label broke mid-phrase ("ROUND BONEYARD: / 1  14"). */}
+      <div className="flex flex-wrap justify-between items-center gap-x-3 gap-y-1 mb-3">
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.14em', color: 'rgba(230,192,102,0.88)', whiteSpace: 'nowrap' }}>
           ROUND {round}
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.18em', color: 'rgba(226,188,96,0.8)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.14em', color: 'rgba(226,188,96,0.8)', whiteSpace: 'nowrap' }}>
           BONEYARD: {boneyard}
         </span>
       </div>
