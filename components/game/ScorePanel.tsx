@@ -50,10 +50,10 @@ export default function ScorePanel({
     >
       {/* Round info */}
       <div className="flex justify-between items-center mb-3">
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.55)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.18em', color: 'rgba(230,192,102,0.88)' }}>
           ROUND {round}
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.2em', color: 'rgba(196,144,32,0.4)' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.18em', color: 'rgba(226,188,96,0.8)' }}>
           BONEYARD: {boneyard}
         </span>
       </div>
@@ -100,10 +100,10 @@ export default function ScorePanel({
               </div>
 
               <div className="flex justify-between mt-0.5">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
                   0
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'rgba(196,144,32,0.3)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
                   {TARGET}
                 </span>
               </div>

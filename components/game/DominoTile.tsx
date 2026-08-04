@@ -149,15 +149,22 @@ export default function DominoTile({
   const borderColor = isSelected ? '#8a6010' : '#1e1006';
   const dividerColor = isSelected ? '#a07818' : '#1e1006';
 
+  // Breathing hint on tiles you can actually play (Forgiving mode only — Hand
+  // passes isPlayable=false when hints are off). Never on the selected tile.
+  const pulses = isPlayable && !isSelected && !isDisabled;
+
   function handleClick() {
     if (!isDisabled && onClick) onClick();
   }
   function handleMouseEnter() {
     if (onHover && !isDisabled) onHover(getTileFact(tile.a, tile.b));
+    // the CSS pulse animates box-shadow and would outrank the hover tween
+    if (pulses && ref.current) ref.current.classList.remove('tile-playable');
     if (ref.current && onClick && !isDisabled) {
       gsap.to(ref.current, {
         y: -8,
-        boxShadow: '0 0 0 2px rgba(196,144,32,0.4), 0 14px 28px rgba(0,0,0,0.65), 0 4px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.55)',
+        // gold rim + a soft bloom, so the lift reads as "lit", not just moved
+        boxShadow: '0 0 0 2px rgba(196,144,32,0.55), 0 0 18px rgba(232,184,64,0.38), 0 14px 28px rgba(0,0,0,0.65), 0 4px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.55)',
         duration: 0.18,
         ease: 'power2.out',
       });
@@ -165,6 +172,8 @@ export default function DominoTile({
   }
   function handleMouseLeave() {
     if (ref.current) gsap.to(ref.current, { y: 0, boxShadow: shadow, duration: 0.22, ease: 'power2.out' });
+    // resume the breathing hint once the hand is left alone again
+    if (pulses && ref.current) ref.current.classList.add('tile-playable');
   }
 
   const baseStyle: React.CSSProperties = {
@@ -226,6 +235,7 @@ export default function DominoTile({
     <div
       ref={ref}
       data-flip-id={flipId}
+      className={pulses ? 'tile-playable' : undefined}
       style={baseStyle}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}

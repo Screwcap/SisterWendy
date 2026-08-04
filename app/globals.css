@@ -47,3 +47,47 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+
+/* ── AAA polish pass (AAA brief, Aug 2026) ──────────────────────────────────
+   Shared material and motion primitives. Kept here rather than inline so the
+   felt, the glow and the timings stay one thing across Board, Game and Hand. */
+
+/* Felt: a real fibre grain over the green, not just a ruled grid. The noise is
+   an inline feTurbulence so it costs no request and tiles seamlessly. */
+.felt-grain {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 9px);
+}
+
+/* Vignette: pulls the eye to the middle and kills the dead-flat empty table
+   during early rounds. Deliberately an INSET SHADOW, not an ::after overlay —
+   an overlay paints above positioned children and would dim the tiles. This
+   lives in the container's background layer, so it can never touch content. */
+
+/* Playable-tile breathing hint — Forgiving mode only. Deliberately slow and
+   low-amplitude: a nudge, not a disco. */
+@keyframes playablePulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(74,154,143,0.55), 0 5px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,255,255,0.6); }
+  50%      { box-shadow: 0 0 0 2px rgba(74,154,143,0.95), 0 0 14px rgba(116,214,199,0.45), 0 5px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,255,255,0.6); }
+}
+.tile-playable { animation: playablePulse 2.4s ease-in-out infinite; }
+
+/* Open-end flash — fires where a tile just landed. */
+@keyframes endFlash {
+  from { opacity: 0.85; transform: translate(-50%, -50%) scale(0.6); }
+  to   { opacity: 0;    transform: translate(-50%, -50%) scale(1.9); }
+}
+
+/* Turn indicator: a slow ring so "your move" is felt peripherally. */
+@keyframes turnPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.06); }
+}
+.turn-live { animation: turnPulse 1.8s ease-in-out infinite; }
+
+/* Respect the setting. Motion is polish; nobody should be made ill by it. */
+@media (prefers-reduced-motion: reduce) {
+  .tile-playable, .turn-live { animation: none; }
+}

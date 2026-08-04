@@ -41,19 +41,16 @@ export default function Board({
         style={{
           background: 'linear-gradient(160deg, #1e5c2e 0%, #174d25 60%, #123f1e 100%)',
           border: '3px solid #1a0e06',
+          // last inset = the vignette (see globals.css note)
           boxShadow:
-            'inset 0 6px 30px rgba(0,0,0,0.45), inset 0 -4px 16px rgba(0,20,5,0.4), inset 4px 0 16px rgba(0,0,0,0.2), inset -4px 0 16px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.5)',
+            'inset 0 6px 30px rgba(0,0,0,0.45), inset 0 -4px 16px rgba(0,20,5,0.4), inset 4px 0 16px rgba(0,0,0,0.2), inset -4px 0 16px rgba(0,0,0,0.2), inset 0 0 90px 26px rgba(0,0,0,0.34), 0 8px 24px rgba(0,0,0,0.5)',
           minHeight: 170,
         }}
       >
-        {/* Subtle felt texture overlay */}
+        {/* Felt grain — fibre noise over the ruled weave (see globals.css) */}
         <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 8px)',
-            borderRadius: 'inherit',
-          }}
+          className="absolute inset-0 pointer-events-none felt-grain"
+          style={{ borderRadius: 'inherit' }}
         />
 
         {/* Corner pip decoration */}
@@ -75,8 +72,8 @@ export default function Board({
             <p
               style={{
                 fontFamily: 'var(--font-garamond)',
-                color: 'rgba(200,240,210,0.45)',
-                fontSize: '1rem',
+                color: 'rgba(214,245,220,0.78)',
+                fontSize: '1.05rem',
                 fontStyle: 'italic',
               }}
             >
@@ -146,8 +143,9 @@ export default function Board({
             className="flex justify-between px-5 pb-2"
             style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.68rem',
-              color: 'rgba(180,230,190,0.55)',
+              fontSize: '0.74rem',
+              color: 'rgba(214,245,220,0.9)',
+              textShadow: '0 1px 3px rgba(0,0,0,0.7)',
               letterSpacing: '0.15em',
             }}
           >

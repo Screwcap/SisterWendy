@@ -11,21 +11,21 @@ const SCREWCAP_GAMES = [
     id: 'double-fives',
     name: 'DOUBLE FIVES',
     tagline: 'The full ML beast. Four players. Carnage.',
-    color: '#d4507a',
+    color: '#e8809f',   // lightened from the brand #d4507a: 2.1:1 as type on this card
     href: 'https://screwcap.games', // pre-launch — send to hub/waitlist
   },
   {
     id: 'the-chair',
     name: 'THE CHAIR',
     tagline: 'Strategic. Brutal. Comfortable.',
-    color: '#4a9a8f',
+    color: '#74c7bb',   // lightened from the brand #4a9a8f
     href: 'https://thechair.vercel.app',
   },
   {
     id: 'fly-macro',
     name: 'FLYMACROPILOT',
     tagline: 'Macro games. Micro decisions.',
-    color: '#c49020',
+    color: '#e8b840',   // the brass-light already used for gold type
     href: 'https://flymacropilot.vercel.app',
   },
   {
@@ -39,7 +39,7 @@ const SCREWCAP_GAMES = [
     id: 'sutda',
     name: 'SUTDA',
     tagline: 'Korean card bluffing. Beautiful. Ruthless.',
-    color: '#d4507a',
+    color: '#e8809f',
     href: 'https://www.sutda.games',
   },
 ] as const;
@@ -88,16 +88,22 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
               minWidth: compact ? 90 : 120,
               flex: '1 1 auto',
               maxWidth: 180,
-              transition: 'border-color 0.2s, background 0.2s',
+              transition: 'border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.15s',
               cursor: 'pointer',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = `${game.color}99`;
-              (e.currentTarget as HTMLElement).style.background = 'rgba(26,20,8,0.95)';
+              const el = e.currentTarget as HTMLElement;
+              el.style.borderColor = `${game.color}99`;
+              el.style.background = 'rgba(26,20,8,0.95)';
+              el.style.transform = 'translateY(-2px)';
+              el.style.boxShadow = `0 6px 16px rgba(0,0,0,0.42), 0 0 18px ${game.color}22`;
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLElement).style.borderColor = `${game.color}44`;
-              (e.currentTarget as HTMLElement).style.background = 'rgba(26,20,8,0.7)';
+              const el = e.currentTarget as HTMLElement;
+              el.style.borderColor = `${game.color}44`;
+              el.style.background = 'rgba(26,20,8,0.7)';
+              el.style.transform = 'translateY(0)';
+              el.style.boxShadow = 'none';
             }}
           >
             <span style={{
@@ -113,8 +119,8 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
             {!compact && (
               <span style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '0.52rem',
-                color: 'rgba(245,234,216,0.45)',
+                fontSize: '0.58rem',
+                color: 'rgba(245,234,216,0.78)',
                 textAlign: 'center',
                 lineHeight: 1.4,
                 letterSpacing: '0.04em',
@@ -124,9 +130,9 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
             )}
             <span style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.48rem',
-              color: `${game.color}99`,
-              letterSpacing: '0.15em',
+              fontSize: '0.56rem',
+              color: game.color,
+              letterSpacing: '0.14em',
               marginTop: 6,
             }}>
               PLAY →
