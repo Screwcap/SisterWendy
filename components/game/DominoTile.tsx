@@ -22,7 +22,8 @@ interface DominoTileProps {
   sponsorLogoUrl?: string;
 }
 
-// Pip positions as [x%, y%] within the square pip face
+// Pip positions as [x%, y%] within the square pip face, laid out for a PORTRAIT
+// tile (the way you'd hold one): the 6 reads as two columns of three.
 const PIP_POSITIONS: Record<number, Array<[number, number]>> = {
   0: [],
   1: [[50, 50]],
@@ -32,6 +33,15 @@ const PIP_POSITIONS: Record<number, Array<[number, number]>> = {
   5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
   6: [[28, 20], [72, 20], [28, 50], [72, 50], [28, 80], [72, 80]],
 };
+
+// Lay a tile on its side and the pips turn with it — a 6 becomes three columns
+// of two, not two columns of three. Rotate the portrait layout 90° clockwise.
+const rotate90 = ([x, y]: [number, number]): [number, number] => [100 - y, x];
+
+function pipsFor(value: number, vertical: boolean): Array<[number, number]> {
+  const positions = PIP_POSITIONS[value] ?? [];
+  return vertical ? positions : positions.map(rotate90);
+}
 
 // pip_size = square dimension of each half-face
 const SIZE_MAP = {
@@ -45,13 +55,15 @@ function PipFace({
   pipSize,
   pipRadius,
   dark,
+  vertical,
 }: {
   value: number;
   pipSize: number;
   pipRadius: number;
   dark: boolean;
+  vertical: boolean;
 }) {
-  const positions = PIP_POSITIONS[value] ?? [];
+  const positions = pipsFor(value, vertical);
   return (
     <div style={{ position: 'relative', width: pipSize, height: pipSize, flexShrink: 0 }}>
       {positions.map(([px, py], i) => (
@@ -223,9 +235,9 @@ export default function DominoTile({
       tabIndex={onClick && !isDisabled ? 0 : -1}
       onKeyDown={e => e.key === 'Enter' && handleClick()}
     >
-      <PipFace value={topVal} pipSize={pip} pipRadius={pipR} dark={isSelected} />
+      <PipFace value={topVal} pipSize={pip} pipRadius={pipR} dark={isSelected} vertical={vertical} />
       <div style={dividerStyle} />
-      <PipFace value={botVal} pipSize={pip} pipRadius={pipR} dark={isSelected} />
+      <PipFace value={botVal} pipSize={pip} pipRadius={pipR} dark={isSelected} vertical={vertical} />
     </div>
   );
 }
