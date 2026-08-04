@@ -38,9 +38,24 @@ const PIP_POSITIONS: Record<number, Array<[number, number]>> = {
 // of two, not two columns of three. Rotate the portrait layout 90° clockwise.
 const rotate90 = ([x, y]: [number, number]): [number, number] => [100 - y, x];
 
+/**
+ * Pull every pip a little toward the centre of its face.
+ *
+ * The six's three-across axis sits at 20/50/80, tighter than the four and
+ * five's 28/72, so once landscape rotation moved that axis horizontal the
+ * outer columns crowded the tile's right and left edges (Andrew, 4 Aug).
+ * Squeezing the whole layout uniformly keeps the spacing even between pips
+ * while buying back the margin.
+ */
+const SQUEEZE = 0.86;
+const inset = ([x, y]: [number, number]): [number, number] => [
+  50 + (x - 50) * SQUEEZE,
+  50 + (y - 50) * SQUEEZE,
+];
+
 function pipsFor(value: number, vertical: boolean): Array<[number, number]> {
   const positions = PIP_POSITIONS[value] ?? [];
-  return vertical ? positions : positions.map(rotate90);
+  return (vertical ? positions : positions.map(rotate90)).map(inset);
 }
 
 // pip_size = square dimension of each half-face

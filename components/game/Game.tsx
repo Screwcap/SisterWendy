@@ -28,10 +28,15 @@ import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 
 // Lightened from each game's brand colour: at 0.8rem on the near-black HUD the
 // source hues read at ~2:1. Same hue, legible as type.
+// Andrew, 4 Aug: the full offering belongs down here, with the house link and
+// About pinned far left and the games ranged right.
 const SCREWCAP_FOOTER_GAMES = [
   { id: 'double-fives', name: 'DOUBLE FIVES', color: '#e8809f', href: 'https://screwcap.games' },
-  { id: 'the-chair',   name: 'THE CHAIR',    color: '#74c7bb', href: 'https://thechair.vercel.app' },
-  { id: 'fly-macro',   name: 'FLYMACROPILOT',color: '#e8b840', href: 'https://flymacropilot.vercel.app' },
+  { id: 'the-chair',    name: 'THE CHAIR',    color: '#74c7bb', href: 'https://thechair.vercel.app' },
+  { id: 'fly-macro',    name: 'FLYMACROPILOT',color: '#e8b840', href: 'https://flymacropilot.vercel.app' },
+  { id: 'dttau',        name: 'DTTAU',        color: '#7cc0ee', href: 'https://dttau.app' },
+  { id: 'sutda',        name: 'SUTDA',        color: '#e8809f', href: 'https://sutda.games' },
+  { id: 'gold-digger',  name: 'GOLD DIGGER',  color: '#e8b840', href: 'https://golddigger.trade' },
 ] as const;
 
 // ── State machine actions ───────────────────────────────────────────────────
@@ -414,8 +419,17 @@ export default function Game() {
           const canPlayNow = hand.some(t => boardIsEmpty(prev.board) || canPlay(prev.board, t));
 
           if (canPlayNow) {
-            // Stay in aiThinking; next tick will find the play
-            return { ...prev, players: updatedPlayers, boneyard, wendySpeech: randQuote('herTurn', prev.players.find(p => !p.isHuman)?.personalityId) };
+            // Stay in aiThinking; next tick will find the play. aiNudge is what
+            // re-arms this effect — phase, player and turnCount are all
+            // deliberately unchanged here, so without it nothing re-runs and
+            // the game hangs on her turn forever.
+            return {
+              ...prev,
+              players: updatedPlayers,
+              boneyard,
+              aiNudge: (prev.aiNudge ?? 0) + 1,
+              wendySpeech: randQuote('herTurn', prev.players.find(p => !p.isHuman)?.personalityId),
+            };
           }
 
           // Truly stuck — pass
@@ -435,7 +449,7 @@ export default function Game() {
     }, AI_DELAY_MS);
 
     return () => { if (aiTimerRef.current) clearTimeout(aiTimerRef.current); };
-  }, [gs?.phase, gs?.currentPlayerIndex, gs?.turnCount]);
+  }, [gs?.phase, gs?.currentPlayerIndex, gs?.turnCount, gs?.aiNudge]);
 
   // Clear the Undo snapshot at round/game transitions — no undoing across rounds.
   // (Within a round the snapshot persists through Sister Wendy's reply so you can take back your move.)
@@ -691,13 +705,13 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0d0a06', color: '#f5ead8' }}>
-      {/* CARL_SPEC §4 — scoring explainer + always-available "?" summon */}
-      {explainer
-        ? <ScoringExplainer data={explainer} onClose={() => setExplainer(null)}
-            onDisable={() => { try { localStorage.setItem('sw-scoring-help', 'off'); } catch { /* */ } setExplainer(null); }} />
-        : <button onClick={summonExplainer} aria-label="How does scoring work?"
-            style={{ position: 'fixed', left: 14, bottom: 14, zIndex: 8900, width: 30, height: 30, borderRadius: '50%',
-              background: 'rgba(21,17,10,0.85)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'var(--font-mono), monospace' }}>?</button>}
+      {/* CARL_SPEC §4 — scoring explainer. The "?" that summons it used to be
+          fixed at bottom-left, directly on top of the HINT button; it now lives
+          in the action stack under the scorecard (Andrew, 4 Aug). */}
+      {explainer && (
+        <ScoringExplainer data={explainer} onClose={() => setExplainer(null)}
+          onDisable={() => { try { localStorage.setItem('sw-scoring-help', 'off'); } catch { /* */ } setExplainer(null); }} />
+      )}
 
 
       {/* Gear background */}
@@ -800,7 +814,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
         <div className="relative flex flex-col md:flex-row h-full" style={{ minHeight: '60vh' }}>
 
           {/* LEFT PANEL: Wendy + scores — sits on the felt */}
-          <div className="flex flex-col gap-3 p-3 md:w-[200px] flex-shrink-0">
+          <div className="flex flex-col gap-3 p-3 md:w-[224px] flex-shrink-0">
             <WendyPortrait mood={gs.wendyMood} speech={gs.wendySpeech} artFact={artFact} personalityId={oppPersonality(gs)} />
             <ScorePanel
               players={gs.players}
@@ -811,6 +825,31 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
               lastScoringPlayerId={gs.lastScoringPlayerId}
               targetScore={gs.targetScore}
             />
+
+            {/* Your tools, under your scorecard — HINT, UNDO and the scoring
+                "?" together, out of the footer where they collided. */}
+            <div className="flex flex-wrap gap-2">
+              {showHints && isPlayerTurn && (
+                <button onClick={handleHint}
+                  title={hintSponsor ? `Ask Sister Wendy's Patron — ${hintSponsor.name}` : 'Ask for a hint'}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(74,154,143,0.14)', border: '1px solid rgba(74,154,143,0.45)', color: '#74c7bb', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
+                  {hintSponsor ? `ASK ${hintSponsor.name.toUpperCase().slice(0, 8)}` : '💡 HINT'}
+                </button>
+              )}
+              {gs.mode === 'forgiving' && undoable && isPlayerTurn && onUndo && (
+                <button onClick={onUndo}
+                  title="Take back your last move — Sister Wendy will pretend she didn't see."
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(196,144,32,0.12)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
+                  ↩ UNDO
+                </button>
+              )}
+              {!explainer && (
+                <button onClick={summonExplainer} aria-label="How does scoring work?"
+                  style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(21,17,10,0.85)', border: '1px solid rgba(196,144,32,0.4)', color: '#e8b840', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'var(--font-mono), monospace' }}>
+                  ?
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Subtle divider */}
@@ -910,25 +949,25 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             CANCEL
           </button>
         )}
-        {showHints && isPlayerTurn && (
-          <button onClick={handleHint}
-            title={hintSponsor ? `Ask Sister Wendy's Patron — ${hintSponsor.name}` : 'Ask for a hint'}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(74,154,143,0.1)', border: '1px solid rgba(74,154,143,0.25)', color: '#4a9a8f', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
-            {hintSponsor ? `ASK ${hintSponsor.name.toUpperCase().slice(0, 8)}` : '💡 HINT'}
-          </button>
-        )}
-        {gs.mode === 'forgiving' && undoable && isPlayerTurn && onUndo && (
-          <button onClick={onUndo}
-            title="Take back your last move — Sister Wendy will pretend she didn't see."
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', background: 'rgba(196,144,32,0.1)', border: '1px solid rgba(196,144,32,0.3)', color: '#c49020', cursor: 'pointer', padding: '6px 12px', borderRadius: 10 }}>
-            ↩ UNDO
-          </button>
-        )}
+        {/* HINT and UNDO now live under the scorecard — see the left panel. */}
+
+        {/* House links, pinned far left */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginRight: 4 }}>
+          <a href="https://screwcap.games" target="_blank" rel="noopener noreferrer"
+            style={{ fontFamily: 'var(--font-bebas)', fontSize: '0.85rem', letterSpacing: '0.1em', color: '#e8b840', textDecoration: 'none' }}>
+            SCREWCAP.GAMES
+          </a>
+          <span style={{ color: 'rgba(196,144,32,0.45)' }}>|</span>
+          <a href="/research"
+            style={{ fontFamily: 'var(--font-bebas)', fontSize: '0.85rem', letterSpacing: '0.1em', color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>
+            ABOUT
+          </a>
+        </div>
 
         <div className="flex-1" />
 
-        {/* Sponsor / other-games ad slot */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {/* The rest of the offering, ranged right */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {SCREWCAP_FOOTER_GAMES.map(g => (
             <a
               key={g.id}

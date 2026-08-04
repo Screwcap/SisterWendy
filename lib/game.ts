@@ -65,6 +65,15 @@ export interface GameState {
   wendyMood: WendyMood;
   bonusTurn: boolean;  // current player gets another turn (scored or double)
   hintsUsed: number;
+  /**
+   * Internal re-trigger for the AI turn effect. When the AI draws from the
+   * boneyard and finds something playable it must stay in `aiThinking` with the
+   * same player and turn — which meant none of the effect's dependencies
+   * changed and the effect never ran again, hanging the game on "⏳ Wendy"
+   * forever. Bumping this gives the effect something to notice. Optional so
+   * saved games from before the fix still load.
+   */
+  aiNudge?: number;
 }
 
 export type WendyMood = 'neutral' | 'pleased' | 'disappointed' | 'suspicious' | 'triumphant' | 'amused';

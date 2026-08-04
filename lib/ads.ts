@@ -39,7 +39,15 @@ export const ADS = {
 /** Legacy keys honoured so earlier supporters keep their unlock. */
 const LEGACY_KEYS = ['sw-adfree'];
 
-export const adsConfigured = (): boolean => !!ADS.client && !/X{4,}/.test(ADS.client);
+/**
+ * Ads need BOTH a publisher id and an ad-unit slot. Requiring only the client
+ * is why the game-over screen has been rendering an "ADVERTISEMENT" label over
+ * an `<ins>` with no `data-ad-slot` — a unit AdSense can never fill, so nobody
+ * ever saw an ad (Andrew, 4 Aug). With the slot empty we now render nothing at
+ * all; paste a slot and every placement lights up at once.
+ */
+export const adsConfigured = (): boolean =>
+  !!ADS.client && !/X{4,}/.test(ADS.client) && !!ADS.slot;
 
 /** Premium is only sellable — and only gateable — once Gumroad is wired up. */
 export const premiumConfigured = (): boolean => !!ADS.gumroadPermalink && !!ADS.gumroadUrl;
