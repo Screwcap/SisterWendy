@@ -5,6 +5,8 @@ import { GameMode, todayKey, SCORE_MODES } from '@/lib/game';
 import { PERSONALITIES } from '@/lib/wendy';
 import gsap from 'gsap';
 import { ScrewcapGamesStrip } from './ScrewcapPromo';
+import PremiumModal from './PremiumModal';
+import { focusedLocked, ADS } from '@/lib/ads';
 
 interface GameSetupProps {
   onStart: (mode: GameMode, daily?: boolean, personalityId?: string, targetScore?: number) => void;
@@ -106,11 +108,16 @@ export default function GameSetup({ onStart }: GameSetupProps) {
   const [playedToday, setPlayedToday] = useState(false);
   const [oppId, setOppId] = useState('wendy');
   const [targetScore, setTargetScore] = useState(61);
+  // Premium gate (read post-mount → no SSR/CSR mismatch). When focusedLocked()
+  // is false (premium not yet configured, or already owned) Focused is free.
+  const [focusedGated, setFocusedGated] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
   const opponents = Object.values(PERSONALITIES);
   const opp = PERSONALITIES[oppId as keyof typeof PERSONALITIES] ?? PERSONALITIES.wendy;
 
   useEffect(() => {
     try { setPlayedToday(localStorage.getItem(todayKey()) === '1'); } catch { /* */ }
+    setFocusedGated(focusedLocked());
   }, []);
 
   useEffect(() => {
@@ -215,17 +222,20 @@ export default function GameSetup({ onStart }: GameSetupProps) {
 
         {/* Mode cards */}
         <div className="flex flex-col gap-4 mb-8">
-          {MODES.map(mode => (
+          {MODES.map(mode => {
+            const gated = mode.id === 'focused' && focusedGated;
+            return (
             <button
               key={mode.id}
               className="mode-card w-full rounded-2xl text-center transition-all group"
               style={{
+                position: 'relative',
                 background: 'rgba(26,20,8,0.8)',
                 border: `2px solid ${mode.color}66`,
                 cursor: 'pointer',
                 padding: '2rem 2.5rem',
               }}
-              onClick={() => onStart(mode.id, false, oppId, targetScore)}
+              onClick={() => gated ? setShowPremium(true) : onStart(mode.id, false, oppId, targetScore)}
               onMouseEnter={e => {
                 (e.currentTarget as HTMLElement).style.border = `2px solid ${mode.color}`;
                 (e.currentTarget as HTMLElement).style.background = `rgba(26,20,8,0.95)`;
@@ -237,6 +247,16 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                 gsap.to(e.currentTarget, { scale: 1, duration: 0.2 });
               }}
             >
+              {gated && (
+                <span style={{
+                  position: 'absolute', top: 12, right: 14,
+                  fontFamily: 'var(--font-mono)', fontSize: '0.5rem', letterSpacing: '0.18em',
+                  color: '#1a1408', background: 'linear-gradient(180deg,#e8b840,#c49020)',
+                  borderRadius: 999, padding: '3px 9px',
+                }}>
+                  ✦ PREMIUM {ADS.price}
+                </span>
+              )}
               <div style={{ marginBottom: 8 }}>
                 <span style={{
                   fontFamily: 'var(--font-bebas)', fontSize: '2rem',
@@ -270,10 +290,11 @@ export default function GameSetup({ onStart }: GameSetupProps) {
                 fontFamily: 'var(--font-bebas)', fontSize: '1.4rem',
                 color: mode.color, marginTop: 14, opacity: 0.7,
               }}>
-                → PLAY
+                {gated ? `✦ UNLOCK ${ADS.price}` : '→ PLAY'}
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Daily Challenge — same deal for everyone, every day (meta-loop / return hook) */}
@@ -316,6 +337,13 @@ export default function GameSetup({ onStart }: GameSetupProps) {
           </p>
         </div>
       </div>
+
+      {showPremium && (
+        <PremiumModal
+          onClose={() => setShowPremium(false)}
+          onUnlocked={() => { setShowPremium(false); setFocusedGated(focusedLocked()); onStart('focused', false, oppId, targetScore); }}
+        />
+      )}
     </div>
   );
 }
