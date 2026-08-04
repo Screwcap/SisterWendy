@@ -325,7 +325,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.18em', color: 'rgba(226,188,96,0.82)', marginBottom: 10 }}>
             ALL-FIVES SCORING · FIRST TO 61 WINS
           </p>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.1em', color: 'rgba(196,144,32,0.45)', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.1em', color: 'rgba(226,188,96,0.8)', lineHeight: 1.6 }}>
             © 2026{' '}
             <a href="https://screwcap.games" target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(232,184,64,0.8)', textDecoration: 'none' }}>Screwcap Games, LLC</a>
             <span style={{ opacity: 0.8 }}>{'  ·  '}</span>
