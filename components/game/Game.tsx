@@ -31,12 +31,12 @@ import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 // Andrew, 4 Aug: the full offering belongs down here, with the house link and
 // About pinned far left and the games ranged right.
 const SCREWCAP_FOOTER_GAMES = [
-  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#e8809f', href: 'https://screwcap.games' },
+  { id: 'double-fives', name: 'DOUBLE FIVES', color: '#e8809f', href: 'https://doublefives-next.vercel.app' },
   { id: 'the-chair',    name: 'THE CHAIR',    color: '#74c7bb', href: 'https://thechair.vercel.app' },
-  { id: 'fly-macro',    name: 'FLYMACROPILOT',color: '#e8b840', href: 'https://flymacropilot.vercel.app' },
+  { id: 'kitchen-table',name: 'KITCHEN TABLE',color: '#e8b840', href: 'https://kitchen-table-tau.vercel.app' },
   { id: 'dttau',        name: 'DTTAU',        color: '#7cc0ee', href: 'https://dttau.app' },
-  { id: 'sutda',        name: 'SUTDA',        color: '#e8809f', href: 'https://sutda.games' },
-  { id: 'gold-digger',  name: 'GOLD DIGGER',  color: '#e8b840', href: 'https://golddigger.trade' },
+  { id: 'sutda',        name: 'SUTDA',        color: '#e8809f', href: 'https://www.sutda.games' },
+  { id: 'gold-digger',  name: 'GOLD DIGGER',  color: '#e8b840', href: 'https://golddigger.trading' },
 ] as const;
 
 // ── State machine actions ───────────────────────────────────────────────────

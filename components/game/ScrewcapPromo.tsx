@@ -6,13 +6,21 @@
 
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
 
+/**
+ * The portfolio as it stands 2026-08-12.
+ * FlyMacroPilot removed — shelved into TheChair 13 Jul 2026 (307 redirect, commit
+ * a1591b7 in that repo). Every footer went on advertising it as a separate game
+ * for a month: retiring a game is a portfolio-wide edit, not a repo-local one.
+ * DOUBLE FIVES pointed at the hub with a "pre-launch" note — it launched (v22 on
+ * prod), so it now points at the game. Kitchen Table was missing entirely.
+ */
 const SCREWCAP_GAMES = [
   {
     id: 'double-fives',
     name: 'DOUBLE FIVES',
     tagline: 'The full ML beast. Four players. Carnage.',
     color: '#e8809f',   // lightened from the brand #d4507a: 2.1:1 as type on this card
-    href: 'https://screwcap.games', // pre-launch — send to hub/waitlist
+    href: 'https://doublefives-next.vercel.app',
   },
   {
     id: 'the-chair',
@@ -22,11 +30,11 @@ const SCREWCAP_GAMES = [
     href: 'https://thechair.vercel.app',
   },
   {
-    id: 'fly-macro',
-    name: 'FLYMACROPILOT',
-    tagline: 'Macro games. Micro decisions.',
-    color: '#e8b840',   // the brass-light already used for gold type
-    href: 'https://flymacropilot.vercel.app',
+    id: 'kitchen-table',
+    name: 'KITCHEN TABLE',
+    tagline: 'The other side of the desk.',
+    color: '#e8b840',
+    href: 'https://kitchen-table-tau.vercel.app',
   },
   {
     id: 'dttau',
@@ -47,7 +55,7 @@ const SCREWCAP_GAMES = [
     name: 'GOLD DIGGER',
     tagline: 'Judgement under pressure. Dig or fold.',
     color: '#e8b840',
-    href: 'https://golddigger.trade',
+    href: 'https://golddigger.trading',
   },
 ] as const;
 
