@@ -1,17 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
 import { Player } from '@/lib/game';
 import { SPONSOR_CONFIG } from '@/lib/sponsor';
-import gsap from 'gsap';
+import BoneyardStack from './BoneyardStack';
 
 interface ScorePanelProps {
   players: Player[];
   currentPlayerIndex: number;
   boneyard: number;
   round: number;
-  lastScore: number;
-  lastScoringPlayerId: string | null;
   targetScore?: number;
 }
 
@@ -20,23 +17,9 @@ export default function ScorePanel({
   currentPlayerIndex,
   boneyard,
   round,
-  lastScore,
-  lastScoringPlayerId,
   targetScore,
 }: ScorePanelProps) {
   const TARGET = targetScore ?? 61;
-  const scoreRefs = useRef<Record<string, HTMLSpanElement | null>>({});
-
-  // Animate score change
-  useEffect(() => {
-    if (!lastScoringPlayerId || lastScore === 0) return;
-    const el = scoreRefs.current[lastScoringPlayerId];
-    if (!el) return;
-    gsap.fromTo(el,
-      { scale: 1.5, color: '#e8b840' },
-      { scale: 1, color: '#f5ead8', duration: 0.6, ease: 'power2.out' }
-    );
-  }, [lastScore, lastScoringPlayerId]);
 
   const sponsor = SPONSOR_CONFIG.scoreBadge;
 
@@ -45,7 +28,16 @@ export default function ScorePanel({
       className="rounded-xl p-5"
       style={{
         background: 'rgba(26,20,8,0.85)',
-        border: '1px solid rgba(196,144,32,0.2)',
+        // Gold frame: a solid gold edge, then a dark hairline and a second gold
+        // line set in from it — the double rule of a framed prayer card, rather
+        // than one apologetic 20%-opacity border.
+        border: '1px solid rgba(196,144,32,0.62)',
+        boxShadow: [
+          'inset 0 0 0 1px rgba(10,7,3,0.85)',
+          'inset 0 0 0 2px rgba(196,144,32,0.26)',
+          'inset 0 1px 0 rgba(245,234,216,0.06)',
+          '0 6px 22px rgba(0,0,0,0.45)',
+        ].join(', '),
       }}
     >
       {/* Round info. nowrap + wrap on the row: with the panel's padding
@@ -55,9 +47,7 @@ export default function ScorePanel({
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.14em', color: 'rgba(230,192,102,0.88)', whiteSpace: 'nowrap' }}>
           ROUND {round}
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.14em', color: 'rgba(226,188,96,0.8)', whiteSpace: 'nowrap' }}>
-          BONEYARD: {boneyard}
-        </span>
+        <BoneyardStack count={boneyard} />
       </div>
 
       {/* Player scores */}
@@ -77,14 +67,13 @@ export default function ScorePanel({
                 }}>
                   {isActive ? '▶ ' : ''}{player.name.toUpperCase()}
                 </span>
-                <span
-                  ref={el => { scoreRefs.current[player.id] = el; }}
-                  style={{
-                    fontFamily: 'var(--font-mono)', fontSize: '1.2rem',
-                    color: '#f5ead8', fontWeight: 600,
-                  }}
-                >
-                  {player.score}
+                {/* The numeral lives in the top nav now (HeaderScore). This row
+                    shows how far along the bar you are, not the number again. */}
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.62rem',
+                  letterSpacing: '0.1em', color: 'rgba(214,172,86,0.72)',
+                }}>
+                  {Math.round(pct)}%
                 </span>
               </div>
 
@@ -120,7 +109,7 @@ export default function ScorePanel({
           marginTop: '0.75rem',
           paddingTop: '0.5rem',
           borderTop: '1px solid rgba(196,144,32,0.1)',
-          fontFamily: 'var(--font-mono)', fontSize: '0.58rem',
+          fontFamily: 'var(--font-mono)', fontSize: '0.62rem',
           letterSpacing: '0.15em', textTransform: 'uppercase' as const,
           color: 'rgba(196,144,32,0.45)',
           textAlign: 'center' as const,
