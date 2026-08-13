@@ -134,7 +134,7 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
             {!compact && (
               <span style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '0.58rem',
+                fontSize: '0.62rem',
                 color: 'rgba(245,234,216,0.78)',
                 textAlign: 'center',
                 lineHeight: 1.4,
@@ -145,7 +145,7 @@ export function ScrewcapGamesStrip({ compact = false }: { compact?: boolean }) {
             )}
             <span style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.56rem',
+              fontSize: '0.62rem',
               color: game.color,
               letterSpacing: '0.14em',
               marginTop: 6,
@@ -176,7 +176,7 @@ export function SponsorBanner() {
     >
       <div style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '0.44rem',
+        fontSize: '0.6rem',
         letterSpacing: '0.22em',
         color: 'rgba(196,144,32,0.35)',
         marginBottom: 4,
@@ -209,7 +209,7 @@ export function SponsorBanner() {
           rel="noopener noreferrer"
           style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.55rem',
+            fontSize: '0.62rem',
             letterSpacing: '0.14em',
             color: '#e8b840',
             textDecoration: 'none',
