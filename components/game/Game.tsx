@@ -174,8 +174,8 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
     };
   }
 
-  // Only doubles grant a replay — scoring alone does not
-  const bonus = isDouble(tile);
+  // RaceHorse: lay a double OR score, and you go again. Both halves.
+  const bonus = isDouble(tile) || scored > 0;
   const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus, state.players.find(p => !p.isHuman)?.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
   const mood = getMood(current.isHuman, scored, isDouble(tile));
 
@@ -351,7 +351,7 @@ export default function Game() {
           const current = updatedPlayers[prev.currentPlayerIndex];
           const gameWon = current.score >= prev.targetScore;
           const roundWon = current.hand.length === 0;
-          const bonus = isDouble(play.tile);
+          const bonus = isDouble(play.tile) || scored > 0;
           const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
           const mood = getMood(false, scored, isDouble(play.tile));
 
@@ -375,10 +375,12 @@ export default function Game() {
               wendyMood: gameWonFinal ? 'triumphant' : mood,
             };
           }
-          // Only doubles grant a replay
+          // RaceHorse: double OR score → she plays again (same seat, still aiThinking)
           if (bonus) return {
             ...prev, board: newBoard, players: updatedPlayers,
-            phase: 'aiThinking', lastScore: scored, wendySpeech: speech, wendyMood: mood,
+            phase: 'aiThinking', lastScore: scored,
+            lastScoringPlayerId: scored > 0 ? current.id : prev.lastScoringPlayerId,
+            wendySpeech: speech, wendyMood: mood,
             turnCount: prev.turnCount + 1,
           };
 
