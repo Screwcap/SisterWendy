@@ -21,6 +21,7 @@ import Board from './Board';
 import Hand from './Hand';
 import WendyPortrait from './WendyPortrait';
 import ScorePanel from './ScorePanel';
+import HeaderScore from './HeaderScore';
 import EndScreen from './EndScreen';
 import GameSetup from './GameSetup';
 import IntroScreen from './IntroScreen';
@@ -728,26 +729,36 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
       </div>
 
       {/* Header */}
-      <header className="relative z-10 px-4 pt-3 pb-2 flex items-center justify-center"
+      {/* Three flex columns, not absolute positioning: the centre block used to be
+          centred over the top of the MENU button and the turn indicator, and on a
+          390px screen all three overlapped into mush. Flex + min-w-0 makes the
+          middle yield instead. Type is clamped so it shrinks before it collides. */}
+      <header className="relative z-10 px-3 pt-3 pb-2 flex items-center justify-between gap-2"
         style={{ borderBottom: '1px solid rgba(196,144,32,0.15)' }}>
         {/* Menu button */}
-        <div className="absolute left-4">
+        <div className="flex-shrink-0">
           <button
             onClick={() => setShowMenuModal(true)}
-            style={{ background: 'none', border: '1px solid rgba(196,144,32,0.25)', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem', padding: '4px 8px', color: 'rgba(196,144,32,0.55)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}
+            style={{ background: 'none', border: '1px solid rgba(196,144,32,0.25)', borderRadius: 6, cursor: 'pointer', fontSize: 'clamp(0.6rem, 2.4vw, 0.72rem)', padding: '4px 8px', color: 'rgba(196,144,32,0.55)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}
           >
             ☰ MENU
           </button>
         </div>
-        <div className="text-center">
-          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '1.4rem', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1 }}>
+        <div className="text-center min-w-0 flex-1">
+          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1rem, 4.4vw, 1.4rem)', letterSpacing: '0.1em', color: '#e8b840', lineHeight: 1 }}>
             SISTER WENDY
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.16em', color: 'rgba(226,188,96,0.82)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'clamp(0.56rem, 2.2vw, 0.72rem)', letterSpacing: '0.16em', color: 'rgba(226,188,96,0.82)' }}>
             {gs.mode.toUpperCase()} MODE · ROUND {gs.roundCount} · TURN {gs.turnCount}
           </div>
+          <HeaderScore
+            players={gs.players}
+            currentPlayerIndex={gs.currentPlayerIndex}
+            lastScore={gs.lastScore}
+            lastScoringPlayerId={gs.lastScoringPlayerId}
+          />
         </div>
-        <div className="absolute right-4 flex items-center gap-3">
+        <div className="flex-shrink-0 flex items-center gap-2">
           <button
             onClick={onToggleMute}
             title={isMuted ? 'Unmute' : 'Mute'}
@@ -756,7 +767,7 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
             {isMuted ? '🔇' : '🔊'}
           </button>
           <span className={isPlayerTurn ? 'turn-live' : undefined}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', letterSpacing: '0.12em', color: 'rgba(232,184,64,0.92)' }}>
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 'clamp(0.58rem, 2.3vw, 0.74rem)', letterSpacing: '0.12em', color: 'rgba(232,184,64,0.92)', whiteSpace: 'nowrap' }}>
             {isPlayerTurn ? '▶ YOUR TURN' : `⏳ ${gs.players.find(p => !p.isHuman)?.name?.split(' ')[1] ?? 'WENDY'}`}
           </span>
         </div>
@@ -822,8 +833,6 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
               currentPlayerIndex={gs.currentPlayerIndex}
               boneyard={gs.boneyard.length}
               round={gs.roundCount}
-              lastScore={gs.lastScore}
-              lastScoringPlayerId={gs.lastScoringPlayerId}
               targetScore={gs.targetScore}
             />
 
