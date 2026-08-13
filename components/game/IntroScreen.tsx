@@ -187,6 +187,11 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer',
         userSelect: 'none',
+        // The sequence is taller than a 660px-high window and the overlay is
+        // fixed, so PLAY was being clipped off the bottom on short laptops
+        // before any of this. Scroll instead of clipping.
+        overflowY: 'auto',
+        paddingTop: 12, paddingBottom: 12,
       }}
     >
       {/* ── Phase 1: First domino + caption ── */}
@@ -234,8 +239,15 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         </div>
       </div>
 
-      {/* ── Phase 3: Second domino + caption ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28 }}>
+      {/* ── Phase 3: Second domino + caption ──
+          Sits low deliberately. With only Phase 2's 12px beneath the speech
+          bubble, "All-Fives Dominoes" tucked up under the portrait and read as
+          part of Sister Wendy's block — a caption for her, not a line about the
+          game. The gap below it is what tells you it belongs to the title.
+          The space comes OUT of the gap below rather than being added to the
+          overlay, which is fixed, centred and does not scroll — a straight
+          +48px pushed the PLAY button off the bottom of a 660px-tall window. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(16px, 3.5vh, 44px)', marginBottom: 4 }}>
         <div ref={text2Ref} style={{ opacity: 0, textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', color: '#c49020', letterSpacing: '0.08em' }}>
             All-Fives Dominoes
