@@ -9,7 +9,7 @@ import {
   GameState, GameMode, TileData, BoardEnd,
   initGame, nextRound, validEnds, canPlay, playOnBoard, scoreValue,
   boardIsEmpty, aiPickPlay, difficultyForMode,
-  calcRoundBonus, isDouble, scoreBreakdown,
+  calcRoundBonus, isDouble, grantsGoAgain, scoreBreakdown,
 } from '@/lib/game';
 import { randQuote, wendyCommentary } from '@/lib/wendy';
 import { getStats } from '@/lib/stats';
@@ -174,8 +174,7 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
     };
   }
 
-  // RaceHorse: lay a double OR score, and you go again. Both halves.
-  const bonus = isDouble(tile) || scored > 0;
+  const bonus = grantsGoAgain(tile, scored);
   const speech = buildSpeech(current.isHuman, scored, isDouble(tile), bonus, state.players.find(p => !p.isHuman)?.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
   const mood = getMood(current.isHuman, scored, isDouble(tile));
 
@@ -351,7 +350,7 @@ export default function Game() {
           const current = updatedPlayers[prev.currentPlayerIndex];
           const gameWon = current.score >= prev.targetScore;
           const roundWon = current.hand.length === 0;
-          const bonus = isDouble(play.tile) || scored > 0;
+          const bonus = grantsGoAgain(play.tile, scored);
           const speech = buildSpeech(false, scored, isDouble(play.tile), bonus, current.personalityId, updatedPlayers[0].score, updatedPlayers.find(p => !p.isHuman)?.score ?? 0);
           const mood = getMood(false, scored, isDouble(play.tile));
 

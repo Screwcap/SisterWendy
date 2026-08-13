@@ -92,6 +92,15 @@ export function tileMatches(tile: TileData, val: number): boolean {
   return tile.a === val || tile.b === val;
 }
 
+// RaceHorse — the defining rule of this game: lay a double OR score, and you go again.
+// Both halves, always. This lives here rather than in the component because the human's
+// move and Sister Wendy's turn are two separate code paths; when each carried its own
+// copy, the scoring half went missing from both and the game quietly played standard
+// All-Fives for months. One function, two callers, no drift.
+export function grantsGoAgain(tile: TileData, scored: number): boolean {
+  return isDouble(tile) || scored > 0;
+}
+
 // Seeded RNG (mulberry32) — used by the Daily Challenge so everyone gets the
 // same deal on a given day. Returns a () => number in [0,1).
 export function makeRng(seed: number): () => number {
