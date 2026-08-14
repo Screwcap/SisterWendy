@@ -196,14 +196,18 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
     >
       {/* ── Phase 1: First domino + caption ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 8 }}>
-        <div ref={d1Ref} style={{ opacity: 0, width: 68, flexShrink: 0 }}>
-          <DominoSVG a={6} b={6} style={{ width: 68, height: 146 }} />
+        <div ref={d1Ref} style={{ opacity: 0, width: 'clamp(56px, 8vh, 68px)', flexShrink: 0 }}>
+          <DominoSVG a={6} b={6} style={{ width: 'clamp(56px, 8vh, 68px)', height: 'clamp(120px, 17vh, 146px)' }} />
         </div>
         {/* Hers is the bigger of the two blocks on purpose — the game is the
             billing under her name, not beside it. Her tile scales with the
-            type so the pair still reads as one unit. — Andrew, 14 Aug. */}
+            type so the pair still reads as one unit. — Andrew, 14 Aug.
+            Both are capped in vh as well as vw: at full size the block costs
+            ~60px more than it used to, which is exactly enough to push PLAY
+            past the bottom of a 660px window. Short windows get the smaller
+            end of the clamp; from ~860px up it renders at full size. */}
         <div ref={text1Ref} style={{ opacity: 0, textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.6rem, 4.2vw, 2.4rem)', color: '#e8b840', letterSpacing: '0.08em', lineHeight: 1.2 }}>
+          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.35rem, min(4.2vw, 4.4vh), 2.4rem)', color: '#e8b840', letterSpacing: '0.08em', lineHeight: 1.2 }}>
             Sister Wendy
           </div>
           {/* Was "1930 – 2018" (the real art critic). She is her own character,
@@ -301,7 +305,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         fontSize: 'clamp(0.85rem, 2vw, 1.05rem)',
         color: 'rgba(245,234,216,0.55)',
         letterSpacing: '0.06em',
-        marginBottom: 32,
+        marginBottom: 'clamp(20px, 3.5vh, 32px)',
       }}>
         Mild Spiritual Threat.
       </div>
