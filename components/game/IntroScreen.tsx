@@ -196,16 +196,19 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
     >
       {/* ── Phase 1: First domino + caption ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 8 }}>
-        <div ref={d1Ref} style={{ opacity: 0, width: 56, flexShrink: 0 }}>
-          <DominoSVG a={6} b={6} style={{ width: 56, height: 120 }} />
+        <div ref={d1Ref} style={{ opacity: 0, width: 68, flexShrink: 0 }}>
+          <DominoSVG a={6} b={6} style={{ width: 68, height: 146 }} />
         </div>
+        {/* Hers is the bigger of the two blocks on purpose — the game is the
+            billing under her name, not beside it. Her tile scales with the
+            type so the pair still reads as one unit. — Andrew, 14 Aug. */}
         <div ref={text1Ref} style={{ opacity: 0, textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.1rem, 3vw, 1.6rem)', color: '#e8b840', letterSpacing: '0.08em', lineHeight: 1.2 }}>
-            Sister Wendy Calhoun
+          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1.6rem, 4.2vw, 2.4rem)', color: '#e8b840', letterSpacing: '0.08em', lineHeight: 1.2 }}>
+            Sister Wendy
           </div>
           {/* Was "1930 – 2018" (the real art critic). She is her own character,
               she is alive, and her age stays undefined — Andrew, 4 Aug. */}
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'rgba(226,188,96,0.75)', letterSpacing: '0.2em', marginTop: 4 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'rgba(226,188,96,0.75)', letterSpacing: '0.2em', marginTop: 5 }}>
             STILL PLAYING
           </div>
         </div>
@@ -246,8 +249,11 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
           game. The gap below it is what tells you it belongs to the title.
           The space comes OUT of the gap below rather than being added to the
           overlay, which is fixed, centred and does not scroll — a straight
-          +48px pushed the PLAY button off the bottom of a 660px-tall window. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(16px, 3.5vh, 44px)', marginBottom: 4 }}>
+          +48px pushed the PLAY button off the bottom of a 660px-tall window.
+          Dropped again 14 Aug: one gap wasn't enough separation once her block
+          grew. Still vh-scaled, so a short window gives back the space it
+          can't afford instead of clipping PLAY. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(32px, 7vh, 88px)', marginBottom: 4 }}>
         <div ref={text2Ref} style={{ opacity: 0, textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', color: '#c49020', letterSpacing: '0.08em' }}>
             All-Fives Dominoes
