@@ -184,14 +184,16 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         position: 'fixed', inset: 0, zIndex: 100,
         background: '#050303',
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'safe center',
         cursor: 'pointer',
         userSelect: 'none',
         // The sequence is taller than a 660px-high window and the overlay is
         // fixed, so PLAY was being clipped off the bottom on short laptops
         // before any of this. Scroll instead of clipping.
+        // 'safe center' matters: a plain centred flex column that overflows
+        // clips its own top and you cannot scroll back up to it.
         overflowY: 'auto',
-        paddingTop: 12, paddingBottom: 12,
+        paddingTop: 'clamp(4px, 1.5vh, 12px)', paddingBottom: 'clamp(4px, 1.5vh, 12px)',
       }}
     >
       {/* ── Phase 1: First domino + caption ── */}
@@ -272,7 +274,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       </div>
 
       {/* ── Phase 4: Fan + title + PLAY ── */}
-      <div ref={fanRef} style={{ opacity: 0, display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+      <div ref={fanRef} style={{ opacity: 0, display: 'flex', justifyContent: 'center', marginBottom: 'clamp(10px, 2.5vh, 20px)' }}>
         {FAN_TILES.map((t, i) => (
           <div key={i} style={{
             position: 'absolute',
@@ -343,7 +345,11 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         PLAY
       </button>
 
-      <div style={{
+      {/* Pinned to the window, not to the stack, so on a short window it lands
+          on top of PLAY. There is no room for it there and the whole overlay
+          is click-to-dismiss anyway — so below 720px it goes. */}
+      <style>{`@media (max-height: 720px) { .intro-continue-hint { display: none; } }`}</style>
+      <div className="intro-continue-hint" style={{
         position: 'absolute', bottom: 18,
         fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
         letterSpacing: '0.12em', color: 'rgba(226,188,96,0.72)',
