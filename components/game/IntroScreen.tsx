@@ -197,7 +197,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       }}
     >
       {/* ── Phase 1: First domino + caption ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 'clamp(2px, 1vh, 8px)' }}>
         <div ref={d1Ref} style={{ opacity: 0, width: 'clamp(56px, 8vh, 68px)', flexShrink: 0 }}>
           <DominoSVG a={6} b={6} style={{ width: 'clamp(56px, 8vh, 68px)', height: 'clamp(120px, 17vh, 146px)' }} />
         </div>
@@ -221,7 +221,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       </div>
 
       {/* ── Phase 2: Portrait + speech ── */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18, marginBottom: 12, marginTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18, marginBottom: 'clamp(4px, 1.2vh, 12px)', marginTop: 'clamp(0px, 1vh, 8px)' }}>
         <div ref={portraitRef} style={{ opacity: 0, flexShrink: 0 }}>
           <img src="/wendy-neutral.webp" alt="Sister Wendy" width="72" height="90"
             style={{ width: 72, height: 90, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(196,144,32,0.45)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }} />
@@ -259,7 +259,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
           Dropped again 14 Aug: one gap wasn't enough separation once her block
           grew. Still vh-scaled, so a short window gives back the space it
           can't afford instead of clipping PLAY. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(32px, 7vh, 88px)', marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(24px, calc(11vh - 40px), 88px)', marginBottom: 4 }}>
         <div ref={text2Ref} style={{ opacity: 0, textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', color: '#c49020', letterSpacing: '0.08em' }}>
             All-Fives Dominoes
@@ -284,7 +284,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
             <DominoSVG a={t.a} b={t.b} style={{ width: 28, height: 60, opacity: 0.9 }} />
           </div>
         ))}
-        <div style={{ height: 70 }} /> {/* spacer for fan tiles */}
+        <div style={{ height: 'clamp(56px, 9vh, 70px)' }} /> {/* spacer for fan tiles */}
       </div>
 
       <div ref={titleRef} style={{
@@ -335,7 +335,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
           background: 'linear-gradient(180deg, #f0cf6a 0%, #d8a92e 42%, #a87c18 100%)',
           color: '#1a1206',
           border: '1px solid #8b6d1e',
-          padding: '13px 50px',
+          padding: 'clamp(9px, 1.6vh, 13px) 50px',
           borderRadius: 12,
           cursor: 'pointer',
           textShadow: '0 1px 1px rgba(255,240,200,0.35)',
