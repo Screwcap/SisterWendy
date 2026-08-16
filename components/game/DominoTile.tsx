@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { TileData } from '@/lib/game';
 import { getTileFact } from '@/lib/wendy';
+import { pipOffsets } from '@/lib/pips';
 import gsap from 'gsap';
 
 interface DominoTileProps {
@@ -22,48 +23,26 @@ interface DominoTileProps {
   sponsorLogoUrl?: string;
 }
 
-// Pip positions as [x%, y%] within the square pip face, laid out for a PORTRAIT
-// tile (the way you'd hold one): the 6 reads as two columns of three.
-const PIP_POSITIONS: Record<number, Array<[number, number]>> = {
-  0: [],
-  1: [[50, 50]],
-  2: [[30, 30], [70, 70]],
-  3: [[30, 30], [50, 50], [70, 70]],
-  4: [[28, 28], [72, 28], [28, 72], [72, 72]],
-  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
-  6: [[28, 20], [72, 20], [28, 50], [72, 50], [28, 80], [72, 80]],
-};
-
-// Lay a tile on its side and the pips turn with it — a 6 becomes three columns
-// of two, not two columns of three. Rotate the portrait layout 90° clockwise.
-const rotate90 = ([x, y]: [number, number]): [number, number] => [100 - y, x];
-
-/**
- * Pull every pip a little toward the centre of its face.
- *
- * The six's three-across axis sits at 20/50/80, tighter than the four and
- * five's 28/72, so once landscape rotation moved that axis horizontal the
- * outer columns crowded the tile's right and left edges (Andrew, 4 Aug).
- * Squeezing the whole layout uniformly keeps the spacing even between pips
- * while buying back the margin.
- */
-const SQUEEZE = 0.86;
-const inset = ([x, y]: [number, number]): [number, number] => [
-  50 + (x - 50) * SQUEEZE,
-  50 + (y - 50) * SQUEEZE,
-];
-
-function pipsFor(value: number, vertical: boolean): Array<[number, number]> {
-  const positions = PIP_POSITIONS[value] ?? [];
-  return (vertical ? positions : positions.map(rotate90)).map(inset);
-}
-
-// pip_size = square dimension of each half-face
+// Pip layout now lives in lib/pips.ts — one definition shared with the splash
+// tile, so the two can't drift apart again. This file just places them.
+// pip = the tile's short dimension. The half-face is smaller: see FACE_INSET.
 const SIZE_MAP = {
   sm: { pip: 36, r: 5, pipR: 4.0 },
   md: { pip: 50, r: 7, pipR: 5.6 },
   lg: { pip: 64, r: 8, pipR: 7.0 },
 };
+
+/**
+ * The tile is border-box with a 2px border, so its content box is 4px smaller
+ * than `pip` in both directions. The half-faces used to be `pip` square and
+ * flexShrink:0, which meant they overflowed the content box and `overflow:
+ * hidden` quietly cropped 2px off each outer edge — the bottom pip of a six
+ * ended up 3.4px from the tile edge while its top pip had 5.3px, measured in
+ * the browser. That's the same top-heavy asymmetry Andrew caught on the
+ * splash, hiding one border-width down. Sizing the face to the content box
+ * makes the percentages in lib/pips.ts true, and nothing gets cropped.
+ */
+const FACE_INSET = 4;
 
 function PipFace({
   value,
@@ -78,10 +57,10 @@ function PipFace({
   dark: boolean;
   vertical: boolean;
 }) {
-  const positions = pipsFor(value, vertical);
+  const positions = pipOffsets(value, vertical);
   return (
     <div style={{ position: 'relative', width: pipSize, height: pipSize, flexShrink: 0 }}>
-      {positions.map(([px, py], i) => (
+      {positions.map(([dx, dy], i) => (
         <div
           key={i}
           style={{
@@ -92,8 +71,8 @@ function PipFace({
             background: dark
               ? 'radial-gradient(circle at 38% 35%, #8a6010, #3d2000)'
               : 'radial-gradient(circle at 38% 35%, #3d2410, #080400)',
-            left: `calc(${px}% - ${pipRadius}px)`,
-            top: `calc(${py}% - ${pipRadius}px)`,
+            left: `calc(${50 + dx}% - ${pipRadius}px)`,
+            top: `calc(${50 + dy}% - ${pipRadius}px)`,
             boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.55)',
           }}
         />
@@ -120,6 +99,7 @@ export default function DominoTile({
 }: DominoTileProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { pip, r, pipR } = SIZE_MAP[size];
+  const face = pip - FACE_INSET;
 
   useEffect(() => {
     if (isNew && ref.current) {
@@ -260,9 +240,9 @@ export default function DominoTile({
       tabIndex={onClick && !isDisabled ? 0 : -1}
       onKeyDown={e => e.key === 'Enter' && handleClick()}
     >
-      <PipFace value={topVal} pipSize={pip} pipRadius={pipR} dark={isSelected} vertical={vertical} />
+      <PipFace value={topVal} pipSize={face} pipRadius={pipR} dark={isSelected} vertical={vertical} />
       <div style={dividerStyle} />
-      <PipFace value={botVal} pipSize={pip} pipRadius={pipR} dark={isSelected} vertical={vertical} />
+      <PipFace value={botVal} pipSize={face} pipRadius={pipR} dark={isSelected} vertical={vertical} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { PIP_OFFSETS } from '@/lib/pips';
 import gsap from 'gsap';
 
 interface IntroScreenProps {
@@ -35,32 +36,17 @@ const PLAY_SHADOW_HOVER =
 const PLAY_SHADOW_ACTIVE =
   'inset 0 2px 5px rgba(70,48,6,0.55), 0 1px 2px rgba(0,0,0,0.5), 0 0 18px rgba(196,144,32,0.28)';
 
-// Small domino SVG
 /**
- * Pips are laid out as offsets from the CENTRE of their half-face, not as
- * absolute coordinates — the old absolute table put the top half's rows at
- * y 7/14/21 inside a face running 1.6→29.6, so every pip sat ~3 units high
- * and the tile read top-heavy (Andrew, 15 Aug). Measuring from each centre
- * makes the margins symmetrical by construction.
+ * Small domino SVG. Pip layout comes from lib/pips.ts — the same offsets the
+ * in-game tiles use, so the splash and the table can't drift apart.
  *
  * Face geometry: the rect's 1.2 stroke is centred, so the inner faces run
- * y 1.6→29.6 (top, centre 15.6) and y 30.4→58.4 (bottom, centre 44.4).
+ * y 1.6→29.6 (top, centre 15.6) and y 30.4→58.4 (bottom, centre 44.4). Each
+ * is 28 units tall, so one percent of a face is 0.28 units.
  */
 const TOP_C = 15.6;
 const BOT_C = 44.4;
-const COL = 7;    // column offset from the tile's x centre (14)
-const ROW = 7;    // row offset for the 3×3 layouts
-const ROW6 = 8.6; // the six needs three rows, so they sit closer together
-
-const PIP_OFFSETS: Record<number, Array<[number, number]>> = {
-  0: [],
-  1: [[0, 0]],
-  2: [[-COL, -ROW], [COL, ROW]],
-  3: [[-COL, -ROW], [0, 0], [COL, ROW]],
-  4: [[-COL, -ROW], [COL, -ROW], [-COL, ROW], [COL, ROW]],
-  5: [[-COL, -ROW], [COL, -ROW], [0, 0], [-COL, ROW], [COL, ROW]],
-  6: [[-COL, -ROW6], [COL, -ROW6], [-COL, 0], [COL, 0], [-COL, ROW6], [COL, ROW6]],
-};
+const PCT = 0.28;
 
 function DominoSVG({ a, b, style }: { a: number; b: number; style?: React.CSSProperties }) {
   const topPips = PIP_OFFSETS[a] ?? [];
@@ -70,10 +56,10 @@ function DominoSVG({ a, b, style }: { a: number; b: number; style?: React.CSSPro
       <rect x="1" y="1" width="26" height="58" rx="4" fill="#f2ecd6" stroke="#1e1006" strokeWidth="1.2" />
       <line x1="5" y1="30" x2="23" y2="30" stroke="#1e1006" strokeWidth="0.8" opacity="0.5" />
       {topPips.map(([dx, dy], i) => (
-        <circle key={`a${i}`} cx={14 + dx} cy={TOP_C + dy} r="2.8" fill="#2c1a0e" />
+        <circle key={`a${i}`} cx={14 + dx * PCT} cy={TOP_C + dy * PCT} r="2.8" fill="#2c1a0e" />
       ))}
       {botPips.map(([dx, dy], i) => (
-        <circle key={`b${i}`} cx={14 + dx} cy={BOT_C + dy} r="2.8" fill="#2c1a0e" />
+        <circle key={`b${i}`} cx={14 + dx * PCT} cy={BOT_C + dy * PCT} r="2.8" fill="#2c1a0e" />
       ))}
     </svg>
   );
@@ -85,8 +71,6 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
   const text1Ref    = useRef<HTMLDivElement>(null);
   const portraitRef = useRef<HTMLDivElement>(null);
   const speechRef   = useRef<HTMLDivElement>(null);
-  const d2Ref       = useRef<HTMLDivElement>(null);
-  const text2Ref    = useRef<HTMLDivElement>(null);
   const titleRef    = useRef<HTMLDivElement>(null);
   const tagRef      = useRef<HTMLDivElement>(null);
   const playRef     = useRef<HTMLButtonElement>(null);
@@ -137,34 +121,25 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
       });
     }
 
-    // ── Phase 3 [3–4.5s]: Second domino ───────────────────────────────────
-    tl.fromTo(d2Ref.current,
-      { x: 120, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.55, ease: 'back.out(1.4)',
-        onComplete: () => clack(330) },
-      3.1
-    );
-    tl.fromTo(text2Ref.current,
-      { opacity: 0, y: 8 },
-      { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' },
-      3.7
-    );
-
-    // ── Phase 4 [4.5–6s]: Title + tagline + PLAY ─────────────────────────
+    // ── Phase 3 [3–4.5s]: Title + tagline + PLAY ─────────────────────────
+    // Everything here moved 1.5s earlier when the second domino came out —
+    // its slot ran 3.1→4.5s and leaving it empty would have parked the whole
+    // splash on a still frame of the speech bubble. Same rhythm between the
+    // beats, one beat fewer.
     tl.fromTo(fanRef.current,
       { opacity: 0, scale: 0.6 },
       { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.8)' },
-      4.55
+      3.05
     );
     tl.fromTo(titleRef.current,
       { opacity: 0, y: -14, letterSpacing: '0.5em' },
       { opacity: 1, y: 0, letterSpacing: '0.15em', duration: 0.55, ease: 'power3.out' },
-      4.65
+      3.15
     );
     tl.fromTo(tagRef.current,
       { opacity: 0 },
       { opacity: 1, duration: 0.4, ease: 'power2.out' },
-      5.1
+      3.6
     );
     tl.fromTo(playRef.current,
       { opacity: 0, scale: 0.7 },
@@ -179,7 +154,7 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
             setTimeout(() => clack([523, 659, 784, 1047][i]), t * 1000);
           });
         }},
-      5.5
+      4.0
     );
 
     return () => { tl.kill(); };
@@ -268,33 +243,17 @@ export default function IntroScreen({ onDone }: IntroScreenProps) {
         </div>
       </div>
 
-      {/* ── Phase 3: Second domino + caption ──
-          Sits low deliberately. With only Phase 2's 12px beneath the speech
-          bubble, this caption tucked up under the portrait and read as part of
-          Sister Wendy's block — a caption for her, not a line about the game.
-          The gap below it is what tells you it belongs to the title.
-          The space comes OUT of the gap below rather than being added to the
-          overlay, which is fixed, centred and does not scroll — a straight
-          +48px pushed the PLAY button off the bottom of a 660px-tall window.
-          Dropped again 14 Aug: one gap wasn't enough separation once her block
-          grew. Still vh-scaled, so a short window gives back the space it
-          can't afford instead of clipping PLAY. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 'clamp(24px, calc(11vh - 40px), 88px)', marginBottom: 4 }}>
-        {/* "All-Fives Dominoes" is gone — Andrew, 15 Aug (asked twice). The
-            first ask was read as a spacing problem and the line was only moved
-            down the splash; he wanted the words out. The 5|0 tile and the
-            scoring line carry the same idea without naming the ruleset. */}
-        <div ref={text2Ref} style={{ opacity: 0, textAlign: 'right' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'rgba(196,144,32,0.55)', letterSpacing: '0.18em' }}>
-            Score in multiples of 5
-          </div>
-        </div>
-        <div ref={d2Ref} style={{ opacity: 0, width: 56, flexShrink: 0 }}>
-          <DominoSVG a={5} b={0} style={{ width: 56, height: 120 }} />
-        </div>
-      </div>
+      {/* The old Phase 3 — a 5|0 tile and "Score in multiples of 5" — is gone
+          (Andrew, 16 Aug: "so the opening screen looks cleaner"). It was the
+          last survivor of the All-Fives billing, and the splash reads better
+          as three beats than four. What's left of it is the breathing room:
+          the gap it used to own now separates her block from the title, which
+          is the job that gap was doing anyway. Still vh-scaled, because the
+          overlay is fixed and centred — a fixed gap here is what pushed PLAY
+          off the bottom of a 660px window twice before. */}
+      <div style={{ height: 'clamp(24px, calc(11vh - 40px), 88px)' }} />
 
-      {/* ── Phase 4: Fan + title + PLAY ── */}
+      {/* ── Phase 3: Fan + title + PLAY ── */}
       <div ref={fanRef} style={{ opacity: 0, display: 'flex', justifyContent: 'center', marginBottom: 'clamp(10px, 2.5vh, 20px)' }}>
         {FAN_TILES.map((t, i) => (
           <div key={i} style={{
