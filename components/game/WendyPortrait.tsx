@@ -159,7 +159,7 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
 
       {/* Name plate */}
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
+        fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
         letterSpacing: '0.16em', color: personality.textColor,
         textTransform: 'uppercase',
       }}>
@@ -186,7 +186,7 @@ export default function WendyPortrait({ mood, speech, artFact, personalityId }: 
         }} />
         <p style={{
           fontFamily: 'var(--font-garamond)',
-          fontSize: '0.9rem', fontStyle: 'italic',
+          fontSize: '1.025rem', fontStyle: 'italic',
           color: 'rgba(245,234,216,0.88)',
           lineHeight: 1.5,
           paddingRight: 22,

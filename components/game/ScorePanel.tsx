@@ -70,7 +70,7 @@ export default function ScorePanel({
                 {/* The numeral lives in the top nav now (HeaderScore). This row
                     shows how far along the bar you are, not the number again. */}
                 <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.62rem',
+                  fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
                   letterSpacing: '0.1em', color: 'rgba(214,172,86,0.72)',
                 }}>
                   {Math.round(pct)}%
@@ -91,10 +91,10 @@ export default function ScorePanel({
               </div>
 
               <div className="flex justify-between mt-0.5">
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
                   0
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'rgba(214,172,86,0.72)', letterSpacing: '0.1em' }}>
                   {TARGET}
                 </span>
               </div>
