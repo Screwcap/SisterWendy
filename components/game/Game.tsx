@@ -924,9 +924,9 @@ function GameUI({ gs, dispatch, artFact, setArtFact, latestTileId, setLatestTile
               />
 
               {/* Mobile-only speech — shown near the hand, not as a fixed overlay */}
-              <div className="md:hidden mt-2 px-3 py-2 rounded-lg"
+              <div className="md:hidden mt-2 px-3 py-3 rounded-lg"
                 style={{ background: 'rgba(13,10,6,0.88)', border: '1px solid rgba(196,144,32,0.15)' }}>
-                <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '0.88rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.82)', lineHeight: 1.4, textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-garamond)', fontSize: '1.005rem', fontStyle: 'italic', color: 'rgba(245,234,216,0.82)', lineHeight: 1.4, textAlign: 'center' }}>
                   &ldquo;{gs.wendySpeech}&rdquo;
                 </p>
               </div>
