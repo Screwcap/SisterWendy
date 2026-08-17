@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { TileData } from '@/lib/game';
 import { getTileFact } from '@/lib/wendy';
-import { pipOffsets } from '@/lib/pips';
+import { pipOffsets, pipRadiusScale } from '@/lib/pips';
 import gsap from 'gsap';
 
 interface DominoTileProps {
@@ -58,6 +58,10 @@ function PipFace({
   vertical: boolean;
 }) {
   const positions = pipOffsets(value, vertical);
+  // The six draws smaller than everything else — see PIP_RADIUS_SCALE in
+  // lib/pips.ts. Applied here so every caller (hand, board, splash) inherits it
+  // rather than each one remembering.
+  const pipR = pipRadius * pipRadiusScale(value);
   return (
     <div style={{ position: 'relative', width: pipSize, height: pipSize, flexShrink: 0 }}>
       {positions.map(([dx, dy], i) => (
@@ -65,14 +69,14 @@ function PipFace({
           key={i}
           style={{
             position: 'absolute',
-            width: pipRadius * 2,
-            height: pipRadius * 2,
+            width: pipR * 2,
+            height: pipR * 2,
             borderRadius: '50%',
             background: dark
               ? 'radial-gradient(circle at 38% 35%, #8a6010, #3d2000)'
               : 'radial-gradient(circle at 38% 35%, #3d2410, #080400)',
-            left: `calc(${50 + dx}% - ${pipRadius}px)`,
-            top: `calc(${50 + dy}% - ${pipRadius}px)`,
+            left: `calc(${50 + dx}% - ${pipR}px)`,
+            top: `calc(${50 + dy}% - ${pipR}px)`,
             boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.55)',
           }}
         />
