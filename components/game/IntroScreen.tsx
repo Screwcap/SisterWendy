@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { PIP_OFFSETS } from '@/lib/pips';
+import { PIP_OFFSETS, pipRadiusScale } from '@/lib/pips';
 import gsap from 'gsap';
 
 interface IntroScreenProps {
@@ -47,6 +47,8 @@ const PLAY_SHADOW_ACTIVE =
 const TOP_C = 15.6;
 const BOT_C = 44.4;
 const PCT = 0.28;
+/** Base pip radius on the splash tile. The six draws smaller — see lib/pips.ts. */
+const PIP_R = 2.8;
 
 function DominoSVG({ a, b, style }: { a: number; b: number; style?: React.CSSProperties }) {
   const topPips = PIP_OFFSETS[a] ?? [];
@@ -56,10 +58,10 @@ function DominoSVG({ a, b, style }: { a: number; b: number; style?: React.CSSPro
       <rect x="1" y="1" width="26" height="58" rx="4" fill="#f2ecd6" stroke="#1e1006" strokeWidth="1.2" />
       <line x1="5" y1="30" x2="23" y2="30" stroke="#1e1006" strokeWidth="0.8" opacity="0.5" />
       {topPips.map(([dx, dy], i) => (
-        <circle key={`a${i}`} cx={14 + dx * PCT} cy={TOP_C + dy * PCT} r="2.8" fill="#2c1a0e" />
+        <circle key={`a${i}`} cx={14 + dx * PCT} cy={TOP_C + dy * PCT} r={PIP_R * pipRadiusScale(a)} fill="#2c1a0e" />
       ))}
       {botPips.map(([dx, dy], i) => (
-        <circle key={`b${i}`} cx={14 + dx * PCT} cy={BOT_C + dy * PCT} r="2.8" fill="#2c1a0e" />
+        <circle key={`b${i}`} cx={14 + dx * PCT} cy={BOT_C + dy * PCT} r={PIP_R * pipRadiusScale(b)} fill="#2c1a0e" />
       ))}
     </svg>
   );

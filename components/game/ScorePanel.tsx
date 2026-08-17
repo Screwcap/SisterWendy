@@ -67,14 +67,17 @@ export default function ScorePanel({
                 }}>
                   {isActive ? '▶ ' : ''}{player.name.toUpperCase()}
                 </span>
-                {/* The numeral lives in the top nav now (HeaderScore). This row
-                    shows how far along the bar you are, not the number again. */}
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
-                  letterSpacing: '0.1em', color: 'rgba(214,172,86,0.72)',
-                }}>
-                  {Math.round(pct)}%
-                </span>
+                {/* Andrew, 17 Aug: "update the scoring to have it just 1 time,
+                    not have it on side & top bar."
+
+                    The score used to be printed twice as a NUMERAL, so the
+                    first pass moved the numeral to the top nav and left a % of
+                    target here. That was still the same fact stated twice in
+                    two units, and he read it as scoring in two places — because
+                    it is. The figure now lives ONLY in HeaderScore. What is
+                    left in this panel is shape, not score: how far along the bar
+                    each player is, which is the one thing the numeral can't
+                    show. */}
               </div>
 
               {/* Progress bar */}

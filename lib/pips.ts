@@ -49,6 +49,28 @@ export const PIP_OFFSETS: Record<number, PipOffset[]> = {
  */
 const SIX_ACROSS_SQUEEZE = 0.86;
 
+/**
+ * The six carries SIX pips where the five carries five, on a face the same
+ * size — so it is the only value whose pips crowd each OTHER rather than the
+ * edge (Andrew, 17 Aug: "double six's pips are really close").
+ *
+ * The margins were never the problem and moving the pips would undo the
+ * kerning he signed off on. Measured on a md tile (46px face, 5.6px radius):
+ * the six's adjacent pips sit 12.1px apart centre-to-centre carrying an 11.2px
+ * diameter, which leaves **0.9px of daylight** — they read as one mass. Every
+ * other value's nearest neighbours are diagonal and ~16px apart.
+ *
+ * So the six — and only the six — draws at a smaller radius. Its POSITIONS are
+ * untouched, which is what keeps the face symmetrical; the gaps open up and the
+ * outer margin grows slightly, landing in line with the four and five rather
+ * than tighter than them.
+ */
+const PIP_RADIUS_SCALE: Record<number, number> = { 6: 0.8 };
+
+export function pipRadiusScale(value: number): number {
+  return PIP_RADIUS_SCALE[value] ?? 1;
+}
+
 export function pipOffsets(value: number, vertical: boolean): PipOffset[] {
   const offsets = PIP_OFFSETS[value] ?? [];
   if (vertical) return offsets;
