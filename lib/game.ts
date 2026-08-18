@@ -74,6 +74,15 @@ export interface GameState {
    * saved games from before the fix still load.
    */
   aiNudge?: number;
+  /**
+   * Passes taken in a row since the last tile was placed. The boneyard runs dry
+   * and then neither side can move: before this existed the two players simply
+   * passed to each other for ever (Andrew, 17 Aug: "our sisterwendy game loops
+   * infinitely"). Reaching players.length means everyone has had a turn and
+   * nobody could move — the round is blocked. Optional so saved games from
+   * before the fix still load.
+   */
+  consecutivePasses?: number;
 }
 
 export type WendyMood = 'neutral' | 'pleased' | 'disappointed' | 'suspicious' | 'triumphant' | 'amused';
@@ -412,7 +421,84 @@ export function nextRound(state: GameState): GameState {
     lastScoringPlayerId: null,
     bonusTurn: false,
     turnCount: 0,
+    // A blocked round is the likeliest way to arrive here — carrying its pass
+    // count into a full boneyard would settle the new round on the first pass.
+    consecutivePasses: 0,
     wendySpeech: "New round. Same habit. Let's go.",
     wendyMood: 'neutral',
+  };
+}
+
+// ── The blocked round ───────────────────────────────────────────────────────
+//
+// All-Fives has two ways for a round to end. The common one is someone playing
+// their last tile. The other is the BLOCK: the boneyard is empty and no player
+// holds a tile that matches either open end, so every player passes in turn and
+// the board can never change again.
+//
+// The game had no handling for it at all. `PASS` just advanced the turn, so two
+// stuck players handed the turn back and forth for ever — Andrew, 17 Aug: "when
+// boneyard is depleted... our sisterwendy game loops infinitely & needs to be
+// cut short after the full first 2 passes." Two players, two passes: exactly
+// `players.length` passes with no tile in between.
+//
+// Scoring follows the same convention as going out, so a blocked round is worth
+// what an ordinary one is: LOWEST pip count in hand takes the round, and scores
+// everyone else's remaining pips rounded to the nearest five (`calcRoundBonus`,
+// the same function the go-out path uses — one rule, one implementation).
+//
+// HOUSE RULE on an exact tie, which the classical rules leave open: nobody
+// scores, and the round is credited to whoever was about to play purely so the
+// next round has someone to lead it. A tie awards zero either way, so this
+// cannot decide a game — it only decides who goes first.
+
+/** Total pips in a hand. */
+export function handPips(hand: TileData[]): number {
+  return hand.reduce((s, t) => s + t.a + t.b, 0);
+}
+
+/** True once everyone has passed in succession with no tile played between. */
+export function isBlocked(state: GameState): boolean {
+  return (state.consecutivePasses ?? 0) >= state.players.length;
+}
+
+/**
+ * Settle a blocked round: pick the winner on pips, award the bonus, and move to
+ * roundOver — or gameOver if that carries them to the target.
+ */
+export function resolveBlockedRound(state: GameState): GameState {
+  const pips = state.players.map(p => handPips(p.hand));
+  const lowest = Math.min(...pips);
+  const tied = pips.filter(v => v === lowest).length > 1;
+  const winnerIdx = tied ? state.currentPlayerIndex : pips.indexOf(lowest);
+
+  const bonus = tied ? 0 : calcRoundBonus(state.players, winnerIdx);
+  const players = bonus > 0
+    ? state.players.map((p, i) => (i === winnerIdx ? { ...p, score: p.score + bonus } : p))
+    : state.players;
+
+  const winner = players[winnerIdx];
+  const gameWon = winner.score >= state.targetScore;
+
+  const opp = state.players.find(p => !p.isHuman);
+  const oppName = opp?.name ?? 'Sister Wendy';
+  const speech = tied
+    ? `Blocked — and dead level on pips. Nobody scores that one.`
+    : winner.isHuman
+      ? `Blocked. You were holding the lighter hand, so the round is yours (+${bonus}).`
+      : `Blocked. ${oppName} was holding the lighter hand, so she takes it (+${bonus}).`;
+
+  return {
+    ...state,
+    players,
+    phase: gameWon ? 'gameOver' : 'roundOver',
+    roundWinnerId: winner.id,
+    gameWinnerId: gameWon ? winner.id : null,
+    selectedTile: null,
+    validEndsForSelected: [],
+    bonusTurn: false,
+    consecutivePasses: 0,
+    wendySpeech: speech,
+    wendyMood: winner.isHuman ? 'disappointed' : 'triumphant',
   };
 }
