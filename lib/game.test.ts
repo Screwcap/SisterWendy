@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   createTile, isDouble, grantsGoAgain, scoreValue, playOnBoard,
-  type BoardState,
+  initGame, nextRound, isBlocked, resolveBlockedRound, handPips,
+  type BoardState, type GameState, type TileData,
 } from '@/lib/game';
 
 // Sister Wendy is a RaceHorse-only game: lay a double OR score and you play again.
@@ -87,5 +88,81 @@ describe('the shipped combination — play, score, go again', () => {
 
     expect(scored).toBe(0);              // ends are now 0 and 4
     expect(grantsGoAgain(tile, scored)).toBe(false);
+  });
+});
+
+/**
+ * THE BLOCKED ROUND — Andrew, 17 Aug: "when boneyard is depleted... our
+ * sisterwendy game loops infinitely & needs to be cut short after the full
+ * first 2 passes."
+ *
+ * The engine had no concept of a block at all: PASS advanced the turn and
+ * nothing counted, so two stuck players handed the turn back and forth for
+ * ever. These tests pin the ending AND the scoring.
+ */
+describe('a blocked round ends, and pays out', () => {
+  const tile = (a: number, b: number) => createTile(a, b);
+
+  function stuck(humanHand: TileData[], wendyHand: TileData[], passes = 0): GameState {
+    const base = initGame('focused', 'wendy', 61);
+    return {
+      ...base,
+      boneyard: [],
+      consecutivePasses: passes,
+      currentPlayerIndex: 0,
+      players: [
+        { ...base.players[0], hand: humanHand, score: 0 },
+        { ...base.players[1], hand: wendyHand, score: 0 },
+      ],
+    };
+  }
+
+  it('is not blocked until everyone has passed', () => {
+    expect(isBlocked(stuck([tile(1, 1)], [tile(2, 2)], 0))).toBe(false);
+    expect(isBlocked(stuck([tile(1, 1)], [tile(2, 2)], 1))).toBe(false);
+    expect(isBlocked(stuck([tile(1, 1)], [tile(2, 2)], 2))).toBe(true);
+  });
+
+  it('gives the round to the lighter hand and ends the round', () => {
+    // human 1+1 = 2 pips, Wendy 6+6 + 5+4 = 21 pips → human takes it
+    const s = resolveBlockedRound(stuck([tile(1, 1)], [tile(6, 6), tile(5, 4)], 2));
+    expect(s.phase).toBe('roundOver');
+    expect(s.roundWinnerId).toBe('human');
+    // 21 pips rounds to 20
+    expect(s.players[0].score).toBe(20);
+    expect(s.players[1].score).toBe(0);
+  });
+
+  it('gives it to Sister Wendy when she is the lighter one', () => {
+    const s = resolveBlockedRound(stuck([tile(6, 6), tile(6, 5)], [tile(0, 1)], 2));
+    expect(s.roundWinnerId).not.toBe('human');
+    expect(s.players[1].score).toBe(25); // 23 pips → 25
+  });
+
+  it('pays nobody on a dead-level tie', () => {
+    const s = resolveBlockedRound(stuck([tile(3, 3)], [tile(2, 4)], 2));
+    expect(s.players[0].score).toBe(0);
+    expect(s.players[1].score).toBe(0);
+    expect(s.roundWinnerId).toBeTruthy();   // still names someone, to lead next round
+    expect(s.phase).toBe('roundOver');
+  });
+
+  it('ends the GAME when the block carries someone to the target', () => {
+    const s0 = stuck([tile(1, 1)], [tile(6, 6), tile(6, 5)], 2);
+    s0.players[0].score = 55;               // 23 pips → 25, past 61
+    const s = resolveBlockedRound(s0);
+    expect(s.phase).toBe('gameOver');
+    expect(s.gameWinnerId).toBe('human');
+  });
+
+  it('clears the pass count so the next round does not settle on one pass', () => {
+    const s = resolveBlockedRound(stuck([tile(1, 1)], [tile(6, 6)], 2));
+    expect(s.consecutivePasses).toBe(0);
+    expect(isBlocked(nextRound(s))).toBe(false);
+  });
+
+  it('counts pips the way the go-out bonus does', () => {
+    expect(handPips([tile(6, 6), tile(5, 4)])).toBe(21);
+    expect(handPips([])).toBe(0);
   });
 });

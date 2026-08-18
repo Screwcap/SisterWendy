@@ -10,6 +10,7 @@ import {
   initGame, nextRound, validEnds, canPlay, playOnBoard, scoreValue,
   boardIsEmpty, aiPickPlay, difficultyForMode,
   calcRoundBonus, isDouble, grantsGoAgain, scoreBreakdown,
+  isBlocked, resolveBlockedRound,
 } from '@/lib/game';
 import { randQuote, wendyCommentary } from '@/lib/wendy';
 import { getStats } from '@/lib/stats';
@@ -112,7 +113,7 @@ function reducer(state: GameState, action: Action): GameState {
     }
 
     case 'PASS': {
-      return advanceTurn(state);
+      return passTurn(state);
     }
 
     case 'SPEECH': {
@@ -193,6 +194,8 @@ function commitPlay(state: GameState, tile: TileData, end: BoardEnd): GameState 
     wendyMood: mood,
     bonusTurn: bonus && current.isHuman,
     turnCount: state.turnCount + 1,
+    // A tile landed, so nobody is deadlocked any more.
+    consecutivePasses: 0,
   };
 }
 
@@ -210,6 +213,20 @@ function advanceTurn(state: GameState): GameState {
     wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn', nextPlayer.personalityId),
     wendyMood: 'neutral',
   };
+}
+
+/**
+ * A pass, counted. The only difference from advanceTurn is that it remembers,
+ * and once everyone has passed in a row with no tile laid between, it settles
+ * the round instead of handing the turn on again — which is what looped for
+ * ever. Both the human's PASS button and Sister Wendy's stuck branch go through
+ * here, so neither can forget to count (the same discipline grantsGoAgain
+ * enforces on the RaceHorse rule).
+ */
+function passTurn(state: GameState): GameState {
+  const passed = { ...state, consecutivePasses: (state.consecutivePasses ?? 0) + 1 };
+  if (isBlocked(passed)) return resolveBlockedRound(passed);
+  return advanceTurn(passed);
 }
 
 function oppPersonality(state: GameState): string | undefined {
@@ -434,18 +451,11 @@ export default function Game() {
             };
           }
 
-          // Truly stuck — pass
-          const nextIdx = (prev.currentPlayerIndex + 1) % prev.players.length;
-          const nextPlayer = updatedPlayers[nextIdx];
-          return {
-            ...prev,
-            players: updatedPlayers,
-            boneyard,
-            currentPlayerIndex: nextIdx,
-            phase: nextPlayer.isHuman ? 'selecting' : 'aiThinking',
-            wendySpeech: nextPlayer.isHuman ? "Your turn." : randQuote('herTurn', nextPlayer.personalityId),
-            wendyMood: 'neutral',
-          };
+          // Truly stuck — pass, and count it. Going through passTurn is what
+          // lets a two-sided deadlock end: she passes to a human who also can't
+          // move, and the second pass settles the round rather than handing it
+          // straight back.
+          return passTurn({ ...prev, players: updatedPlayers, boneyard });
         });
       }
     }, AI_DELAY_MS);
