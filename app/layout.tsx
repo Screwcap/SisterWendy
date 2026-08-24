@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from 'next/font/google';
 import { AdSenseLoader } from '@/components/AdSenseLoader';
+import { SITE_URL } from './site';
 import './globals.css';
 
 const bebas = Bebas_Neue({
@@ -27,6 +28,10 @@ const mono = DM_Mono({
 });
 
 export const metadata: Metadata = {
+  // There was no metadataBase, so every og:image below was a relative URL and no
+  // social crawler could resolve it. See app/site.ts.
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: './' },
   title: 'Sister Wendy Dominoes',
   description: 'All-Fives dominoes with Sister Wendy Beckett. Art history, mild spiritual threat.',
   icons: {
@@ -41,7 +46,9 @@ export const metadata: Metadata = {
     title: 'Sister Wendy Dominoes',
     description: 'All-Fives dominoes with Sister Wendy Beckett. Art history, mild spiritual threat.',
     type: 'website',
-    images: [{ url: '/icon-1024.png', width: 1024, height: 1024 }],
+    // Was /icon-1024.png, which does not exist in public/ and returns 404 live —
+    // so this card has been advertising a missing image. icon-512.png is real.
+    images: [{ url: '/icon-512.png', width: 512, height: 512 }],
   },
 };
 
