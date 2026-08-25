@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { ADS, adsConfigured, isAdFree } from '@/lib/ads';
+import { trackingRefused } from '@/lib/dnt';
 
 /**
  * Loads Google AdSense — but ONLY for players who have not bought ad-free.
@@ -18,7 +19,10 @@ import { ADS, adsConfigured, isAdFree } from '@/lib/ads';
  */
 export function AdSenseLoader() {
   useEffect(() => {
-    if (!adsConfigured() || isAdFree()) return;
+    // Also skipped on Do Not Track. Kitchen Table's js/ads.js has refused to
+    // inject the ad network on this signal since it shipped; this file gated on
+    // entitlement only, so a DNT visitor still got AdSense and its cookies.
+    if (!adsConfigured() || isAdFree() || trackingRefused()) return;
     if (document.getElementById('adsbygoogle-js')) return;
     const s = document.createElement('script');
     s.id = 'adsbygoogle-js';

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from 'next/font/google';
 import { AdSenseLoader } from '@/components/AdSenseLoader';
+import { Tracking } from '@/components/Tracking';
 import { SITE_URL } from './site';
 import './globals.css';
 
@@ -66,19 +67,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()`}
         </Script>
 
-        {/* Google Analytics 4 */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-V38MHG6C56"
-          strategy="afterInteractive"
-        />
-        <Script id="ga4-init" strategy="afterInteractive">
-          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-V38MHG6C56');`}
-        </Script>
-
-        {/* Meta (Facebook) Pixel */}
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1948331522667884');fbq('track','PageView');`}
-        </Script>
+        {/* GA4 + Meta Pixel — moved into <Tracking/> so they sit behind a
+            Do-Not-Track gate. They were unconditional inline tags here, three
+            files from an AdSenseLoader that already declined to fetch the ad
+            network for a paying player. See components/Tracking.tsx. */}
+        <Tracking ga4="G-V38MHG6C56" pixel="1948331522667884" />
 
         {/* Google AdSense — loaded client-side ONLY for players who haven't bought
             ad-free, so premium genuinely means no ad network (faster, less hassle). */}
