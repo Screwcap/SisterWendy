@@ -51,6 +51,17 @@ export const metadata: Metadata = {
     // so this card has been advertising a missing image. icon-512.png is real.
     images: [{ url: '/icon-512.png', width: 512, height: 512 }],
   },
+  /* AdSense site verification. Google's own first suggestion is to paste the
+     adsbygoogle.js snippet into <head> unconditionally — do not. That snippet is
+     then fetched by every visitor, including the ones who sent Do Not Track and
+     the ones who paid to remove the ads, which is precisely what AdSenseLoader
+     was written to prevent and what /privacy promises in writing.
+
+     This meta tag is the other method Google documents for the same purpose. It
+     proves ownership identically, sets no cookie and makes no request. */
+  other: {
+    'google-adsense-account': 'ca-pub-2067975098656294',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

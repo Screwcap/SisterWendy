@@ -1,0 +1,6 @@
+# Screwcap Games, LLC — authorised digital sellers (IAB ads.txt)
+#
+# AdSense will not serve on a domain that does not authorise it here, so this
+# file is required for revenue even after the site itself verifies. One line,
+# the Screwcap publisher id, and Google's own exchange id.
+google.com, pub-2067975098656294, DIRECT, f08c47fec0942fa0

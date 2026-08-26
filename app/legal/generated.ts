@@ -7,7 +7,7 @@
  *     ops/legal-kit/build.py sister-wendy
  */
 
-export const UPDATED = '24 August 2026';
+export const UPDATED = '25 August 2026';
 export const CONTACT = 'play@screwcapholdings.com';
 
 export const ABOUT_HTML = `
@@ -19,7 +19,7 @@ export const ABOUT_HTML = `
 <p>Advertising on the free tier — on menus, between hands and on end screens, never during a
    live hand — plus an optional <a href="https://screwcap.gumroad.com/l/sisterwendy">one-time ad-free unlock</a>. That is
    the whole business model for this game. Which analytics and advertising vendors we let near
-   you is listed by name in the <a href="/privacy.html">Privacy Policy</a>; if a tool sets a
+   you is listed by name in the <a href="/privacy">Privacy Policy</a>; if a tool sets a
    cookie, it is in there.</p>
 
 <h2>Who makes it</h2>
