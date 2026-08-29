@@ -170,7 +170,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
         {/* Opponent picker — choose which sister judges you */}
         <div className="mb-8">
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', letterSpacing: '0.2em', color: 'rgba(245,234,216,0.8)', textAlign: 'center', marginBottom: 12 }}>
-            CHOOSE YOUR OPPONENT
+            1 · CHOOSE YOUR OPPONENT
           </div>
           <div className="grid grid-cols-3 gap-3">
             {opponents.map(p => {
@@ -199,7 +199,7 @@ export default function GameSetup({ onStart }: GameSetupProps) {
         {/* Length picker — how long a game (chosen before Forgiving/Focused) */}
         <div className="mb-8">
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', letterSpacing: '0.2em', color: 'rgba(245,234,216,0.8)', textAlign: 'center', marginBottom: 12 }}>
-            HOW LONG ARE YOU STAYING?
+            2 · HOW LONG ARE YOU STAYING?
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {SCORE_MODES.map(sm => {
@@ -223,7 +223,13 @@ export default function GameSetup({ onStart }: GameSetupProps) {
           </p>
         </div>
 
-        {/* Mode cards */}
+        {/* Mode cards — this is the step that actually starts the match, so it
+            gets a numbered header like the two above. Without it, after picking
+            an opponent there was no signal that the cards below are "go" (the
+            game-scan flagged "no obvious next action after picking one"). */}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.66rem', letterSpacing: '0.2em', color: 'rgba(245,234,216,0.8)', textAlign: 'center', marginBottom: 12 }}>
+          3 · CHOOSE A MODE TO BEGIN
+        </div>
         <div className="flex flex-col gap-4 mb-8">
           {MODES.map(mode => {
             const gated = mode.id === 'focused' && focusedGated;
