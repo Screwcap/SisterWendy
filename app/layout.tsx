@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from 'next/font/google';
 import { AdSenseLoader } from '@/components/AdSenseLoader';
 import { Tracking } from '@/components/Tracking';
@@ -99,7 +100,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {`(function(){try{if(typeof DeckBeacon==='undefined')return;var d=DeckBeacon.init({title:'sister-wendy',collect:'/api/deck-collect'});window.deck=d;var _s=localStorage.setItem.bind(localStorage),_t=0;localStorage.setItem=function(k,v){_s(k,v);try{if(/premium|adfree|unlock/i.test(k)&&v&&v!=='false'&&v!=='0'){d.revenue(1.99,'adfree');}else if(/win|round|game|score|hand|play/i.test(k)){var n=Date.now();if(n-_t>2000){_t=n;d.event('round_played');}}}catch(e){}};}catch(e){}})();`}
         </Script>
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
