@@ -27,7 +27,7 @@ const SCREWCAP_GAMES = [
     name: 'THE CHAIR',
     tagline: 'Strategic. Brutal. Comfortable.',
     color: '#74c7bb',   // lightened from the brand #4a9a8f
-    href: 'https://thechair.vercel.app',
+    href: 'https://chairmanmode.app',
   },
   {
     id: 'kitchen-table',

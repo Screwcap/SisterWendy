@@ -34,7 +34,7 @@ import { ScrewcapGamesStrip, SponsorBanner } from './ScrewcapPromo';
 // About pinned far left and the games ranged right.
 const SCREWCAP_FOOTER_GAMES = [
   { id: 'double-fives', name: 'DOUBLE FIVES', color: '#e8809f', href: 'https://doublefives-next.vercel.app' },
-  { id: 'the-chair',    name: 'THE CHAIR',    color: '#74c7bb', href: 'https://thechair.vercel.app' },
+  { id: 'the-chair',    name: 'THE CHAIR',    color: '#74c7bb', href: 'https://chairmanmode.app' },
   { id: 'kitchen-table',name: 'KITCHEN TABLE',color: '#e8b840', href: 'https://kitchen-table-tau.vercel.app' },
   { id: 'dttau',        name: 'DTTAU',        color: '#7cc0ee', href: 'https://dttau.app' },
   { id: 'sutda',        name: 'SUTDA',        color: '#e8809f', href: 'https://www.sutda.games' },
