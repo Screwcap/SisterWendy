@@ -1,6 +1,14 @@
+> # RETIRED: DO NOT RUN OR DEPLOY. Kept for history.
+>
+> **Sister Wendy is retired as a standalone game.** Her personality lives on inside **DoubleFives** (https://doublefives-next.vercel.app):
+> Sister Wendy, Sister Patricia and Abbess Hildegard were ported as optional commentary for DoubleFives' existing opponents
+> (DoubleFives commits `bab5bb1` "Sister Wendy Comes Home (M5): port the commentary, not the game", `83eddc5`, `abb0b9a`, early September 2026).
+> This repository is the original game. Its domain, sisterwendy.com, has no DNS records and nothing is served there, and this
+> repository's Vercel project should stay inactive. Do not run it, deploy it, or re-add its domains. Nothing below describes a live product.
+
 # Sister Wendy Dominoes
 
-**Live:** [sisterwendy.com](https://sisterwendy.com) · A [Screwcap Games](https://screwcap.games) property
+**Was live at sisterwendy.com (no longer; the domain does not resolve)** · A [Screwcap Games](https://screwcap.games) property
 
 > *"Sit down, darling. Let's see what you're made of."* — Sister Wendy Calhoun
 
@@ -20,12 +28,7 @@ Started as a polished dominoes engine with a single grumpy nun. Then the persona
 Next.js 16 / React 19 (App Router), GSAP (Flip animations + intro), Howler (audio), localStorage persistence, Vercel. `lib/wendy.ts` holds the dialogue system; `lib/game.ts` the engine.
 
 ## Run & deploy
-```bash
-npm install
-npm run dev      # local
-npm run build && npm start
-vercel --prod --yes   # deploy (retry --force if a next/font fetch flakes)
-```
+**Retired: do not run or deploy.** The commands that used to be here were removed so nobody follows them by habit; the history of this repository has them.
 
 ## Status
-Live. Spec backlog (`CARL_SPEC_JUNE10.md`): post-game stats screen, win-streak milestones + title progression (lights up the streak sound), the customization suite (felts/tiles/ambient soundscapes), save/resume for long games, and a refreshed icon/portrait set.
+Retired (see the banner at the top). Historical spec backlog, never built (`CARL_SPEC_JUNE10.md`): post-game stats screen, win-streak milestones + title progression (lights up the streak sound), the customization suite (felts/tiles/ambient soundscapes), save/resume for long games, and a refreshed icon/portrait set.
